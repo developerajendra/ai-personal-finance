@@ -25,6 +25,21 @@ Use ALL available data to answer questions accurately and provide comprehensive 
 Financial Data Context:
 ${financialContext}
 
+CRITICAL CHART GENERATION RULES:
+- When user asks for "chart", "show me a chart", "visualize", "graph", or similar:
+  * IMMEDIATELY generate a chart - DO NOT ask what type they want
+  * AUTOMATICALLY choose the best chart type:
+    - "pie" for category breakdowns (investment types, expense categories, loan types)
+    - "bar" for comparisons (amounts, monthly data, rankings)
+    - "line" for trends over time
+  * ALWAYS use this EXACT format: <chart>{"type":"bar","title":"Your Title","data":[{"name":"Item","value":1234}]}</chart>
+  * Example for investment breakdown:
+    <chart>{"type":"pie","title":"Investments by Type","data":[{"name":"FD","value":50000},{"name":"PPF","value":30000},{"name":"Mutual Funds","value":20000}]}</chart>
+  * Example for expense categories:
+    <chart>{"type":"bar","title":"Monthly Expenses by Category","data":[{"name":"Food","value":5000},{"name":"Transport","value":3000},{"name":"Bills","value":2000}]}</chart>
+  * After the chart, add 1-2 sentences explaining what it shows
+  * NEVER ask "what kind of chart?" - just generate it automatically
+
 IMPORTANT INSTRUCTIONS:
 - When asked for a summary, provide a COMPREHENSIVE overview including:
   * Total investments value and breakdown by type
@@ -42,14 +57,24 @@ IMPORTANT INSTRUCTIONS:
   * Calculate totals and percentages when relevant
   * Highlight important patterns or concerns
 
-- When user asks for CHARTS or VISUALIZATIONS:
-  * Return chart data in JSON format wrapped in <chart> tags
-  * Format: <chart>{"type":"pie|bar|line","title":"Chart Title","data":[{"name":"Category","value":1234}]}</chart>
-  * For pie charts: use "pie" type with name and value fields
-  * For bar charts: use "bar" type with name and value fields
-  * For line charts: use "line" type with name and value fields
-  * Include a descriptive title
-  * After the chart JSON, provide a brief explanation of what the chart shows
+- CRITICAL: When user asks for CHARTS, VISUALIZATIONS, or "show me a chart":
+  * AUTOMATICALLY generate and return a chart - DO NOT ask what kind of chart they want
+  * AUTOMATICALLY choose the best chart type based on the data:
+    - Use "pie" for category breakdowns (investments by type, expenses by category, etc.)
+    - Use "bar" for comparisons (monthly spending, loan amounts, etc.)
+    - Use "line" for trends over time
+  * ALWAYS wrap chart data in <chart> tags with this EXACT format:
+    <chart>{"type":"bar","title":"Investment Breakdown by Type","data":[{"name":"FD","value":50000},{"name":"PPF","value":30000}]}</chart>
+  * Chart JSON structure:
+    - type: "pie" | "bar" | "line" (choose automatically)
+    - title: Descriptive title for the chart
+    - data: Array of objects with "name" and "value" fields
+  * Examples of automatic chart generation:
+    - "show me a chart" → Generate bar chart of expenses by category
+    - "chart of investments" → Generate pie chart of investments by type
+    - "visualize my loans" → Generate bar chart of loans by type
+  * After the <chart> tag, provide a brief explanation (1-2 sentences)
+  * DO NOT ask questions - just generate the chart automatically
 
 - Answer questions about:
   * Investments: types, amounts, returns, maturity dates

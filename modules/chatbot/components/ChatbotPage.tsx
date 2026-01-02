@@ -130,19 +130,66 @@ export function ChatbotPage() {
                     let match;
                     let chartIndex = 0;
 
+                    // First, try to find <chart> tags
                     while ((match = chartRegex.exec(message.content)) !== null) {
                       try {
                         const chartData = JSON.parse(match[1]);
-                        charts.push(chartData);
-                        // Replace chart tag with placeholder
-                        processedContent = processedContent.replace(
-                          match[0],
-                          `__CHART_PLACEHOLDER_${chartIndex}__`
-                        );
-                        chartIndex++;
+                        if (chartData.type && chartData.data && Array.isArray(chartData.data)) {
+                          charts.push(chartData);
+                          // Replace chart tag with placeholder
+                          processedContent = processedContent.replace(
+                            match[0],
+                            `__CHART_PLACEHOLDER_${chartIndex}__`
+                          );
+                          chartIndex++;
+                        }
                       } catch (e) {
                         console.error("Error parsing chart data:", e);
                       }
+                    }
+
+                    // If no <chart> tags found, try to find JSON objects that look like chart data
+                    if (charts.length === 0) {
+                      // Look for JSON objects with type, title, and data fields
+                      const jsonChartRegex = /\{[\s\S]*?"type"\s*:\s*"(pie|bar|line)"[\s\S]*?"data"\s*:\s*\[[\s\S]*?\]/g;
+                      let jsonMatch;
+                      while ((jsonMatch = jsonChartRegex.exec(message.content)) !== null) {
+                        try {
+                          // Try to extract the complete JSON object (handle nested objects)
+                          let braceCount = 0;
+                          let jsonStart = jsonMatch.index;
+                          let jsonEnd = jsonStart;
+                          
+                          for (let i = jsonStart; i < message.content.length; i++) {
+                            if (message.content[i] === '{') braceCount++;
+                            if (message.content[i] === '}') braceCount--;
+                            if (braceCount === 0) {
+                              jsonEnd = i + 1;
+                              break;
+                            }
+                          }
+                          
+                          if (jsonEnd > jsonStart) {
+                            const jsonStr = message.content.substring(jsonStart, jsonEnd);
+                            const chartData = JSON.parse(jsonStr);
+                            if (chartData.type && chartData.data && Array.isArray(chartData.data) && chartData.data.length > 0) {
+                              console.log("✅ Found chart data in JSON format:", chartData);
+                              charts.push(chartData);
+                              processedContent = processedContent.replace(
+                                jsonStr,
+                                `__CHART_PLACEHOLDER_${chartIndex}__`
+                              );
+                              chartIndex++;
+                            }
+                          }
+                        } catch (e) {
+                          console.error("Error parsing JSON chart:", e);
+                        }
+                      }
+                    }
+                    
+                    if (charts.length > 0) {
+                      console.log(`✅ Rendered ${charts.length} chart(s) in chatbot response`);
                     }
 
                     // Split content by chart placeholders
