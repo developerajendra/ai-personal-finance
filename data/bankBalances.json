@@ -1,0 +1,28 @@
+[
+  {
+    "id": "bb-ai-1767367354627-0",
+    "bankName": "Kumari Bank",
+    "accountNumber": "",
+    "accountType": "savings",
+    "balance": 793700.526,
+    "currency": "INR",
+    "lastUpdated": "2022-01-01",
+    "description": "Auto-extracted from Excel",
+    "status": "active",
+    "createdAt": "2026-01-02T15:22:34.627Z",
+    "updatedAt": "2026-01-02T15:22:34.627Z"
+  },
+  {
+    "id": "bb-ai-1767367354627-1",
+    "bankName": "Agricultural Development Bank",
+    "accountNumber": "",
+    "accountType": "current",
+    "balance": 1709975.947,
+    "currency": "INR",
+    "lastUpdated": "2022-01-01",
+    "description": "Auto-extracted from Excel",
+    "status": "active",
+    "createdAt": "2026-01-02T15:22:34.627Z",
+    "updatedAt": "2026-01-02T15:22:34.627Z"
+  }
+]

@@ -1,0 +1,282 @@
+[
+  {
+    "id": "excel-1767367308013-0",
+    "date": "2022-01-01T00:00:00.000Z",
+    "amount": 1000000,
+    "description": "Agricultural Development Bank - 5x in 12 Years",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-1",
+    "date": "2022-01-01T00:00:00.000Z",
+    "amount": 1000000,
+    "description": "Kumari Bank - 4x in 14 Years",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-2",
+    "date": "2025-09-05T18:30:00.000Z",
+    "amount": 1000000,
+    "description": "Himal + Vishal - 12% interest ",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-3",
+    "date": "2022-01-01T00:00:00.000Z",
+    "amount": 500000,
+    "description": "shine reaunga Bank - Kushum 2x In 6 Year",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-4",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 130000,
+    "description": "Hari Mazara -  2,400 Per Month",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-5",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 5340433.8,
+    "description": "House Loan",
+    "category": "loan",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-6",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 3206580,
+    "description": "PPF",
+    "category": "investment",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-7",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 577200,
+    "description": "Kushum PPF",
+    "category": "investment",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-8",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 7969787.8,
+    "description": "PF",
+    "category": "investment",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-9",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 382922.8,
+    "description": "Pension",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-10",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 598000,
+    "description": "NPS",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-11",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 16698760,
+    "description": "Stock + Mutual Fund",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-12",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 1430000,
+    "description": "Kushum Stock + Mutual Fund",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-13",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 0,
+    "description": "Nepal Account",
+    "category": "uncategorized",
+    "type": "debit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-14",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 23400000,
+    "description": "Hosue Noida",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-15",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 6741341.958000001,
+    "description": "TTN ESOP",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-16",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 5000000,
+    "description": "Nepal Plot",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308013-17",
+    "date": "2026-01-02T15:21:48.013Z",
+    "amount": 1040000,
+    "description": "FD Small Finacne",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308014-18",
+    "date": "2026-01-02T15:21:48.014Z",
+    "amount": 650000,
+    "description": "FD UTI Bank",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308014-19",
+    "date": "2026-01-02T15:21:48.014Z",
+    "amount": 1690000,
+    "description": "FD Small Finacne",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308014-20",
+    "date": "2026-01-02T15:21:48.014Z",
+    "amount": 78000,
+    "description": "Small finance interest",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308014-21",
+    "date": "2026-01-02T15:21:48.014Z",
+    "amount": 100000,
+    "description": "Bhanja - NC Given on 15th of April",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308014-22",
+    "date": "2026-01-02T15:21:48.014Z",
+    "amount": 50000,
+    "description": "Shova",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308014-23",
+    "date": "2026-01-02T15:21:48.014Z",
+    "amount": 24400,
+    "description": "Durga",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308014-24",
+    "date": "2026-01-02T15:21:48.014Z",
+    "amount": 1820000,
+    "description": "In Hand Rajan",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308014-25",
+    "date": "2026-01-02T15:21:48.014Z",
+    "amount": 78000,
+    "description": "In Hand Kushum",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308014-26",
+    "date": "2026-01-02T15:21:48.014Z",
+    "amount": 1000000,
+    "description": "Gold",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  },
+  {
+    "id": "excel-1767367308014-27",
+    "date": "2026-01-02T15:21:48.014Z",
+    "amount": 55367779.29,
+    "description": "Total",
+    "category": "uncategorized",
+    "type": "credit",
+    "source": "excel",
+    "qualityGrade": "B"
+  }
+]

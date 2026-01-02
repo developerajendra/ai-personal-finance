@@ -1,0 +1,97 @@
+[
+  {
+    "id": "inv-ai-1767367354612-0",
+    "name": "Agricultural Development Bank PPF",
+    "amount": 1709975.947,
+    "type": "ppf",
+    "startDate": "2022-01-01",
+    "interestRate": 12,
+    "description": "Auto-extracted and categorized from Excel",
+    "status": "active",
+    "createdAt": "2026-01-02T15:22:34.613Z",
+    "updatedAt": "2026-01-02T15:22:34.617Z"
+  },
+  {
+    "id": "inv-ai-1767367354617-1",
+    "name": "Kumari Bank PPF",
+    "amount": 1485994.289,
+    "type": "ppf",
+    "startDate": "2022-01-01",
+    "interestRate": 12,
+    "description": "Auto-extracted and categorized from Excel",
+    "status": "active",
+    "createdAt": "2026-01-02T15:22:34.617Z",
+    "updatedAt": "2026-01-02T15:22:34.617Z"
+  },
+  {
+    "id": "inv-ai-1767367354617-2",
+    "name": "Himal + Vishal FD",
+    "amount": 1000000,
+    "type": "fd",
+    "startDate": "2025-09-06",
+    "interestRate": 12,
+    "description": "Auto-extracted and categorized from Excel",
+    "status": "active",
+    "createdAt": "2026-01-02T15:22:34.617Z",
+    "updatedAt": "2026-01-02T15:22:34.617Z"
+  },
+  {
+    "id": "inv-ai-1767367354617-3",
+    "name": "Shine Reaunga Bank FD",
+    "amount": 793700.526,
+    "type": "fd",
+    "startDate": "2022-01-01",
+    "maturityDate": "2027-01-01",
+    "interestRate": 6,
+    "description": "Auto-extracted and categorized from Excel",
+    "status": "active",
+    "createdAt": "2026-01-02T15:22:34.617Z",
+    "updatedAt": "2026-01-02T15:22:34.617Z"
+  },
+  {
+    "id": "inv-ai-1767367354617-4",
+    "name": "PPF",
+    "amount": 1973280,
+    "type": "ppf",
+    "startDate": "2026-01-02T15:22:34.617Z",
+    "interestRate": 12,
+    "description": "Auto-extracted and categorized from Excel",
+    "status": "active",
+    "createdAt": "2026-01-02T15:22:34.617Z",
+    "updatedAt": "2026-01-02T15:22:34.617Z"
+  },
+  {
+    "id": "inv-ai-1767367354617-5",
+    "name": "Kushum PPF",
+    "amount": 355200,
+    "type": "ppf",
+    "startDate": "2026-01-02T15:22:34.617Z",
+    "interestRate": 12,
+    "description": "Auto-extracted and categorized from Excel",
+    "status": "active",
+    "createdAt": "2026-01-02T15:22:34.617Z",
+    "updatedAt": "2026-01-02T15:22:34.617Z"
+  },
+  {
+    "id": "inv-ai-1767367354617-6",
+    "name": "Stock + Mutual Fund",
+    "amount": 10276160,
+    "type": "stocks",
+    "startDate": "2026-01-02T15:22:34.617Z",
+    "description": "Auto-extracted and categorized from Excel",
+    "status": "active",
+    "createdAt": "2026-01-02T15:22:34.617Z",
+    "updatedAt": "2026-01-02T15:22:34.617Z"
+  },
+  {
+    "id": "inv-ai-1767367354617-7",
+    "name": "Kushum Stock + Mutual Fund",
+    "amount": 880000,
+    "type": "stocks",
+    "startDate": "2026-01-02T15:22:34.617Z",
+    "description": "Auto-extracted and categorized from Excel",
+    "status": "active",
+    "createdAt": "2026-01-02T15:22:34.617Z",
+    "updatedAt": "2026-01-02T15:22:34.617Z"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "prop-ai-1767367354627-0",
+    "name": "House",
+    "type": "house",
+    "purchasePrice": 14400000,
+    "purchaseDate": "2022-01-01",
+    "location": "Unknown",
+    "description": "Auto-extracted and categorized from Excel",
+    "status": "owned",
+    "createdAt": "2026-01-02T15:22:34.627Z",
+    "updatedAt": "2026-01-02T15:22:34.627Z"
+  }
+]
