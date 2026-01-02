@@ -38,6 +38,7 @@ export function BankBalanceForm({
       lastUpdated: formData.lastUpdated ? new Date(formData.lastUpdated).toISOString() : new Date().toISOString(),
       description: formData.description,
       status: formData.status || "active",
+      isPublished: initialData?.isPublished ?? true, // Preserve existing or default to true for new items
       createdAt: initialData?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

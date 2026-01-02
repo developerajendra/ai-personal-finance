@@ -39,6 +39,7 @@ export function PropertyForm({ property, onSave, onCancel }: PropertyFormProps) 
       location: formData.location || "",
       description: formData.description,
       status: formData.status || "owned",
+      isPublished: property?.isPublished ?? true, // Preserve existing or default to true for new items
       createdAt: property?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

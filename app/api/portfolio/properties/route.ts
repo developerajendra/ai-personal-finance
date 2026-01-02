@@ -8,18 +8,30 @@ export async function GET(request: NextRequest) {
   try {
     initializeStorage();
     const jsonData = loadFromJson<Property>("properties");
-    properties.splice(0, properties.length, ...jsonData);
+    // Ensure isPublished field exists (default to false for backward compatibility)
+    const normalizedData = jsonData.map(prop => ({
+      ...prop,
+      isPublished: prop.isPublished ?? false
+    }));
+    properties.splice(0, properties.length, ...normalizedData);
     
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "100");
+    
+    // Filter by isPublished if specified
+    let filteredData = properties;
+    if (searchParams.has("isPublished")) {
+      const isPublished = searchParams.get("isPublished") === "true";
+      filteredData = properties.filter(p => (p.isPublished ?? false) === isPublished);
+    }
 
     if (searchParams.has("page") || searchParams.has("pageSize")) {
-      const paginated = paginate<Property>(properties, { page, pageSize });
+      const paginated = paginate<Property>(filteredData, { page, pageSize });
       return NextResponse.json(paginated);
     }
 
-    return NextResponse.json(properties);
+    return NextResponse.json(filteredData);
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch properties" },
@@ -32,13 +44,20 @@ export async function POST(request: NextRequest) {
   try {
     initializeStorage();
     const jsonData = loadFromJson<Property>("properties");
-    properties.splice(0, properties.length, ...jsonData);
+    // Ensure isPublished field exists (default to false for backward compatibility)
+    const normalizedData = jsonData.map(prop => ({
+      ...prop,
+      isPublished: prop.isPublished ?? false
+    }));
+    properties.splice(0, properties.length, ...normalizedData);
     
     const property: Property = await request.json();
-    properties.push(property);
+    // Ensure isPublished is set (default to true for manually created items)
+    const propertyToAdd = { ...property, isPublished: property.isPublished ?? true };
+    properties.push(propertyToAdd);
     saveToJson("properties", properties);
     
-    return NextResponse.json(property, { status: 201 });
+    return NextResponse.json(propertyToAdd, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to create property" },

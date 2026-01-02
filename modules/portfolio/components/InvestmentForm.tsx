@@ -43,6 +43,7 @@ export function InvestmentForm({ investment, onSave, onCancel }: InvestmentFormP
       interestRate: formData.interestRate,
       description: formData.description,
       status: formData.status || "active",
+      isPublished: investment?.isPublished ?? true, // Preserve existing or default to true for new items
       createdAt: investment?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

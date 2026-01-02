@@ -6,42 +6,199 @@ import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChatChart } from "./ChatChart";
+import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 
 export function ChatbotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const [isVoiceMode, setIsVoiceMode] = useState(false); // Track if we're in voice conversation mode
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const synthRef = useRef<SpeechSynthesis | null>(null);
+  const isVoiceInputRef = useRef(false); // Track if current input came from voice
+  const isVoiceModeRef = useRef(false); // Ref to track voice mode for callbacks
+  const isLoadingRef = useRef(false); // Ref to track loading state for callbacks
   const { transactions, summary, categories } = useFinancialData();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Keep refs in sync with state
+  useEffect(() => {
+    isVoiceModeRef.current = isVoiceMode;
+  }, [isVoiceMode]);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  // Initialize speech recognition and synthesis
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Check for speech recognition support
+      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "en-US";
+
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          const transcript = event.results[0][0].transcript;
+          setIsListening(false);
+          // Mark that this input came from voice
+          isVoiceInputRef.current = true;
+          // If in voice mode, immediately send without showing in input field
+          if (isVoiceModeRef.current) {
+            // Immediately process voice input without waiting
+            handleSendFromVoice(transcript);
+          } else {
+            // If not in voice mode, just set the input
+            setInput(transcript);
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Speech recognition error:", event.error);
+          setIsListening(false);
+          if (event.error === "no-speech" && isVoiceModeRef.current) {
+            // If no speech detected in voice mode, restart listening
+            setTimeout(() => {
+              if (recognitionRef.current && !isLoadingRef.current) {
+                try {
+                  recognitionRef.current.start();
+                } catch (e) {
+                  // Ignore errors
+                }
+              }
+            }, 500);
+          }
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+          // In voice mode, automatically restart listening after a short delay (only if not loading)
+          if (isVoiceModeRef.current && !isLoadingRef.current) {
+            setTimeout(() => {
+              if (recognitionRef.current && isVoiceModeRef.current && !isLoadingRef.current) {
+                try {
+                  recognitionRef.current.start();
+                } catch (e) {
+                  // Ignore errors if already started
+                }
+              }
+            }, 800);
+          }
+        };
+
+        recognitionRef.current = recognition;
+      }
+
+      // Initialize speech synthesis
+      synthRef.current = window.speechSynthesis;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+    };
+  }, []);
+
   const addMessage = (message: ChatMessage) => {
     setMessages((prev) => [...prev, message]);
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const speakText = (text: string, onEnd?: () => void) => {
+    if (!isVoiceEnabled || !synthRef.current) {
+      if (onEnd) onEnd();
+      return;
+    }
 
+    // Remove markdown and chart placeholders for speech
+    const cleanText = text
+      .replace(/<chart>.*?<\/chart>/gs, "")
+      .replace(/__CHART_PLACEHOLDER_\d+__/g, "")
+      .replace(/[#*_`\[\]()]/g, "")
+      .replace(/\n+/g, ". ")
+      .trim();
+
+    if (cleanText) {
+      synthRef.current.cancel(); // Cancel any ongoing speech
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      
+      if (onEnd) {
+        utterance.onend = onEnd;
+      }
+      
+      synthRef.current.speak(utterance);
+    } else {
+      if (onEnd) onEnd();
+    }
+  };
+
+  const startListening = () => {
+    if (recognitionRef.current && !isListening && !isLoadingRef.current) {
+      try {
+        setIsVoiceMode(true); // Enter voice conversation mode
+        isVoiceModeRef.current = true;
+        setIsVoiceEnabled(true); // Auto-enable voice output in voice mode
+        // Start listening immediately
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
+      }
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsVoiceMode(false); // Exit voice conversation mode
+    isVoiceModeRef.current = false;
+    setIsListening(false);
+    // Cancel any ongoing speech
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
+  };
+
+  const handleSendFromVoice = async (transcript: string) => {
+    if (!transcript.trim() || isLoadingRef.current) return;
+
+    // Immediately add user message to chat
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: transcript,
       timestamp: new Date(),
     };
 
     addMessage(userMessage);
-    setInput("");
     setIsLoading(true);
+    isLoadingRef.current = true;
 
     try {
       const response = await fetch("/api/modules/chatbot/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: input,
+          message: transcript,
           context: {
             transactions,
             summary,
@@ -60,6 +217,27 @@ export function ChatbotPage() {
       };
 
       addMessage(assistantMessage);
+      
+      // Immediately speak the response without waiting
+      speakText(data.response, () => {
+        // After speaking finishes, restart listening in voice mode
+        if (isVoiceModeRef.current && recognitionRef.current) {
+          isLoadingRef.current = false;
+          setIsLoading(false);
+          setTimeout(() => {
+            try {
+              if (isVoiceModeRef.current && !isLoadingRef.current) {
+                recognitionRef.current.start();
+              }
+            } catch (e) {
+              // Ignore errors
+            }
+          }, 300);
+        } else {
+          isLoadingRef.current = false;
+          setIsLoading(false);
+        }
+      });
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMessage: ChatMessage = {
@@ -69,6 +247,110 @@ export function ChatbotPage() {
         timestamp: new Date(),
       };
       addMessage(errorMessage);
+      speakText(errorMessage.content, () => {
+        isLoadingRef.current = false;
+        setIsLoading(false);
+        if (isVoiceModeRef.current && recognitionRef.current) {
+          setTimeout(() => {
+            try {
+              if (isVoiceModeRef.current && !isLoadingRef.current) {
+                recognitionRef.current.start();
+              }
+            } catch (e) {
+              // Ignore errors
+            }
+          }, 300);
+        }
+      });
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input,
+      timestamp: new Date(),
+    };
+
+    addMessage(userMessage);
+    const messageToSend = input;
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/modules/chatbot/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: messageToSend,
+          context: {
+            transactions,
+            summary,
+            categories,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.response,
+        timestamp: new Date(),
+      };
+
+      addMessage(assistantMessage);
+      
+      // Speak the response if voice is enabled
+      // In voice mode, automatically restart listening after speaking
+      if (isVoiceEnabled || isVoiceMode) {
+        if (isVoiceMode) {
+          speakText(data.response, () => {
+            // After speaking finishes, restart listening
+            if (recognitionRef.current && !isLoadingRef.current) {
+              setTimeout(() => {
+                try {
+                  recognitionRef.current?.start();
+                } catch (e) {
+                  // Ignore errors
+                }
+              }, 500);
+            }
+          });
+        } else {
+          speakText(data.response);
+        }
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, I encountered an error. Please try again.",
+        timestamp: new Date(),
+      };
+      addMessage(errorMessage);
+      if (isVoiceEnabled || isVoiceMode) {
+        if (isVoiceMode) {
+          speakText(errorMessage.content, () => {
+            if (recognitionRef.current && !isLoadingRef.current) {
+              setTimeout(() => {
+                try {
+                  recognitionRef.current?.start();
+                } catch (e) {
+                  // Ignore errors
+                }
+              }, 500);
+            }
+          });
+        } else {
+          speakText(errorMessage.content);
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -239,16 +521,49 @@ export function ChatbotPage() {
       </div>
 
       <div className="p-6 border-t bg-gray-50">
-        <div className="flex gap-4 max-w-4xl mx-auto">
+        <div className="flex gap-2 max-w-4xl mx-auto">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            placeholder="Ask about your finances..."
+            placeholder="Ask about your finances or click mic to speak..."
             className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
+            disabled={isLoading || isListening}
           />
+          <button
+            onClick={isListening || isVoiceMode ? stopListening : startListening}
+            disabled={isLoading}
+            className={`px-4 py-3 rounded-lg font-semibold transition-colors ${
+              isListening || isVoiceMode
+                ? "bg-red-600 text-white hover:bg-red-700 animate-pulse"
+                : "bg-purple-600 text-white hover:bg-purple-700"
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            title={isListening || isVoiceMode ? "Stop Talk Mode" : "Start Talk Mode - Speak naturally"}
+          >
+            {isListening || isVoiceMode ? (
+              <>
+                <MicOff className="w-5 h-5 inline mr-2" />
+                Talk Mode
+              </>
+            ) : (
+              <>
+                <Mic className="w-5 h-5 inline mr-2" />
+                Talk Mode
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
+            className={`px-4 py-3 rounded-lg font-semibold transition-colors ${
+              isVoiceEnabled
+                ? "bg-green-600 text-white hover:bg-green-700"
+                : "bg-gray-400 text-white hover:bg-gray-500"
+            }`}
+            title={isVoiceEnabled ? "Voice output enabled" : "Voice output disabled"}
+          >
+            {isVoiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+          </button>
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}

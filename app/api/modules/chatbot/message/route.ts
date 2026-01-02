@@ -20,8 +20,15 @@ export async function POST(request: NextRequest) {
     initializeStorage();
     const portfolioData = loadAllPortfolioData();
 
+    // Filter to only published items for dashboard/analytics (chatbot should use published data)
+    const publishedInvestments = (portfolioData.investments || []).filter((inv: any) => inv.isPublished === true);
+    const publishedLoans = (portfolioData.loans || []).filter((loan: any) => loan.isPublished === true);
+    const publishedProperties = (portfolioData.properties || []).filter((prop: any) => prop.isPublished === true);
+    const publishedBankBalances = (portfolioData.bankBalances || []).filter((bb: any) => bb.isPublished === true);
+
     // Merge provided context with loaded portfolio data
     // If context is provided, use it; otherwise use loaded data
+    // For portfolio items, use published data only (for accurate analytics)
     const chatContext: ChatContext = {
       transactions: context?.transactions || portfolioData.transactions || [],
       summary: context?.summary || {
@@ -33,10 +40,10 @@ export async function POST(request: NextRequest) {
       categories: context?.categories || Array.from(
         new Set((portfolioData.transactions || []).map((t: any) => t.category))
       ),
-      investments: context?.investments || portfolioData.investments || [],
-      loans: context?.loans || portfolioData.loans || [],
-      properties: context?.properties || portfolioData.properties || [],
-      bankBalances: context?.bankBalances || portfolioData.bankBalances || [],
+      investments: context?.investments || publishedInvestments,
+      loans: context?.loans || publishedLoans,
+      properties: context?.properties || publishedProperties,
+      bankBalances: context?.bankBalances || publishedBankBalances,
     };
 
     console.log(`[Chatbot] Loaded context: ${chatContext.transactions.length} transactions, ${chatContext.investments?.length || 0} investments, ${chatContext.loans?.length || 0} loans, ${chatContext.properties?.length || 0} properties, ${chatContext.bankBalances?.length || 0} bank balances`);

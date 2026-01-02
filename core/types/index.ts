@@ -66,6 +66,7 @@ export interface Investment {
   interestRate?: number;
   description?: string;
   status: "active" | "matured" | "closed";
+  isPublished: boolean; // Draft (false) or Published (true)
   createdAt: string;
   updatedAt: string;
 }
@@ -84,6 +85,7 @@ export interface Loan {
   tenureMonths: number;
   description?: string;
   status: "active" | "closed" | "foreclosed";
+  isPublished: boolean; // Draft (false) or Published (true)
   createdAt: string;
   updatedAt: string;
 }
@@ -98,6 +100,7 @@ export interface Property {
   location: string;
   description?: string;
   status: "owned" | "rented-out" | "under-construction";
+  isPublished: boolean; // Draft (false) or Published (true)
   createdAt: string;
   updatedAt: string;
 }
@@ -112,6 +115,7 @@ export interface BankBalance {
   lastUpdated: string; // ISO date string
   description?: string;
   status: "active" | "closed" | "dormant";
+  isPublished: boolean; // Draft (false) or Published (true)
   createdAt: string;
   updatedAt: string;
 }

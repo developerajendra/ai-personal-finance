@@ -21,27 +21,27 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"
 
 export function PortfolioAnalytics() {
   const { data: investments = [] } = useQuery<Investment[]>({
-    queryKey: ["investments"],
+    queryKey: ["investments", "published"],
     queryFn: async () => {
-      const response = await fetch("/api/portfolio/investments");
+      const response = await fetch("/api/portfolio/investments?isPublished=true");
       if (!response.ok) throw new Error("Failed to fetch investments");
       return response.json();
     },
   });
 
   const { data: loans = [] } = useQuery<Loan[]>({
-    queryKey: ["loans"],
+    queryKey: ["loans", "published"],
     queryFn: async () => {
-      const response = await fetch("/api/portfolio/loans");
+      const response = await fetch("/api/portfolio/loans?isPublished=true");
       if (!response.ok) throw new Error("Failed to fetch loans");
       return response.json();
     },
   });
 
   const { data: properties = [] } = useQuery<Property[]>({
-    queryKey: ["properties"],
+    queryKey: ["properties", "published"],
     queryFn: async () => {
-      const response = await fetch("/api/portfolio/properties");
+      const response = await fetch("/api/portfolio/properties?isPublished=true");
       if (!response.ok) throw new Error("Failed to fetch properties");
       return response.json();
     },

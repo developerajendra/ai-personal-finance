@@ -257,6 +257,7 @@ REMEMBER: Your goal is to TRANSFORM raw Excel data into a comprehensive financia
           interestRate: inv.interestRate ? parseFloat(String(inv.interestRate).replace(/,/g, "")) : undefined,
           description: `Auto-extracted and categorized from Excel`,
           status: (inv.status || "active") as Investment["status"],
+          isPublished: false, // All Excel-imported items start as draft
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -287,6 +288,7 @@ REMEMBER: Your goal is to TRANSFORM raw Excel data into a comprehensive financia
         tenureMonths: parseInt(String(loan.tenureMonths)) || 0,
         description: `Auto-extracted and categorized from Excel`,
         status: (loan.status || "active") as Loan["status"],
+        isPublished: false, // All Excel-imported items start as draft
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -313,6 +315,7 @@ REMEMBER: Your goal is to TRANSFORM raw Excel data into a comprehensive financia
           location: prop.location || "Unknown",
           description: `Auto-extracted and categorized from Excel`,
           status: (prop.status || "owned") as Property["status"],
+          isPublished: false, // All Excel-imported items start as draft
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -332,6 +335,7 @@ REMEMBER: Your goal is to TRANSFORM raw Excel data into a comprehensive financia
           lastUpdated: bb.lastUpdated || new Date().toISOString(),
           description: `Auto-extracted from Excel`,
           status: (bb.status || "active") as BankBalance["status"],
+          isPublished: false, // All Excel-imported items start as draft
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };

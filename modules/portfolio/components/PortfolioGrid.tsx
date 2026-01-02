@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Investment, Loan, Property, BankBalance } from '@/core/types';
-import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle } from 'lucide-react';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
 import { PropertyForm } from './PropertyForm';
@@ -10,26 +10,117 @@ import { BankBalanceForm } from './BankBalanceForm';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
 type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance';
+type ViewMode = 'draft' | 'published';
 
 export function PortfolioGrid() {
   const [activeTab, setActiveTab] = useState<ItemType>('investment');
+  const [viewMode, setViewMode] = useState<ViewMode>('draft');
   const [items, setItems] = useState<PortfolioItem[]>([]);
+  const [draftCount, setDraftCount] = useState<number>(0);
+  const [publishedCount, setPublishedCount] = useState<number>(0);
+  const [tabCounts, setTabCounts] = useState<Record<ItemType, number>>({
+    investment: 0,
+    loan: 0,
+    property: 0,
+    'bank-balance': 0,
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<ItemType>('investment');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Fetch counts for all tabs
+  useEffect(() => {
+    const fetchAllTabCounts = async () => {
+      const tabs: ItemType[] = ['investment', 'loan', 'property', 'bank-balance'];
+      
+      const counts = await Promise.all(
+        tabs.map(async (tab) => {
+          try {
+            let endpoint;
+            if (tab === 'bank-balance') {
+              endpoint = `/api/portfolio/bank-balances`;
+            } else if (tab === 'property') {
+              endpoint = `/api/portfolio/properties`;
+            } else {
+              endpoint = `/api/portfolio/${tab}s`;
+            }
+
+            const [draftResponse, publishedResponse] = await Promise.all([
+              fetch(`${endpoint}?isPublished=false`, { cache: 'no-store' }),
+              fetch(`${endpoint}?isPublished=true`, { cache: 'no-store' }),
+            ]);
+
+            let draftCount = 0;
+            let publishedCount = 0;
+
+            if (draftResponse.ok) {
+              const draftData = await draftResponse.json();
+              const draftArray = Array.isArray(draftData) ? draftData : draftData.data || [];
+              draftCount = draftArray.length;
+            }
+
+            if (publishedResponse.ok) {
+              const publishedData = await publishedResponse.json();
+              const publishedArray = Array.isArray(publishedData) ? publishedData : publishedData.data || [];
+              publishedCount = publishedArray.length;
+            }
+
+            return { tab, count: draftCount + publishedCount, draftCount, publishedCount };
+          } catch (error) {
+            console.error(`Error fetching counts for ${tab}:`, error);
+            return { tab, count: 0, draftCount: 0, publishedCount: 0 };
+          }
+        })
+      );
+
+      const newTabCounts: Record<ItemType, number> = {
+        investment: 0,
+        loan: 0,
+        property: 0,
+        'bank-balance': 0,
+      };
+
+      counts.forEach(({ tab, count }) => {
+        newTabCounts[tab] = count;
+      });
+
+      setTabCounts(newTabCounts);
+
+      // Also update draft and published counts for current tab
+      const currentTabData = counts.find((c) => c.tab === activeTab);
+      if (currentTabData) {
+        setDraftCount(currentTabData.draftCount);
+        setPublishedCount(currentTabData.publishedCount);
+      }
+    };
+
+    fetchAllTabCounts();
+  }, [activeTab]);
 
   // Fetch data on mount and when tab changes
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Handle bank-balance endpoint (uses bank-balances, not bank-balances)
-        const endpoint =
-          activeTab === 'bank-balance'
-            ? `/api/portfolio/bank-balances`
-            : `/api/portfolio/${activeTab}s`;
+        // Handle special endpoint cases
+        let endpoint;
+        if (activeTab === 'bank-balance') {
+          endpoint = `/api/portfolio/bank-balances`;
+        } else if (activeTab === 'property') {
+          endpoint = `/api/portfolio/properties`; // properties (not propertys)
+        } else {
+          endpoint = `/api/portfolio/${activeTab}s`;
+        }
+        
+        // Add isPublished filter
+        const isPublished = viewMode === 'published';
+        endpoint += `?isPublished=${isPublished}`;
+        
         console.log(
-          `[PortfolioGrid] 🔄 Fetching ${activeTab}s from: ${endpoint}`
+          `[PortfolioGrid] 🔄 Fetching ${activeTab}s (${viewMode}) from: ${endpoint}`
         );
         const response = await fetch(endpoint, {
           cache: 'no-store', // Ensure fresh data
@@ -71,7 +162,22 @@ export function PortfolioGrid() {
     // Set up polling for real-time updates (every 3 seconds for faster updates)
     const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
-  }, [activeTab]);
+  }, [activeTab, viewMode]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openMenuId) {
+        const menuElement = menuRefs.current[openMenuId];
+        if (menuElement && !menuElement.contains(event.target as Node)) {
+          setOpenMenuId(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenuId]);
 
   const handleAdd = (type: ItemType) => {
     setFormType(type);
@@ -89,13 +195,23 @@ export function PortfolioGrid() {
 
   const handleSave = async (item: PortfolioItem) => {
     try {
+      // Manually created items should be published by default (admin is creating them)
+      const itemToSave = { ...item, isPublished: editingId ? item.isPublished : true };
+
       if (editingId && editingItem) {
         // Update existing item
-        const endpoint = `/api/portfolio/${formType}s/${editingId}`;
+        let endpoint;
+        if (formType === 'bank-balance') {
+          endpoint = `/api/portfolio/bank-balances/${editingId}`;
+        } else if (formType === 'property') {
+          endpoint = `/api/portfolio/properties/${editingId}`;
+        } else {
+          endpoint = `/api/portfolio/${formType}s/${editingId}`;
+        }
         const response = await fetch(endpoint, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...item, id: editingId }),
+          body: JSON.stringify({ ...itemToSave, id: editingId }),
         });
 
         if (response.ok) {
@@ -103,33 +219,142 @@ export function PortfolioGrid() {
           setEditingId(null);
           setEditingItem(null);
           // Refresh the list
-          const refreshResponse = await fetch(`/api/portfolio/${activeTab}s`);
+          let refreshEndpoint;
+          if (activeTab === 'bank-balance') {
+            refreshEndpoint = `/api/portfolio/bank-balances`;
+          } else if (activeTab === 'property') {
+            refreshEndpoint = `/api/portfolio/properties`;
+          } else {
+            refreshEndpoint = `/api/portfolio/${activeTab}s`;
+          }
+          const isPublished = viewMode === 'published';
+          const refreshResponse = await fetch(`${refreshEndpoint}?isPublished=${isPublished}`);
           if (refreshResponse.ok) {
             const data = await refreshResponse.json();
-            setItems(data);
+            const itemsArray = Array.isArray(data) ? data : data.data || [];
+            setItems(itemsArray);
           }
         }
       } else {
         // Create new item
-        const endpoint = `/api/portfolio/${formType}s`;
+        let endpoint;
+        if (formType === 'bank-balance') {
+          endpoint = `/api/portfolio/bank-balances`;
+        } else if (formType === 'property') {
+          endpoint = `/api/portfolio/properties`;
+        } else {
+          endpoint = `/api/portfolio/${formType}s`;
+        }
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(item),
+          body: JSON.stringify(itemToSave),
         });
 
         if (response.ok) {
           setShowForm(false);
           // Refresh the list
-          const refreshResponse = await fetch(`/api/portfolio/${activeTab}s`);
+          let refreshEndpoint;
+          if (activeTab === 'bank-balance') {
+            refreshEndpoint = `/api/portfolio/bank-balances`;
+          } else if (activeTab === 'property') {
+            refreshEndpoint = `/api/portfolio/properties`;
+          } else {
+            refreshEndpoint = `/api/portfolio/${activeTab}s`;
+          }
+          const isPublished = viewMode === 'published';
+          const refreshResponse = await fetch(`${refreshEndpoint}?isPublished=${isPublished}`);
           if (refreshResponse.ok) {
             const data = await refreshResponse.json();
-            setItems(data);
+            const itemsArray = Array.isArray(data) ? data : data.data || [];
+            setItems(itemsArray);
           }
         }
       }
     } catch (error) {
       console.error('Error saving item:', error);
+    }
+  };
+
+  const handlePublishToggle = async (id: string, currentStatus: boolean) => {
+    try {
+      setOpenMenuId(null); // Close menu
+      
+      const response = await fetch('/api/portfolio/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: activeTab,
+          id,
+          isPublished: !currentStatus,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update publish status');
+
+      const newStatus = !currentStatus;
+      setToast({
+        message: newStatus 
+          ? 'Item successfully published!' 
+          : 'Item moved to draft successfully!',
+        type: 'success'
+      });
+
+      // Hide toast after 3 seconds
+      setTimeout(() => setToast(null), 3000);
+
+      // Refresh data and counts
+      let endpoint;
+      if (activeTab === 'bank-balance') {
+        endpoint = `/api/portfolio/bank-balances`;
+      } else if (activeTab === 'property') {
+        endpoint = `/api/portfolio/properties`;
+      } else {
+        endpoint = `/api/portfolio/${activeTab}s`;
+      }
+      
+      const isPublished = viewMode === 'published';
+      const [refreshResponse, draftCountResponse, publishedCountResponse] = await Promise.all([
+        fetch(`${endpoint}?isPublished=${isPublished}`, { cache: 'no-store' }),
+        fetch(`${endpoint}?isPublished=false`, { cache: 'no-store' }),
+        fetch(`${endpoint}?isPublished=true`, { cache: 'no-store' }),
+      ]);
+
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json();
+        const itemsArray = Array.isArray(data) ? data : data.data || [];
+        setItems(itemsArray);
+      }
+
+      let draftCount = 0;
+      let publishedCount = 0;
+
+      if (draftCountResponse.ok) {
+        const draftData = await draftCountResponse.json();
+        const draftArray = Array.isArray(draftData) ? draftData : draftData.data || [];
+        draftCount = draftArray.length;
+        setDraftCount(draftCount);
+      }
+
+      if (publishedCountResponse.ok) {
+        const publishedData = await publishedCountResponse.json();
+        const publishedArray = Array.isArray(publishedData) ? publishedData : publishedData.data || [];
+        publishedCount = publishedArray.length;
+        setPublishedCount(publishedCount);
+      }
+
+      // Update tab counts
+      setTabCounts((prev) => ({
+        ...prev,
+        [activeTab]: draftCount + publishedCount,
+      }));
+    } catch (error) {
+      console.error('Error toggling publish status:', error);
+      setToast({
+        message: 'Failed to update publish status. Please try again.',
+        type: 'error'
+      });
+      setTimeout(() => setToast(null), 3000);
     }
   };
 
@@ -186,9 +411,9 @@ export function PortfolioGrid() {
         'purchasePrice' in item &&
         typeof item.purchasePrice === 'number' &&
         'location' in item &&
-        !('amount' in item && !('purchasePrice' in item)) &&
         !('principalAmount' in item) &&
-        !('bankName' in item)
+        !('bankName' in item) &&
+        !('amount' in item) // Properties don't have 'amount', investments do
       );
     }
     if (activeTab === 'bank-balance') {
@@ -223,42 +448,104 @@ export function PortfolioGrid() {
           </button>
         </div>
 
-        <div className="flex gap-2 border-b">
+        <div className="flex gap-2 border-b mb-4">
           <button
             onClick={() => setActiveTab('investment')}
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium flex items-center gap-2 ${
               activeTab === 'investment'
                 ? 'border-b-2 border-blue-600 text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}>
             Investments
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              activeTab === 'investment' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'bg-gray-100 text-gray-700'
+            }`}>
+              {tabCounts.investment}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('loan')}
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium flex items-center gap-2 ${
               activeTab === 'loan'
                 ? 'border-b-2 border-blue-600 text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}>
             Loans
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              activeTab === 'loan' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'bg-gray-100 text-gray-700'
+            }`}>
+              {tabCounts.loan}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('property')}
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium flex items-center gap-2 ${
               activeTab === 'property'
                 ? 'border-b-2 border-blue-600 text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}>
             Properties
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              activeTab === 'property' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'bg-gray-100 text-gray-700'
+            }`}>
+              {tabCounts.property}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('bank-balance')}
-            className={`px-4 py-2 font-medium ${
+            className={`px-4 py-2 font-medium flex items-center gap-2 ${
               activeTab === 'bank-balance'
                 ? 'border-b-2 border-blue-600 text-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}>
             Bank Balance
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              activeTab === 'bank-balance' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'bg-gray-100 text-gray-700'
+            }`}>
+              {tabCounts['bank-balance']}
+            </span>
+          </button>
+        </div>
+
+        {/* Draft/Published Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewMode('draft')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 ${
+              viewMode === 'draft'
+                ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}>
+            <Circle className="w-4 h-4" />
+            Draft
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              viewMode === 'draft' ? 'bg-yellow-200 text-yellow-900' : 'bg-gray-200 text-gray-700'
+            }`}>
+              {draftCount}
+            </span>
+          </button>
+          <button
+            onClick={() => setViewMode('published')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 ${
+              viewMode === 'published'
+                ? 'bg-green-100 text-green-800 border-2 border-green-300'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}>
+            <CheckCircle className="w-4 h-4" />
+            Published
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              viewMode === 'published' ? 'bg-green-200 text-green-900' : 'bg-gray-200 text-gray-700'
+            }`}>
+              {publishedCount}
+            </span>
           </button>
         </div>
       </div>
@@ -318,6 +605,11 @@ export function PortfolioGrid() {
             investments={filteredItems as Investment[]}
             onDelete={(id) => handleDelete(id, 'investment')}
             onEdit={(item) => handleEdit(item)}
+            onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
+            viewMode={viewMode}
+            openMenuId={openMenuId}
+            setOpenMenuId={setOpenMenuId}
+            menuRefs={menuRefs}
           />
         )}
         {activeTab === 'loan' && (
@@ -325,6 +617,11 @@ export function PortfolioGrid() {
             loans={filteredItems as Loan[]}
             onDelete={(id) => handleDelete(id, 'loan')}
             onEdit={(item) => handleEdit(item)}
+            onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
+            viewMode={viewMode}
+            openMenuId={openMenuId}
+            setOpenMenuId={setOpenMenuId}
+            menuRefs={menuRefs}
           />
         )}
         {activeTab === 'property' && (
@@ -332,6 +629,11 @@ export function PortfolioGrid() {
             properties={filteredItems as Property[]}
             onDelete={(id) => handleDelete(id, 'property')}
             onEdit={(item) => handleEdit(item)}
+            onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
+            viewMode={viewMode}
+            openMenuId={openMenuId}
+            setOpenMenuId={setOpenMenuId}
+            menuRefs={menuRefs}
           />
         )}
         {activeTab === 'bank-balance' && (
@@ -339,6 +641,11 @@ export function PortfolioGrid() {
             bankBalances={filteredItems as BankBalance[]}
             onDelete={(id) => handleDelete(id, 'bank-balance')}
             onEdit={(item) => handleEdit(item)}
+            onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
+            viewMode={viewMode}
+            openMenuId={openMenuId}
+            setOpenMenuId={setOpenMenuId}
+            menuRefs={menuRefs}
           />
         )}
 
@@ -354,6 +661,22 @@ export function PortfolioGrid() {
           </div>
         )}
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 ${
+          toast.type === 'success' 
+            ? 'bg-green-500 text-white' 
+            : 'bg-red-500 text-white'
+        }`}>
+          {toast.type === 'success' ? (
+            <CheckCircle className="w-5 h-5" />
+          ) : (
+            <XCircle className="w-5 h-5" />
+          )}
+          <span className="font-medium">{toast.message}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -362,10 +685,20 @@ function InvestmentGrid({
   investments,
   onDelete,
   onEdit,
+  onPublishToggle,
+  viewMode,
+  openMenuId,
+  setOpenMenuId,
+  menuRefs,
 }: {
   investments: Investment[];
   onDelete: (id: string) => void;
   onEdit: (investment: Investment) => void;
+  onPublishToggle: (id: string, isPublished: boolean) => void;
+  viewMode: ViewMode;
+  openMenuId: string | null;
+  setOpenMenuId: (id: string | null) => void;
+  menuRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
   return (
     <table className="w-full">
@@ -434,7 +767,7 @@ function InvestmentGrid({
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <button
                     onClick={() => onEdit(investment)}
                     className="text-blue-600 hover:text-blue-700"
@@ -447,6 +780,33 @@ function InvestmentGrid({
                     title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </button>
+                  <div className="relative" ref={(el) => (menuRefs.current[investment.id] = el)}>
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === investment.id ? null : investment.id)}
+                      className="text-gray-600 hover:text-gray-800 p-1"
+                      title="More options">
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                    {openMenuId === investment.id && (
+                      <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                        <button
+                          onClick={() => onPublishToggle(investment.id, investment.isPublished || false)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                          {investment.isPublished ? (
+                            <>
+                              <XCircle className="w-4 h-4" />
+                              Unpublish
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4" />
+                              Publish
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </td>
             </tr>
@@ -461,10 +821,20 @@ function LoanGrid({
   loans,
   onDelete,
   onEdit,
+  onPublishToggle,
+  viewMode,
+  openMenuId,
+  setOpenMenuId,
+  menuRefs,
 }: {
   loans: Loan[];
   onDelete: (id: string) => void;
   onEdit: (loan: Loan) => void;
+  onPublishToggle: (id: string, isPublished: boolean) => void;
+  viewMode: ViewMode;
+  openMenuId: string | null;
+  setOpenMenuId: (id: string | null) => void;
+  menuRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
   return (
     <table className="w-full">
@@ -522,7 +892,7 @@ function LoanGrid({
                 {new Date(loan.startDate).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <button
                     onClick={() => onEdit(loan)}
                     className="text-blue-600 hover:text-blue-700"
@@ -535,6 +905,33 @@ function LoanGrid({
                     title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </button>
+                  <div className="relative" ref={(el) => (menuRefs.current[loan.id] = el)}>
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === loan.id ? null : loan.id)}
+                      className="text-gray-600 hover:text-gray-800 p-1"
+                      title="More options">
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                    {openMenuId === loan.id && (
+                      <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                        <button
+                          onClick={() => onPublishToggle(loan.id, loan.isPublished || false)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                          {loan.isPublished ? (
+                            <>
+                              <XCircle className="w-4 h-4" />
+                              Unpublish
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4" />
+                              Publish
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </td>
             </tr>
@@ -549,10 +946,20 @@ function PropertyGrid({
   properties,
   onDelete,
   onEdit,
+  onPublishToggle,
+  viewMode,
+  openMenuId,
+  setOpenMenuId,
+  menuRefs,
 }: {
   properties: Property[];
   onDelete: (id: string) => void;
   onEdit: (property: Property) => void;
+  onPublishToggle: (id: string, isPublished: boolean) => void;
+  viewMode: ViewMode;
+  openMenuId: string | null;
+  setOpenMenuId: (id: string | null) => void;
+  menuRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
   return (
     <table className="w-full">
@@ -610,7 +1017,7 @@ function PropertyGrid({
                 {new Date(property.purchaseDate).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <button
                     onClick={() => onEdit(property)}
                     className="text-blue-600 hover:text-blue-700"
@@ -623,6 +1030,33 @@ function PropertyGrid({
                     title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </button>
+                  <div className="relative" ref={(el) => (menuRefs.current[property.id] = el)}>
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === property.id ? null : property.id)}
+                      className="text-gray-600 hover:text-gray-800 p-1"
+                      title="More options">
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                    {openMenuId === property.id && (
+                      <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                        <button
+                          onClick={() => onPublishToggle(property.id, property.isPublished || false)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                          {property.isPublished ? (
+                            <>
+                              <XCircle className="w-4 h-4" />
+                              Unpublish
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4" />
+                              Publish
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </td>
             </tr>
@@ -637,10 +1071,20 @@ function BankBalanceGrid({
   bankBalances,
   onDelete,
   onEdit,
+  onPublishToggle,
+  viewMode,
+  openMenuId,
+  setOpenMenuId,
+  menuRefs,
 }: {
   bankBalances: BankBalance[];
   onDelete: (id: string) => void;
   onEdit: (bankBalance: BankBalance) => void;
+  onPublishToggle: (id: string, isPublished: boolean) => void;
+  viewMode: ViewMode;
+  openMenuId: string | null;
+  setOpenMenuId: (id: string | null) => void;
+  menuRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) {
   return (
     <table className="w-full">
@@ -692,7 +1136,7 @@ function BankBalanceGrid({
                 {new Date(balance.lastUpdated).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <button
                     onClick={() => onEdit(balance)}
                     className="text-blue-600 hover:text-blue-700"
@@ -705,6 +1149,33 @@ function BankBalanceGrid({
                     title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </button>
+                  <div className="relative" ref={(el) => (menuRefs.current[balance.id] = el)}>
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === balance.id ? null : balance.id)}
+                      className="text-gray-600 hover:text-gray-800 p-1"
+                      title="More options">
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                    {openMenuId === balance.id && (
+                      <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                        <button
+                          onClick={() => onPublishToggle(balance.id, balance.isPublished || false)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                          {balance.isPublished ? (
+                            <>
+                              <XCircle className="w-4 h-4" />
+                              Unpublish
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4" />
+                              Publish
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </td>
             </tr>

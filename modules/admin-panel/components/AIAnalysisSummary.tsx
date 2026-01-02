@@ -111,64 +111,55 @@ export function AIAnalysisSummary() {
 
       <div className="border-t pt-1">
         <h3 className="text-xs font-semibold mb-0.5">Categorization Breakdown</h3>
-        <div className="space-y-0.5">
-          {investments.length > 0 && (
-            <div className="flex flex-wrap gap-0.5">
-              {Array.from(new Set(investments.map((inv) => inv.type))).map(
-                (type) => {
-                  const count = investments.filter((inv) => inv.type === type)
-                    .length;
-                  return (
-                    <span
-                      key={type}
-                      className="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs"
-                    >
-                      {type} ({count})
-                    </span>
-                  );
-                }
-              )}
-            </div>
-          )}
+        <div className="flex flex-wrap gap-0.5">
+          {investments.length > 0 &&
+            Array.from(new Set(investments.map((inv) => inv.type))).map(
+              (type) => {
+                const count = investments.filter((inv) => inv.type === type)
+                  .length;
+                return (
+                  <span
+                    key={`investment-${type}`}
+                    className="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs"
+                  >
+                    {type} ({count})
+                  </span>
+                );
+              }
+            )}
 
-          {loans.length > 0 && (
-            <div className="flex flex-wrap gap-0.5">
-              {Array.from(new Set(loans.map((loan) => loan.type))).map(
-                (type) => {
-                  const count = loans.filter((loan) => loan.type === type)
-                    .length;
-                  return (
-                    <span
-                      key={type}
-                      className="px-1 py-0.5 bg-red-100 text-red-800 rounded text-xs"
-                    >
-                      {type} ({count})
-                    </span>
-                  );
-                }
-              )}
-            </div>
-          )}
+          {loans.length > 0 &&
+            Array.from(new Set(loans.map((loan) => loan.type))).map(
+              (type) => {
+                const count = loans.filter((loan) => loan.type === type)
+                  .length;
+                return (
+                  <span
+                    key={`loan-${type}`}
+                    className="px-1 py-0.5 bg-red-100 text-red-800 rounded text-xs"
+                  >
+                    {type} ({count})
+                  </span>
+                );
+              }
+            )}
 
-          {properties.length > 0 && (
-            <div className="flex flex-wrap gap-0.5">
-              {Array.from(new Set(properties.map((prop) => prop.type))).map(
-                (type) => {
-                  const count = properties.filter(
-                    (prop) => prop.type === type
-                  ).length;
-                  return (
-                    <span
-                      key={type}
-                      className="px-1 py-0.5 bg-blue-100 text-blue-800 rounded text-xs"
-                    >
-                      {type} ({count})
-                    </span>
-                  );
-                }
-              )}
-            </div>
-          )}
+          {properties.length > 0 &&
+            Array.from(new Set(properties.map((prop) => prop.type))).map(
+              (type) => {
+                const count = properties.filter(
+                  (prop) => prop.type === type
+                ).length;
+                return (
+                  <span
+                    key={`property-${type}`}
+                    className="px-1 py-0.5 bg-blue-100 text-blue-800 rounded text-xs"
+                  >
+                    {type} ({count})
+                  </span>
+                );
+              }
+            )}
         </div>
       </div>
     </div>

@@ -9,7 +9,8 @@
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.613Z",
-    "updatedAt": "2026-01-02T15:22:34.617Z"
+    "updatedAt": "2026-01-02T16:10:07.692Z",
+    "isPublished": true
   },
   {
     "id": "inv-ai-1767367354617-1",
@@ -21,7 +22,8 @@
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T15:22:34.617Z"
+    "updatedAt": "2026-01-02T16:10:08.825Z",
+    "isPublished": true
   },
   {
     "id": "inv-ai-1767367354617-2",
@@ -33,7 +35,8 @@
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T15:22:34.617Z"
+    "updatedAt": "2026-01-02T16:13:00.241Z",
+    "isPublished": true
   },
   {
     "id": "inv-ai-1767367354617-3",
@@ -46,7 +49,8 @@
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T15:22:34.617Z"
+    "updatedAt": "2026-01-02T16:13:02.128Z",
+    "isPublished": true
   },
   {
     "id": "inv-ai-1767367354617-4",
@@ -58,7 +62,8 @@
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T15:22:34.617Z"
+    "updatedAt": "2026-01-02T16:09:50.115Z",
+    "isPublished": false
   },
   {
     "id": "inv-ai-1767367354617-5",
@@ -81,7 +86,8 @@
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T15:22:34.617Z"
+    "updatedAt": "2026-01-02T16:09:50.648Z",
+    "isPublished": false
   },
   {
     "id": "inv-ai-1767367354617-7",
@@ -92,6 +98,7 @@
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T15:22:34.617Z"
+    "updatedAt": "2026-01-02T16:09:51.293Z",
+    "isPublished": false
   }
 ]

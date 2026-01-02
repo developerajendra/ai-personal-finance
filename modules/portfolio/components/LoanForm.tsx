@@ -48,6 +48,7 @@ export function LoanForm({ loan, onSave, onCancel }: LoanFormProps) {
       tenureMonths: formData.tenureMonths || 0,
       description: formData.description,
       status: formData.status || "active",
+      isPublished: loan?.isPublished ?? true, // Preserve existing or default to true for new items
       createdAt: loan?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
