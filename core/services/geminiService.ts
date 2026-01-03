@@ -82,7 +82,27 @@ IMPORTANT INSTRUCTIONS:
   * Properties: values, locations, rental income potential
   * Bank balances: account types, balances, liquidity
   * Transactions: spending patterns, income sources, category breakdowns
-  * Overall financial position and health`;
+  * Overall financial position and health
+  
+- CRITICAL: When user asks to CREATE, ADD, or INVEST money (e.g., "create a new fixed deposit", "add an investment of 5000"):
+  * You have the ability to create DRAFT investments.
+  * You MUST output an <action> tag with the investment details in JSON format.
+  * infer missing details (like start date = today) if not provided.
+  * The format MUST be:
+    <action>
+    {
+      "type": "create_investment",
+      "data": {
+        "name": "Investment Name",
+        "amount": 10000,
+        "type": "fd", // Options: ppf, fd, mutual-fund, stocks, bonds, other
+        "interestRate": 7.5, // Optional, infer if possible
+        "startDate": "YYYY-MM-DD",
+        "maturityDate": "YYYY-MM-DD" // Optional
+      }
+    }
+    </action>
+  * After the <action> tag, provide a confirmation message like "I've created a draft for your new investment..."`;
 
   try {
     return await generateChatContent(message, systemPrompt);

@@ -490,10 +490,22 @@ export function ChatbotBoard() {
               {message.role === "assistant" ? (
                 <div>
                   {(() => {
+                    // Safety check: ensure message.content is a string
+                    if (!message.content || typeof message.content !== 'string') {
+                      return (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          className="prose prose-sm max-w-none"
+                        >
+                          {message.content || ''}
+                        </ReactMarkdown>
+                      );
+                    }
+
                     // Parse chart data from <chart> tags
                     const chartRegex = /<chart>(.*?)<\/chart>/gs;
                     const charts: any[] = [];
-                    let processedContent = message.content;
+                    let processedContent = message.content || '';
                     let match;
                     let chartIndex = 0;
 
@@ -559,8 +571,8 @@ export function ChatbotBoard() {
                       console.log(`✅ Rendered ${charts.length} chart(s) in chatbot response`);
                     }
 
-                    // Split content by chart placeholders
-                    const parts = processedContent.split(/(__CHART_PLACEHOLDER_\d+__)/);
+                    // Split content by chart placeholders (ensure processedContent is a string)
+                    const parts = (processedContent || '').split(/(__CHART_PLACEHOLDER_\d+__)/);
                     let currentChartIndex = 0;
 
                     return (

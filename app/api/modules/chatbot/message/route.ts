@@ -48,9 +48,56 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Chatbot] Loaded context: ${chatContext.transactions.length} transactions, ${chatContext.investments?.length || 0} investments, ${chatContext.loans?.length || 0} loans, ${chatContext.properties?.length || 0} properties, ${chatContext.bankBalances?.length || 0} bank balances`);
 
-    const response = await sendChatMessage(message, chatContext);
+    const responseText = await sendChatMessage(message, chatContext);
 
-    return NextResponse.json({ response });
+    // Check for actions in the response
+    const actionMatch = responseText.match(/<action>([\s\S]*?)<\/action>/);
+
+    if (actionMatch && actionMatch[1]) {
+      try {
+        const actionJson = JSON.parse(actionMatch[1]);
+
+        if (actionJson.type === "create_investment" && actionJson.data) {
+          console.log("[Chatbot] Detected investment creation action:", actionJson.data);
+
+          // Create new investment
+          const newInvestment: any = {
+            id: `inv-${Date.now()}`,
+            name: actionJson.data.name || "New Investment",
+            amount: parseFloat(actionJson.data.amount) || 0,
+            type: actionJson.data.type || "other",
+            startDate: actionJson.data.startDate || new Date().toISOString().split('T')[0],
+            maturityDate: actionJson.data.maturityDate,
+            interestRate: parseFloat(actionJson.data.interestRate) || undefined,
+            status: "active",
+            isPublished: false, // Draft mode
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+
+          // Save to storage
+          const { saveToJson, loadFromJson } = await import("@/core/services/jsonStorageService");
+          const { investments } = await import("@/core/dataStore");
+
+          // Reload latest data to ensure no conflicts
+          const currentInvestments = loadFromJson("investments");
+          currentInvestments.push(newInvestment);
+          saveToJson("investments", currentInvestments);
+
+          // Update in-memory store
+          investments.push(newInvestment);
+
+          console.log("[Chatbot] created draft investment:", newInvestment.id);
+        }
+      } catch (e) {
+        console.error("[Chatbot] Failed to execute action:", e);
+      }
+    }
+
+    // Clean up response - remove action tag for the user
+    const cleanerResponse = responseText.replace(/<action>[\s\S]*?<\/action>/g, "").trim();
+
+    return NextResponse.json({ response: cleanerResponse });
   } catch (error: any) {
     console.error("Chatbot API error:", error);
     return NextResponse.json(

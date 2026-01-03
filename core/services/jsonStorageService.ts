@@ -21,9 +21,17 @@ function ensureDataDir() {
 
 // Initialize JSON files if they don't exist
 function initializeFile(filePath: string) {
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify([], null, 2), "utf-8");
-    console.log(`📄 Initialized JSON file: ${filePath}`);
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, JSON.stringify([], null, 2), "utf-8");
+      console.log(`📄 Initialized JSON file: ${filePath}`);
+    }
+  } catch (error) {
+    console.warn(`Original warning: Failed to initialize file ${filePath}:`, error);
   }
 }
 
@@ -40,7 +48,7 @@ export function loadFromJson<T>(fileKey: keyof typeof FILES): T[] {
     ensureDataDir();
     const filePath = FILES[fileKey];
     initializeFile(filePath);
-    
+
     const content = fs.readFileSync(filePath, "utf-8");
     const data = JSON.parse(content || "[]");
     console.log(`📖 Loaded ${data.length} items from ${fileKey}`);
@@ -56,11 +64,11 @@ export function saveToJson<T>(fileKey: keyof typeof FILES, data: T[]): void {
   try {
     ensureDataDir();
     const filePath = FILES[fileKey];
-    
+
     const jsonString = JSON.stringify(data, null, 2);
     fs.writeFileSync(filePath, jsonString, "utf-8");
     console.log(`💾 Saved ${data.length} items to ${fileKey} (${filePath})`);
-    
+
     // Verify the save worked
     try {
       const verify = fs.readFileSync(filePath, "utf-8");
@@ -101,12 +109,12 @@ export function updateInJson<T extends { id: string }>(
   try {
     const items = loadFromJson<T>(fileKey);
     const index = items.findIndex((item) => item.id === id);
-    
+
     if (index === -1) {
       console.warn(`⚠️ Item with id ${id} not found in ${fileKey}`);
       return null;
     }
-    
+
     items[index] = { ...items[index], ...updates, updatedAt: new Date().toISOString() };
     saveToJson(fileKey, items);
     console.log(`✏️ Updated item ${id} in ${fileKey}`);
@@ -125,12 +133,12 @@ export function deleteFromJson<T extends { id: string }>(
   try {
     const items = loadFromJson<T>(fileKey);
     const filtered = items.filter((item) => item.id !== id);
-    
+
     if (filtered.length === items.length) {
       console.warn(`⚠️ Item with id ${id} not found in ${fileKey}`);
       return false;
     }
-    
+
     saveToJson(fileKey, filtered);
     console.log(`🗑️ Deleted item ${id} from ${fileKey}`);
     return true;
