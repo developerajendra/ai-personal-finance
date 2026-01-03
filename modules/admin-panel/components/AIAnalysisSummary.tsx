@@ -3,9 +3,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Investment, Loan, Property } from "@/core/types";
 import { TrendingUp, TrendingDown, Home, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader } from "@/shared/components/Loader";
 
 export function AIAnalysisSummary() {
-  const { data: investments = [] } = useQuery<Investment[]>({
+  const { data: investments = [], isLoading: isLoadingInvestments } = useQuery<Investment[]>({
     queryKey: ["investments"],
     queryFn: async () => {
       const response = await fetch("/api/portfolio/investments");
@@ -14,7 +15,7 @@ export function AIAnalysisSummary() {
     },
   });
 
-  const { data: loans = [] } = useQuery<Loan[]>({
+  const { data: loans = [], isLoading: isLoadingLoans } = useQuery<Loan[]>({
     queryKey: ["loans"],
     queryFn: async () => {
       const response = await fetch("/api/portfolio/loans");
@@ -23,7 +24,7 @@ export function AIAnalysisSummary() {
     },
   });
 
-  const { data: properties = [] } = useQuery<Property[]>({
+  const { data: properties = [], isLoading: isLoadingProperties } = useQuery<Property[]>({
     queryKey: ["properties"],
     queryFn: async () => {
       const response = await fetch("/api/portfolio/properties");
@@ -31,6 +32,8 @@ export function AIAnalysisSummary() {
       return response.json();
     },
   });
+
+  const isLoading = isLoadingInvestments || isLoadingLoans || isLoadingProperties;
 
   const aiGeneratedItems = [
     ...investments.filter((inv) => inv.id.startsWith("inv-ai-")),
@@ -44,6 +47,14 @@ export function AIAnalysisSummary() {
     (sum, prop) => sum + (prop.currentValue || prop.purchasePrice),
     0
   );
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
+        <Loader text="Loading AI analysis summary..." />
+      </div>
+    );
+  }
 
   if (aiGeneratedItems.length === 0) {
     return (

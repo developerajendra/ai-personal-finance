@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { DynamicCategory, CategoryLearning } from "@/core/types";
 import { TrendingUp, Brain, RefreshCw } from "lucide-react";
+import { Loader } from "@/shared/components/Loader";
 
 export function DynamicCategoriesView() {
   const { data, isLoading, refetch } = useQuery<{
@@ -20,10 +21,7 @@ export function DynamicCategoriesView() {
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-        <div className="flex items-center gap-2 text-gray-500">
-          <RefreshCw className="w-4 h-4 animate-spin" />
-          <span>Loading categories...</span>
-        </div>
+        <Loader text="Loading dynamic categories..." />
       </div>
     );
   }

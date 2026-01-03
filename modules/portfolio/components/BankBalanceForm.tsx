@@ -3,17 +3,20 @@
 import { useState } from "react";
 import { BankBalance } from "@/core/types";
 import { Save, X } from "lucide-react";
+import { ButtonLoader } from "@/shared/components/Loader";
 
 interface BankBalanceFormProps {
   initialData?: BankBalance;
   onSave: (bankBalance: BankBalance) => void;
   onCancel: () => void;
+  isSaving?: boolean;
 }
 
 export function BankBalanceForm({
   initialData,
   onSave,
   onCancel,
+  isSaving = false,
 }: BankBalanceFormProps) {
   const [formData, setFormData] = useState<Partial<BankBalance>>({
     bankName: initialData?.bankName || "",
@@ -159,10 +162,20 @@ export function BankBalanceForm({
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          disabled={isSaving}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Save className="w-4 h-4" />
-          Save
+          {isSaving ? (
+            <>
+              <ButtonLoader />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              Save
+            </>
+          )}
         </button>
       </div>
     </form>

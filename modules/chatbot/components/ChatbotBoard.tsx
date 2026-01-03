@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useChatbot } from "../hooks/useChatbot";
-import { X, Minimize2, Maximize2, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { X, Minimize2, Maximize2, Mic, MicOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChatMessage } from "@/core/types";
 import { sendChatMessage } from "@/core/services/geminiService";
@@ -10,6 +10,7 @@ import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChatChart } from "./ChatChart";
+import { VoiceModeView } from "./VoiceModeView";
 
 export function ChatbotBoard() {
   const {
@@ -27,6 +28,7 @@ export function ChatbotBoard() {
   const [isListening, setIsListening] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [isVoiceMode, setIsVoiceMode] = useState(false); // Track if we're in voice conversation mode
+  const [currentTranscript, setCurrentTranscript] = useState(""); // Track current voice transcript
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
@@ -56,7 +58,7 @@ export function ChatbotBoard() {
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
-        recognition.interimResults = false;
+        recognition.interimResults = true; // Enable interim results for real-time transcript
         recognition.lang = "en-US";
 
         recognition.onstart = () => {
@@ -64,17 +66,37 @@ export function ChatbotBoard() {
         };
 
         recognition.onresult = (event: SpeechRecognitionEvent) => {
-          const transcript = event.results[0][0].transcript;
-          setIsListening(false);
-          // Mark that this input came from voice
-          isVoiceInputRef.current = true;
-          // If in voice mode, immediately send without showing in input field
+          let interimTranscript = "";
+          let finalTranscript = "";
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          // Update transcript display in real-time
           if (isVoiceModeRef.current) {
-            // Immediately process voice input without waiting
-            handleSendFromVoice(transcript);
-          } else {
-            // If not in voice mode, just set the input
-            setInput(transcript);
+            setCurrentTranscript(finalTranscript || interimTranscript);
+          }
+
+          // Only process final results
+          if (finalTranscript) {
+            setIsListening(false);
+            setCurrentTranscript(finalTranscript);
+            // Mark that this input came from voice
+            isVoiceInputRef.current = true;
+            // If in voice mode, immediately send without showing in input field
+            if (isVoiceModeRef.current) {
+              // Immediately process voice input without waiting
+              handleSendFromVoice(finalTranscript);
+            } else {
+              // If not in voice mode, just set the input
+              setInput(finalTranscript);
+            }
           }
         };
 
@@ -86,7 +108,7 @@ export function ChatbotBoard() {
             setTimeout(() => {
               if (recognitionRef.current && !isLoadingRef.current) {
                 try {
-                  recognitionRef.current.start();
+                  recognitionRef.current?.start();
                 } catch (e) {
                   // Ignore errors
                 }
@@ -102,7 +124,7 @@ export function ChatbotBoard() {
             setTimeout(() => {
               if (recognitionRef.current && isVoiceModeRef.current && !isLoadingRef.current) {
                 try {
-                  recognitionRef.current.start();
+                  recognitionRef.current?.start();
                 } catch (e) {
                   // Ignore errors if already started
                 }
@@ -167,8 +189,9 @@ export function ChatbotBoard() {
         setIsVoiceMode(true); // Enter voice conversation mode
         isVoiceModeRef.current = true;
         setIsVoiceEnabled(true); // Auto-enable voice output in voice mode
+        setCurrentTranscript(""); // Clear previous transcript
         // Start listening immediately
-        recognitionRef.current.start();
+        recognitionRef.current?.start();
       } catch (error) {
         console.error("Error starting speech recognition:", error);
       }
@@ -182,14 +205,22 @@ export function ChatbotBoard() {
     setIsVoiceMode(false); // Exit voice conversation mode
     isVoiceModeRef.current = false;
     setIsListening(false);
+    setCurrentTranscript(""); // Clear transcript
     // Cancel any ongoing speech
     if (synthRef.current) {
       synthRef.current.cancel();
     }
   };
 
+  const switchToTextMode = () => {
+    stopListening();
+  };
+
   const handleSendFromVoice = async (transcript: string) => {
     if (!transcript.trim() || isLoadingRef.current) return;
+
+    // Clear transcript display
+    setCurrentTranscript("");
 
     // Immediately add user message to chat
     const userMessage: ChatMessage = {
@@ -236,7 +267,7 @@ export function ChatbotBoard() {
           setIsLoading(false);
           setTimeout(() => {
             try {
-              if (isVoiceModeRef.current && !isLoadingRef.current) {
+              if (isVoiceModeRef.current && !isLoadingRef.current && recognitionRef.current) {
                 recognitionRef.current.start();
               }
             } catch (e) {
@@ -263,7 +294,7 @@ export function ChatbotBoard() {
         if (isVoiceModeRef.current && recognitionRef.current) {
           setTimeout(() => {
             try {
-              if (isVoiceModeRef.current && !isLoadingRef.current) {
+              if (isVoiceModeRef.current && !isLoadingRef.current && recognitionRef.current) {
                 recognitionRef.current.start();
               }
             } catch (e) {
@@ -391,7 +422,23 @@ export function ChatbotBoard() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 z-50 flex flex-col">
+    <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 z-50 flex flex-col overflow-hidden">
+      {/* Voice Mode Overlay - shows within popup */}
+      {isVoiceMode && (
+        <div className="absolute inset-0 z-50 bg-gradient-to-br from-slate-900 via-purple-900 to-blue-900 flex flex-col rounded-lg">
+          <VoiceModeView
+            isListening={isListening}
+            transcript={currentTranscript}
+            onClose={stopListening}
+            onSwitchToText={switchToTextMode}
+            userName="User"
+          />
+        </div>
+      )}
+      
+      {/* Regular chat interface - hidden when in voice mode */}
+      {!isVoiceMode && (
+        <>
       <div className="flex items-center justify-between p-4 border-b">
         <h3 className="font-semibold text-lg">AI Financial Assistant</h3>
         <div className="flex gap-2">
@@ -582,17 +629,6 @@ export function ChatbotBoard() {
             {isListening || isVoiceMode ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
           </button>
           <button
-            onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-            className={`px-3 py-2 rounded-lg transition-colors ${
-              isVoiceEnabled
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "bg-gray-400 text-white hover:bg-gray-500"
-            }`}
-            title={isVoiceEnabled ? "Voice output enabled" : "Voice output disabled"}
-          >
-            {isVoiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </button>
-          <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -601,6 +637,8 @@ export function ChatbotBoard() {
           </button>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

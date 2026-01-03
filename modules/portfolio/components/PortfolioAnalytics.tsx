@@ -16,11 +16,12 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { TrendingUp, TrendingDown, Home, Wallet } from "lucide-react";
+import { Loader } from "@/shared/components/Loader";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
 
 export function PortfolioAnalytics() {
-  const { data: investments = [] } = useQuery<Investment[]>({
+  const { data: investments = [], isLoading: isLoadingInvestments } = useQuery<Investment[]>({
     queryKey: ["investments", "published"],
     queryFn: async () => {
       const response = await fetch("/api/portfolio/investments?isPublished=true");
@@ -29,7 +30,7 @@ export function PortfolioAnalytics() {
     },
   });
 
-  const { data: loans = [] } = useQuery<Loan[]>({
+  const { data: loans = [], isLoading: isLoadingLoans } = useQuery<Loan[]>({
     queryKey: ["loans", "published"],
     queryFn: async () => {
       const response = await fetch("/api/portfolio/loans?isPublished=true");
@@ -38,7 +39,7 @@ export function PortfolioAnalytics() {
     },
   });
 
-  const { data: properties = [] } = useQuery<Property[]>({
+  const { data: properties = [], isLoading: isLoadingProperties } = useQuery<Property[]>({
     queryKey: ["properties", "published"],
     queryFn: async () => {
       const response = await fetch("/api/portfolio/properties?isPublished=true");
@@ -46,6 +47,8 @@ export function PortfolioAnalytics() {
       return response.json();
     },
   });
+
+  const isLoading = isLoadingInvestments || isLoadingLoans || isLoadingProperties;
 
   const totalInvestments = investments.reduce((sum, inv) => sum + inv.amount, 0);
   const totalLoans = loans.reduce((sum, loan) => sum + loan.outstandingAmount, 0);
@@ -84,6 +87,14 @@ export function PortfolioAnalytics() {
     name,
     value,
   }));
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Loader text="Loading portfolio analytics..." size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

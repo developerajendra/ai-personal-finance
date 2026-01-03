@@ -4,11 +4,14 @@ import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import { Transaction } from "@/core/types";
 import { useState } from "react";
 import { Edit2, Trash2, Plus } from "lucide-react";
+import { ButtonLoader, Loader } from "@/shared/components/Loader";
 
 export function DataGrid() {
   const { transactions } = useFinancialData();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedTransaction, setEditedTransaction] = useState<Transaction | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const handleEdit = (transaction: Transaction) => {
     setEditingId(transaction.id);
@@ -18,6 +21,7 @@ export function DataGrid() {
   const handleSave = async () => {
     if (!editedTransaction) return;
 
+    setIsSaving(true);
     try {
       const response = await fetch(`/api/transactions/${editedTransaction.id}`, {
         method: "PUT",
@@ -33,12 +37,15 @@ export function DataGrid() {
       }
     } catch (error) {
       console.error("Error saving transaction:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this transaction?")) return;
 
+    setIsDeleting(id);
     try {
       const response = await fetch(`/api/transactions/${id}`, {
         method: "DELETE",
@@ -50,6 +57,8 @@ export function DataGrid() {
       }
     } catch (error) {
       console.error("Error deleting transaction:", error);
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -176,16 +185,25 @@ export function DataGrid() {
                       <div className="flex gap-2">
                         <button
                           onClick={handleSave}
-                          className="text-green-600 hover:text-green-700"
+                          disabled={isSaving}
+                          className="text-green-600 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                         >
-                          Save
+                          {isSaving ? (
+                            <>
+                              <ButtonLoader />
+                              Saving...
+                            </>
+                          ) : (
+                            "Save"
+                          )}
                         </button>
                         <button
                           onClick={() => {
                             setEditingId(null);
                             setEditedTransaction(null);
                           }}
-                          className="text-gray-600 hover:text-gray-700"
+                          disabled={isSaving}
+                          className="text-gray-600 hover:text-gray-700 disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -226,10 +244,15 @@ export function DataGrid() {
                         </button>
                         <button
                           onClick={() => handleDelete(transaction.id)}
-                          className="text-red-600 hover:text-red-700"
+                          disabled={isDeleting === transaction.id}
+                          className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Delete"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          {isDeleting === transaction.id ? (
+                            <ButtonLoader />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                     </td>

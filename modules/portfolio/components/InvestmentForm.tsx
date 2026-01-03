@@ -1,32 +1,41 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Investment } from "@/core/types";
-import { Save, X } from "lucide-react";
+import { useState } from 'react';
+import { Investment } from '@/core/types';
+import { Save, X } from 'lucide-react';
+import { ButtonLoader } from '@/shared/components/Loader';
 
 interface InvestmentFormProps {
   investment?: Investment;
   onSave: (investment: Investment) => void;
   onCancel: () => void;
+  isSaving?: boolean;
 }
 
-export function InvestmentForm({ investment, onSave, onCancel }: InvestmentFormProps) {
+export function InvestmentForm({
+  investment,
+  onSave,
+  onCancel,
+  isSaving = false,
+}: InvestmentFormProps) {
   const [formData, setFormData] = useState<Partial<Investment>>(
     investment
       ? {
           ...investment,
-          startDate: investment.startDate.split("T")[0],
+          startDate: investment.startDate.split('T')[0],
           maturityDate: investment.maturityDate
-            ? investment.maturityDate.split("T")[0]
+            ? investment.maturityDate.split('T')[0]
             : undefined,
-          endDate: investment.endDate ? investment.endDate.split("T")[0] : undefined,
+          endDate: investment.endDate
+            ? investment.endDate.split('T')[0]
+            : undefined,
         }
       : {
-          name: "",
+          name: '',
           amount: 0,
-          type: "ppf",
-          startDate: new Date().toISOString().split("T")[0],
-          status: "active",
+          type: 'ppf',
+          startDate: new Date().toISOString().split('T')[0],
+          status: 'active',
         }
   );
 
@@ -34,15 +43,15 @@ export function InvestmentForm({ investment, onSave, onCancel }: InvestmentFormP
     e.preventDefault();
     const investmentData: Investment = {
       id: investment?.id || `inv-${Date.now()}`,
-      name: formData.name || "",
+      name: formData.name || '',
       amount: formData.amount || 0,
-      type: formData.type || "ppf",
+      type: formData.type || 'ppf',
       startDate: formData.startDate || new Date().toISOString(),
       endDate: formData.endDate,
       maturityDate: formData.maturityDate,
       interestRate: formData.interestRate,
       description: formData.description,
-      status: formData.status || "active",
+      status: formData.status || 'active',
       isPublished: investment?.isPublished ?? true, // Preserve existing or default to true for new items
       createdAt: investment?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -77,11 +86,10 @@ export function InvestmentForm({ investment, onSave, onCancel }: InvestmentFormP
             onChange={(e) =>
               setFormData({
                 ...formData,
-                type: e.target.value as Investment["type"],
+                type: e.target.value as Investment['type'],
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="ppf">PPF</option>
             <option value="fd">Fixed Deposit</option>
             <option value="mutual-fund">Mutual Fund</option>
@@ -129,7 +137,7 @@ export function InvestmentForm({ investment, onSave, onCancel }: InvestmentFormP
           </label>
           <input
             type="date"
-            value={formData.maturityDate || ""}
+            value={formData.maturityDate || ''}
             onChange={(e) =>
               setFormData({
                 ...formData,
@@ -146,7 +154,7 @@ export function InvestmentForm({ investment, onSave, onCancel }: InvestmentFormP
           </label>
           <input
             type="date"
-            value={formData.endDate || ""}
+            value={formData.endDate || ''}
             onChange={(e) =>
               setFormData({
                 ...formData,
@@ -166,11 +174,13 @@ export function InvestmentForm({ investment, onSave, onCancel }: InvestmentFormP
             min="0"
             max="100"
             step="0.01"
-            value={formData.interestRate || ""}
+            value={formData.interestRate || ''}
             onChange={(e) =>
               setFormData({
                 ...formData,
-                interestRate: e.target.value ? parseFloat(e.target.value) : undefined,
+                interestRate: e.target.value
+                  ? parseFloat(e.target.value)
+                  : undefined,
               })
             }
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -187,11 +197,10 @@ export function InvestmentForm({ investment, onSave, onCancel }: InvestmentFormP
             onChange={(e) =>
               setFormData({
                 ...formData,
-                status: e.target.value as Investment["status"],
+                status: e.target.value as Investment['status'],
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="active">Active</option>
             <option value="matured">Matured</option>
             <option value="closed">Closed</option>
@@ -204,7 +213,7 @@ export function InvestmentForm({ investment, onSave, onCancel }: InvestmentFormP
           Description (Optional)
         </label>
         <textarea
-          value={formData.description || ""}
+          value={formData.description || ''}
           onChange={(e) =>
             setFormData({ ...formData, description: e.target.value })
           }
@@ -217,20 +226,27 @@ export function InvestmentForm({ investment, onSave, onCancel }: InvestmentFormP
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-        >
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
           <X className="w-4 h-4" />
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Save className="w-4 h-4" />
-          Save Investment
+          disabled={isSaving}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          {isSaving ? (
+            <>
+              <ButtonLoader />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              Save Investment
+            </>
+          )}
         </button>
       </div>
     </form>
   );
 }
-

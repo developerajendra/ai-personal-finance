@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { Loan } from "@/core/types";
 import { Save, X } from "lucide-react";
+import { ButtonLoader } from "@/shared/components/Loader";
 
 interface LoanFormProps {
   loan?: Loan;
   onSave: (loan: Loan) => void;
   onCancel: () => void;
+  isSaving?: boolean;
 }
 
-export function LoanForm({ loan, onSave, onCancel }: LoanFormProps) {
+export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormProps) {
   const [formData, setFormData] = useState<Partial<Loan>>(
     loan
       ? {
@@ -294,10 +296,20 @@ export function LoanForm({ loan, onSave, onCancel }: LoanFormProps) {
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          disabled={isSaving}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Save className="w-4 h-4" />
-          Save Loan
+          {isSaving ? (
+            <>
+              <ButtonLoader />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              Save Loan
+            </>
+          )}
         </button>
       </div>
     </form>

@@ -3,14 +3,16 @@
 import { useState } from "react";
 import { Property } from "@/core/types";
 import { Save, X } from "lucide-react";
+import { ButtonLoader } from "@/shared/components/Loader";
 
 interface PropertyFormProps {
   property?: Property;
   onSave: (property: Property) => void;
   onCancel: () => void;
+  isSaving?: boolean;
 }
 
-export function PropertyForm({ property, onSave, onCancel }: PropertyFormProps) {
+export function PropertyForm({ property, onSave, onCancel, isSaving = false }: PropertyFormProps) {
   const [formData, setFormData] = useState<Partial<Property>>(
     property
       ? {
@@ -204,10 +206,20 @@ export function PropertyForm({ property, onSave, onCancel }: PropertyFormProps) 
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          disabled={isSaving}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Save className="w-4 h-4" />
-          Save Property
+          {isSaving ? (
+            <>
+              <ButtonLoader />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              Save Property
+            </>
+          )}
         </button>
       </div>
     </form>

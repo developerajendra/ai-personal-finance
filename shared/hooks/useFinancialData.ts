@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Transaction, FinancialSummary } from "@/core/types";
 
 export function useFinancialData() {
-  const { data: transactions = [] } = useQuery<Transaction[]>({
+  const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery<Transaction[]>({
     queryKey: ["transactions"],
     queryFn: async () => {
       const response = await fetch("/api/transactions");
@@ -13,7 +13,7 @@ export function useFinancialData() {
     },
   });
 
-  const { data: summary } = useQuery<FinancialSummary>({
+  const { data: summary, isLoading: isLoadingSummary } = useQuery<FinancialSummary>({
     queryKey: ["financial-summary"],
     queryFn: async () => {
       const response = await fetch("/api/financial-summary");
@@ -35,6 +35,7 @@ export function useFinancialData() {
       categoryBreakdown: {},
     },
     categories,
+    isLoading: isLoadingTransactions || isLoadingSummary,
   };
 }
 

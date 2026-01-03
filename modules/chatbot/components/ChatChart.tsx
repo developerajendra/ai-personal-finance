@@ -78,7 +78,7 @@ export function ChatChart({ chartData }: ChatChartProps) {
               <Bar dataKey={yAxisKey} fill="#0088FE" />
             )}
           </BarChart>
-        ) : type === "line" ? (
+        ) : (
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey={xAxisKey} />
@@ -94,7 +94,7 @@ export function ChatChart({ chartData }: ChatChartProps) {
               <Line type="monotone" dataKey={yAxisKey} stroke="#0088FE" />
             )}
           </LineChart>
-        ) : null}
+        )}
       </ResponsiveContainer>
     </div>
   );

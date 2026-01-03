@@ -75,7 +75,8 @@
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T15:22:34.617Z"
+    "updatedAt": "2026-01-02T15:22:34.617Z",
+    "isPublished": false
   },
   {
     "id": "inv-ai-1767367354617-6",
@@ -100,5 +101,16 @@
     "createdAt": "2026-01-02T15:22:34.617Z",
     "updatedAt": "2026-01-02T16:09:51.293Z",
     "isPublished": false
+  },
+  {
+    "id": "inv-1767454615148",
+    "name": "test",
+    "amount": 0,
+    "type": "ppf",
+    "startDate": "2026-01-03",
+    "status": "active",
+    "isPublished": true,
+    "createdAt": "2026-01-03T15:36:55.148Z",
+    "updatedAt": "2026-01-03T15:36:55.148Z"
   }
 ]

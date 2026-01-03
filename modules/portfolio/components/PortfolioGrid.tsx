@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Investment, Loan, Property, BankBalance } from '@/core/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2 } from 'lucide-react';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
 import { PropertyForm } from './PropertyForm';
 import { BankBalanceForm } from './BankBalanceForm';
+import { Loader } from '@/shared/components/Loader';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
 type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance';
@@ -30,71 +31,81 @@ export function PortfolioGrid() {
   const [formType, setFormType] = useState<ItemType>('investment');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState<string | null>(null);
+  const [isLoadingCounts, setIsLoadingCounts] = useState(false);
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Fetch counts for all tabs
   useEffect(() => {
     const fetchAllTabCounts = async () => {
-      const tabs: ItemType[] = ['investment', 'loan', 'property', 'bank-balance'];
-      
-      const counts = await Promise.all(
-        tabs.map(async (tab) => {
-          try {
-            let endpoint;
-            if (tab === 'bank-balance') {
-              endpoint = `/api/portfolio/bank-balances`;
-            } else if (tab === 'property') {
-              endpoint = `/api/portfolio/properties`;
-            } else {
-              endpoint = `/api/portfolio/${tab}s`;
+      setIsLoadingCounts(true);
+      try {
+        const tabs: ItemType[] = ['investment', 'loan', 'property', 'bank-balance'];
+        
+        const counts = await Promise.all(
+          tabs.map(async (tab) => {
+            try {
+              let endpoint;
+              if (tab === 'bank-balance') {
+                endpoint = `/api/portfolio/bank-balances`;
+              } else if (tab === 'property') {
+                endpoint = `/api/portfolio/properties`;
+              } else {
+                endpoint = `/api/portfolio/${tab}s`;
+              }
+
+              const [draftResponse, publishedResponse] = await Promise.all([
+                fetch(`${endpoint}?isPublished=false`, { cache: 'no-store' }),
+                fetch(`${endpoint}?isPublished=true`, { cache: 'no-store' }),
+              ]);
+
+              let draftCount = 0;
+              let publishedCount = 0;
+
+              if (draftResponse.ok) {
+                const draftData = await draftResponse.json();
+                const draftArray = Array.isArray(draftData) ? draftData : draftData.data || [];
+                draftCount = draftArray.length;
+              }
+
+              if (publishedResponse.ok) {
+                const publishedData = await publishedResponse.json();
+                const publishedArray = Array.isArray(publishedData) ? publishedData : publishedData.data || [];
+                publishedCount = publishedArray.length;
+              }
+
+              return { tab, count: draftCount + publishedCount, draftCount, publishedCount };
+            } catch (error) {
+              console.error(`Error fetching counts for ${tab}:`, error);
+              return { tab, count: 0, draftCount: 0, publishedCount: 0 };
             }
+          })
+        );
 
-            const [draftResponse, publishedResponse] = await Promise.all([
-              fetch(`${endpoint}?isPublished=false`, { cache: 'no-store' }),
-              fetch(`${endpoint}?isPublished=true`, { cache: 'no-store' }),
-            ]);
+        const newTabCounts: Record<ItemType, number> = {
+          investment: 0,
+          loan: 0,
+          property: 0,
+          'bank-balance': 0,
+        };
 
-            let draftCount = 0;
-            let publishedCount = 0;
+        counts.forEach(({ tab, count }) => {
+          newTabCounts[tab] = count;
+        });
 
-            if (draftResponse.ok) {
-              const draftData = await draftResponse.json();
-              const draftArray = Array.isArray(draftData) ? draftData : draftData.data || [];
-              draftCount = draftArray.length;
-            }
+        setTabCounts(newTabCounts);
 
-            if (publishedResponse.ok) {
-              const publishedData = await publishedResponse.json();
-              const publishedArray = Array.isArray(publishedData) ? publishedData : publishedData.data || [];
-              publishedCount = publishedArray.length;
-            }
-
-            return { tab, count: draftCount + publishedCount, draftCount, publishedCount };
-          } catch (error) {
-            console.error(`Error fetching counts for ${tab}:`, error);
-            return { tab, count: 0, draftCount: 0, publishedCount: 0 };
-          }
-        })
-      );
-
-      const newTabCounts: Record<ItemType, number> = {
-        investment: 0,
-        loan: 0,
-        property: 0,
-        'bank-balance': 0,
-      };
-
-      counts.forEach(({ tab, count }) => {
-        newTabCounts[tab] = count;
-      });
-
-      setTabCounts(newTabCounts);
-
-      // Also update draft and published counts for current tab
-      const currentTabData = counts.find((c) => c.tab === activeTab);
-      if (currentTabData) {
-        setDraftCount(currentTabData.draftCount);
-        setPublishedCount(currentTabData.publishedCount);
+        // Also update draft and published counts for current tab
+        const currentTabData = counts.find((c) => c.tab === activeTab);
+        if (currentTabData) {
+          setDraftCount(currentTabData.draftCount);
+          setPublishedCount(currentTabData.publishedCount);
+        }
+      } finally {
+        setIsLoadingCounts(false);
       }
     };
 
@@ -104,6 +115,7 @@ export function PortfolioGrid() {
   // Fetch data on mount and when tab changes
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       try {
         // Handle special endpoint cases
         let endpoint;
@@ -155,6 +167,8 @@ export function PortfolioGrid() {
           `[PortfolioGrid] ❌ Error fetching ${activeTab}s:`,
           error
         );
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchData();
@@ -194,6 +208,7 @@ export function PortfolioGrid() {
   };
 
   const handleSave = async (item: PortfolioItem) => {
+    setIsSaving(true);
     try {
       // Manually created items should be published by default (admin is creating them)
       const itemToSave = { ...item, isPublished: editingId ? item.isPublished : true };
@@ -273,10 +288,13 @@ export function PortfolioGrid() {
       }
     } catch (error) {
       console.error('Error saving item:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handlePublishToggle = async (id: string, currentStatus: boolean) => {
+    setIsPublishing(id);
     try {
       setOpenMenuId(null); // Close menu
       
@@ -355,12 +373,15 @@ export function PortfolioGrid() {
         type: 'error'
       });
       setTimeout(() => setToast(null), 3000);
+    } finally {
+      setIsPublishing(null);
     }
   };
 
   const handleDelete = async (id: string, type: ItemType) => {
     if (!confirm('Are you sure you want to delete this item?')) return;
 
+    setIsDeleting(id);
     try {
       const response = await fetch(`/api/portfolio/${type}s/${id}`, {
         method: 'DELETE',
@@ -377,6 +398,8 @@ export function PortfolioGrid() {
       }
     } catch (error) {
       console.error('Error deleting item:', error);
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -442,9 +465,19 @@ export function PortfolioGrid() {
           <h2 className="text-xl font-semibold">Portfolio Management</h2>
           <button
             onClick={() => handleAdd(activeTab)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            <Plus className="w-4 h-4" />
-            Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+              </>
+            )}
           </button>
         </div>
 
@@ -462,7 +495,7 @@ export function PortfolioGrid() {
                 ? 'bg-blue-100 text-blue-700' 
                 : 'bg-gray-100 text-gray-700'
             }`}>
-              {tabCounts.investment}
+              {isLoadingCounts ? '...' : tabCounts.investment}
             </span>
           </button>
           <button
@@ -478,7 +511,7 @@ export function PortfolioGrid() {
                 ? 'bg-blue-100 text-blue-700' 
                 : 'bg-gray-100 text-gray-700'
             }`}>
-              {tabCounts.loan}
+              {isLoadingCounts ? '...' : tabCounts.loan}
             </span>
           </button>
           <button
@@ -494,7 +527,7 @@ export function PortfolioGrid() {
                 ? 'bg-blue-100 text-blue-700' 
                 : 'bg-gray-100 text-gray-700'
             }`}>
-              {tabCounts.property}
+              {isLoadingCounts ? '...' : tabCounts.property}
             </span>
           </button>
           <button
@@ -510,7 +543,7 @@ export function PortfolioGrid() {
                 ? 'bg-blue-100 text-blue-700' 
                 : 'bg-gray-100 text-gray-700'
             }`}>
-              {tabCounts['bank-balance']}
+              {isLoadingCounts ? '...' : tabCounts['bank-balance']}
             </span>
           </button>
         </div>
@@ -529,7 +562,7 @@ export function PortfolioGrid() {
             <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
               viewMode === 'draft' ? 'bg-yellow-200 text-yellow-900' : 'bg-gray-200 text-gray-700'
             }`}>
-              {draftCount}
+              {isLoadingCounts ? '...' : draftCount}
             </span>
           </button>
           <button
@@ -544,7 +577,7 @@ export function PortfolioGrid() {
             <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
               viewMode === 'published' ? 'bg-green-200 text-green-900' : 'bg-gray-200 text-gray-700'
             }`}>
-              {publishedCount}
+              {isLoadingCounts ? '...' : publishedCount}
             </span>
           </button>
         </div>
@@ -552,6 +585,12 @@ export function PortfolioGrid() {
 
       {showForm && (
         <div className="p-6 border-b bg-gray-50">
+          {isSaving && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg flex items-center gap-2">
+              <Loader size="sm" />
+              <span className="text-sm text-blue-700">Saving...</span>
+            </div>
+          )}
           {formType === 'investment' && (
             <InvestmentForm
               investment={editingItem as Investment | undefined}
@@ -561,6 +600,7 @@ export function PortfolioGrid() {
                 setEditingId(null);
                 setEditingItem(null);
               }}
+              isSaving={isSaving}
             />
           )}
           {formType === 'loan' && (
@@ -572,6 +612,7 @@ export function PortfolioGrid() {
                 setEditingId(null);
                 setEditingItem(null);
               }}
+              isSaving={isSaving}
             />
           )}
           {formType === 'property' && (
@@ -583,6 +624,7 @@ export function PortfolioGrid() {
                 setEditingId(null);
                 setEditingItem(null);
               }}
+              isSaving={isSaving}
             />
           )}
           {formType === 'bank-balance' && (
@@ -594,12 +636,18 @@ export function PortfolioGrid() {
                 setEditingId(null);
                 setEditingItem(null);
               }}
+              isSaving={isSaving}
             />
           )}
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+            <Loader text="Loading portfolio items..." />
+          </div>
+        )}
         {activeTab === 'investment' && (
           <InvestmentGrid
             investments={filteredItems as Investment[]}
@@ -610,6 +658,8 @@ export function PortfolioGrid() {
             openMenuId={openMenuId}
             setOpenMenuId={setOpenMenuId}
             menuRefs={menuRefs}
+            isDeleting={isDeleting}
+            isPublishing={isPublishing}
           />
         )}
         {activeTab === 'loan' && (
@@ -622,6 +672,8 @@ export function PortfolioGrid() {
             openMenuId={openMenuId}
             setOpenMenuId={setOpenMenuId}
             menuRefs={menuRefs}
+            isDeleting={isDeleting}
+            isPublishing={isPublishing}
           />
         )}
         {activeTab === 'property' && (
@@ -634,6 +686,8 @@ export function PortfolioGrid() {
             openMenuId={openMenuId}
             setOpenMenuId={setOpenMenuId}
             menuRefs={menuRefs}
+            isDeleting={isDeleting}
+            isPublishing={isPublishing}
           />
         )}
         {activeTab === 'bank-balance' && (
@@ -646,6 +700,8 @@ export function PortfolioGrid() {
             openMenuId={openMenuId}
             setOpenMenuId={setOpenMenuId}
             menuRefs={menuRefs}
+            isDeleting={isDeleting}
+            isPublishing={isPublishing}
           />
         )}
 
@@ -690,6 +746,8 @@ function InvestmentGrid({
   openMenuId,
   setOpenMenuId,
   menuRefs,
+  isDeleting,
+  isPublishing,
 }: {
   investments: Investment[];
   onDelete: (id: string) => void;
@@ -699,6 +757,8 @@ function InvestmentGrid({
   openMenuId: string | null;
   setOpenMenuId: (id: string | null) => void;
   menuRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  isDeleting: string | null;
+  isPublishing: string | null;
 }) {
   return (
     <table className="w-full">
@@ -776,11 +836,16 @@ function InvestmentGrid({
                   </button>
                   <button
                     onClick={() => onDelete(investment.id)}
-                    className="text-red-600 hover:text-red-700"
+                    disabled={isDeleting === investment.id}
+                    className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Delete">
-                    <Trash2 className="w-4 h-4" />
+                    {isDeleting === investment.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </button>
-                  <div className="relative" ref={(el) => (menuRefs.current[investment.id] = el)}>
+                  <div className="relative" ref={(el) => { menuRefs.current[investment.id] = el; }}>
                     <button
                       onClick={() => setOpenMenuId(openMenuId === investment.id ? null : investment.id)}
                       className="text-gray-600 hover:text-gray-800 p-1"
@@ -791,8 +856,14 @@ function InvestmentGrid({
                       <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                         <button
                           onClick={() => onPublishToggle(investment.id, investment.isPublished || false)}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                          {investment.isPublished ? (
+                          disabled={isPublishing === investment.id}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                          {isPublishing === investment.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : investment.isPublished ? (
                             <>
                               <XCircle className="w-4 h-4" />
                               Unpublish
@@ -826,6 +897,8 @@ function LoanGrid({
   openMenuId,
   setOpenMenuId,
   menuRefs,
+  isDeleting,
+  isPublishing,
 }: {
   loans: Loan[];
   onDelete: (id: string) => void;
@@ -835,6 +908,8 @@ function LoanGrid({
   openMenuId: string | null;
   setOpenMenuId: (id: string | null) => void;
   menuRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  isDeleting: string | null;
+  isPublishing: string | null;
 }) {
   return (
     <table className="w-full">
@@ -901,11 +976,16 @@ function LoanGrid({
                   </button>
                   <button
                     onClick={() => onDelete(loan.id)}
-                    className="text-red-600 hover:text-red-700"
+                    disabled={isDeleting === loan.id}
+                    className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Delete">
-                    <Trash2 className="w-4 h-4" />
+                    {isDeleting === loan.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </button>
-                  <div className="relative" ref={(el) => (menuRefs.current[loan.id] = el)}>
+                  <div className="relative" ref={(el) => { menuRefs.current[loan.id] = el; }}>
                     <button
                       onClick={() => setOpenMenuId(openMenuId === loan.id ? null : loan.id)}
                       className="text-gray-600 hover:text-gray-800 p-1"
@@ -916,8 +996,14 @@ function LoanGrid({
                       <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                         <button
                           onClick={() => onPublishToggle(loan.id, loan.isPublished || false)}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                          {loan.isPublished ? (
+                          disabled={isPublishing === loan.id}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                          {isPublishing === loan.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : loan.isPublished ? (
                             <>
                               <XCircle className="w-4 h-4" />
                               Unpublish
@@ -951,6 +1037,8 @@ function PropertyGrid({
   openMenuId,
   setOpenMenuId,
   menuRefs,
+  isDeleting,
+  isPublishing,
 }: {
   properties: Property[];
   onDelete: (id: string) => void;
@@ -960,6 +1048,8 @@ function PropertyGrid({
   openMenuId: string | null;
   setOpenMenuId: (id: string | null) => void;
   menuRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  isDeleting: string | null;
+  isPublishing: string | null;
 }) {
   return (
     <table className="w-full">
@@ -1026,11 +1116,16 @@ function PropertyGrid({
                   </button>
                   <button
                     onClick={() => onDelete(property.id)}
-                    className="text-red-600 hover:text-red-700"
+                    disabled={isDeleting === property.id}
+                    className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Delete">
-                    <Trash2 className="w-4 h-4" />
+                    {isDeleting === property.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </button>
-                  <div className="relative" ref={(el) => (menuRefs.current[property.id] = el)}>
+                  <div className="relative" ref={(el) => { menuRefs.current[property.id] = el; }}>
                     <button
                       onClick={() => setOpenMenuId(openMenuId === property.id ? null : property.id)}
                       className="text-gray-600 hover:text-gray-800 p-1"
@@ -1041,8 +1136,14 @@ function PropertyGrid({
                       <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                         <button
                           onClick={() => onPublishToggle(property.id, property.isPublished || false)}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                          {property.isPublished ? (
+                          disabled={isPublishing === property.id}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                          {isPublishing === property.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : property.isPublished ? (
                             <>
                               <XCircle className="w-4 h-4" />
                               Unpublish
@@ -1076,6 +1177,8 @@ function BankBalanceGrid({
   openMenuId,
   setOpenMenuId,
   menuRefs,
+  isDeleting,
+  isPublishing,
 }: {
   bankBalances: BankBalance[];
   onDelete: (id: string) => void;
@@ -1085,6 +1188,8 @@ function BankBalanceGrid({
   openMenuId: string | null;
   setOpenMenuId: (id: string | null) => void;
   menuRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  isDeleting: string | null;
+  isPublishing: string | null;
 }) {
   return (
     <table className="w-full">
@@ -1145,11 +1250,16 @@ function BankBalanceGrid({
                   </button>
                   <button
                     onClick={() => onDelete(balance.id)}
-                    className="text-red-600 hover:text-red-700"
+                    disabled={isDeleting === balance.id}
+                    className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Delete">
-                    <Trash2 className="w-4 h-4" />
+                    {isDeleting === balance.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </button>
-                  <div className="relative" ref={(el) => (menuRefs.current[balance.id] = el)}>
+                  <div className="relative" ref={(el) => { menuRefs.current[balance.id] = el; }}>
                     <button
                       onClick={() => setOpenMenuId(openMenuId === balance.id ? null : balance.id)}
                       className="text-gray-600 hover:text-gray-800 p-1"
@@ -1160,8 +1270,14 @@ function BankBalanceGrid({
                       <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                         <button
                           onClick={() => onPublishToggle(balance.id, balance.isPublished || false)}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
-                          {balance.isPublished ? (
+                          disabled={isPublishing === balance.id}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                          {isPublishing === balance.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : balance.isPublished ? (
                             <>
                               <XCircle className="w-4 h-4" />
                               Unpublish

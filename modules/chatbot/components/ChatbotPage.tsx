@@ -6,7 +6,8 @@ import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChatChart } from "./ChatChart";
-import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import { Mic, MicOff } from "lucide-react";
+import { VoiceModeView } from "./VoiceModeView";
 
 export function ChatbotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -15,6 +16,7 @@ export function ChatbotPage() {
   const [isListening, setIsListening] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const [isVoiceMode, setIsVoiceMode] = useState(false); // Track if we're in voice conversation mode
+  const [currentTranscript, setCurrentTranscript] = useState(""); // Track current voice transcript
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
@@ -44,7 +46,7 @@ export function ChatbotPage() {
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
-        recognition.interimResults = false;
+        recognition.interimResults = true; // Enable interim results for real-time transcript
         recognition.lang = "en-US";
 
         recognition.onstart = () => {
@@ -52,17 +54,37 @@ export function ChatbotPage() {
         };
 
         recognition.onresult = (event: SpeechRecognitionEvent) => {
-          const transcript = event.results[0][0].transcript;
-          setIsListening(false);
-          // Mark that this input came from voice
-          isVoiceInputRef.current = true;
-          // If in voice mode, immediately send without showing in input field
+          let interimTranscript = "";
+          let finalTranscript = "";
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          // Update transcript display in real-time
           if (isVoiceModeRef.current) {
-            // Immediately process voice input without waiting
-            handleSendFromVoice(transcript);
-          } else {
-            // If not in voice mode, just set the input
-            setInput(transcript);
+            setCurrentTranscript(finalTranscript || interimTranscript);
+          }
+
+          // Only process final results
+          if (finalTranscript) {
+            setIsListening(false);
+            setCurrentTranscript(finalTranscript);
+            // Mark that this input came from voice
+            isVoiceInputRef.current = true;
+            // If in voice mode, immediately send without showing in input field
+            if (isVoiceModeRef.current) {
+              // Immediately process voice input without waiting
+              handleSendFromVoice(finalTranscript);
+            } else {
+              // If not in voice mode, just set the input
+              setInput(finalTranscript);
+            }
           }
         };
 
@@ -74,7 +96,7 @@ export function ChatbotPage() {
             setTimeout(() => {
               if (recognitionRef.current && !isLoadingRef.current) {
                 try {
-                  recognitionRef.current.start();
+                  recognitionRef.current?.start();
                 } catch (e) {
                   // Ignore errors
                 }
@@ -90,7 +112,7 @@ export function ChatbotPage() {
             setTimeout(() => {
               if (recognitionRef.current && isVoiceModeRef.current && !isLoadingRef.current) {
                 try {
-                  recognitionRef.current.start();
+                  recognitionRef.current?.start();
                 } catch (e) {
                   // Ignore errors if already started
                 }
@@ -157,8 +179,9 @@ export function ChatbotPage() {
         setIsVoiceMode(true); // Enter voice conversation mode
         isVoiceModeRef.current = true;
         setIsVoiceEnabled(true); // Auto-enable voice output in voice mode
+        setCurrentTranscript(""); // Clear previous transcript
         // Start listening immediately
-        recognitionRef.current.start();
+        recognitionRef.current?.start();
       } catch (error) {
         console.error("Error starting speech recognition:", error);
       }
@@ -172,14 +195,22 @@ export function ChatbotPage() {
     setIsVoiceMode(false); // Exit voice conversation mode
     isVoiceModeRef.current = false;
     setIsListening(false);
+    setCurrentTranscript(""); // Clear transcript
     // Cancel any ongoing speech
     if (synthRef.current) {
       synthRef.current.cancel();
     }
   };
 
+  const switchToTextMode = () => {
+    stopListening();
+  };
+
   const handleSendFromVoice = async (transcript: string) => {
     if (!transcript.trim() || isLoadingRef.current) return;
+
+    // Clear transcript display
+    setCurrentTranscript("");
 
     // Immediately add user message to chat
     const userMessage: ChatMessage = {
@@ -226,7 +257,7 @@ export function ChatbotPage() {
           setIsLoading(false);
           setTimeout(() => {
             try {
-              if (isVoiceModeRef.current && !isLoadingRef.current) {
+              if (isVoiceModeRef.current && !isLoadingRef.current && recognitionRef.current) {
                 recognitionRef.current.start();
               }
             } catch (e) {
@@ -253,7 +284,7 @@ export function ChatbotPage() {
         if (isVoiceModeRef.current && recognitionRef.current) {
           setTimeout(() => {
             try {
-              if (isVoiceModeRef.current && !isLoadingRef.current) {
+              if (isVoiceModeRef.current && !isLoadingRef.current && recognitionRef.current) {
                 recognitionRef.current.start();
               }
             } catch (e) {
@@ -355,6 +386,19 @@ export function ChatbotPage() {
       setIsLoading(false);
     }
   };
+
+  // Show voice mode view when in voice mode
+  if (isVoiceMode) {
+    return (
+      <VoiceModeView
+        isListening={isListening}
+        transcript={currentTranscript}
+        onClose={stopListening}
+        onSwitchToText={switchToTextMode}
+        userName="User"
+      />
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -552,17 +596,6 @@ export function ChatbotPage() {
                 Talk Mode
               </>
             )}
-          </button>
-          <button
-            onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-            className={`px-4 py-3 rounded-lg font-semibold transition-colors ${
-              isVoiceEnabled
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "bg-gray-400 text-white hover:bg-gray-500"
-            }`}
-            title={isVoiceEnabled ? "Voice output enabled" : "Voice output disabled"}
-          >
-            {isVoiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
           </button>
           <button
             onClick={handleSend}
