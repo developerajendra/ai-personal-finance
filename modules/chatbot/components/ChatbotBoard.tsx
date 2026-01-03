@@ -24,6 +24,7 @@ export function ChatbotBoard() {
   } = useChatbot();
   const router = useRouter();
   const [input, setInput] = useState("");
+  const [operationPrefix, setOperationPrefix] = useState<string>(""); // Track selected operation
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
@@ -307,18 +308,22 @@ export function ChatbotBoard() {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !operationPrefix) || isLoading) return;
+
+    // Combine operation prefix with input if prefix exists
+    const fullMessage = operationPrefix ? `${operationPrefix} ${input.trim()}` : input.trim();
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: fullMessage,
       timestamp: new Date(),
     };
 
     addMessage(userMessage);
-    const messageToSend = input;
+    const messageToSend = fullMessage;
     setInput("");
+    setOperationPrefix("");
     setIsLoading(true);
 
     try {
@@ -618,16 +623,89 @@ export function ChatbotBoard() {
       </div>
 
       <div className="p-4 border-t">
+        {/* Operation Tags */}
+        <div className="mb-2">
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => {
+                setOperationPrefix("+ Create");
+                setInput("");
+              }}
+              disabled={isLoading || isListening}
+              className="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              + Create
+            </button>
+            <button
+              onClick={() => {
+                setOperationPrefix("✏️ Update");
+                setInput("");
+              }}
+              disabled={isLoading || isListening}
+              className="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ✏️ Update
+            </button>
+            <button
+              onClick={() => {
+                setOperationPrefix("");
+                setInput("show me my portfolio summary");
+              }}
+              disabled={isLoading || isListening}
+              className="px-2.5 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              📊 Summary
+            </button>
+            <button
+              onClick={() => {
+                setOperationPrefix("");
+                setInput("show me a chart of my investments");
+              }}
+              disabled={isLoading || isListening}
+              className="px-2.5 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full hover:bg-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              📈 Chart
+            </button>
+          </div>
+        </div>
         <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Ask about your finances or click mic to speak..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading || isListening}
-          />
+          <div className="relative flex-1">
+            {operationPrefix && (
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
+                <span className="px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded border border-blue-200 flex items-center gap-1">
+                  {operationPrefix}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOperationPrefix("");
+                    }}
+                    className="hover:bg-blue-200 rounded p-0.5 transition-colors"
+                    title="Remove operation"
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </span>
+                <span className="w-px h-3 bg-gray-300"></span>
+                <span className="w-0.5 h-3 bg-blue-600 animate-pulse"></span>
+              </div>
+            )}
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+              }}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  handleSend();
+                  setOperationPrefix("");
+                }
+              }}
+              placeholder={operationPrefix ? "Enter details..." : "Ask about your finances or click mic to speak..."}
+              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${operationPrefix ? 'pl-28' : ''}`}
+              disabled={isLoading || isListening}
+            />
+          </div>
           <button
             onClick={isListening || isVoiceMode ? stopListening : startListening}
             disabled={isLoading}

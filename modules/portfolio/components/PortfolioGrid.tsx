@@ -172,10 +172,6 @@ export function PortfolioGrid() {
       }
     };
     fetchData();
-
-    // Set up polling for real-time updates (every 3 seconds for faster updates)
-    const interval = setInterval(fetchData, 3000);
-    return () => clearInterval(interval);
   }, [activeTab, viewMode]);
 
   // Close menu when clicking outside

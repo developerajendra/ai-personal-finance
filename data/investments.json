@@ -2,14 +2,14 @@
   {
     "id": "inv-ai-1767367354612-0",
     "name": "Agricultural Development Bank PPF",
-    "amount": 1709975.947,
+    "amount": 50,
     "type": "ppf",
     "startDate": "2022-01-01",
-    "interestRate": 12,
-    "description": "Auto-extracted and categorized from Excel",
-    "status": "active",
+    "interestRate": null,
+    "description": null,
+    "status": null,
     "createdAt": "2026-01-02T15:22:34.613Z",
-    "updatedAt": "2026-01-02T16:10:07.692Z",
+    "updatedAt": "2026-01-03T17:09:46.116Z",
     "isPublished": true
   },
   {
@@ -55,14 +55,14 @@
   {
     "id": "inv-ai-1767367354617-4",
     "name": "PPF",
-    "amount": 1973280,
+    "amount": 100,
     "type": "ppf",
     "startDate": "2026-01-02T15:22:34.617Z",
-    "interestRate": 12,
-    "description": "Auto-extracted and categorized from Excel",
-    "status": "active",
+    "interestRate": null,
+    "description": null,
+    "status": null,
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T16:09:50.115Z",
+    "updatedAt": "2026-01-03T16:46:55.622Z",
     "isPublished": false
   },
   {
@@ -80,27 +80,27 @@
   },
   {
     "id": "inv-ai-1767367354617-6",
-    "name": "Stock + Mutual Fund",
+    "name": " Mutual Fund",
     "amount": 10276160,
     "type": "stocks",
-    "startDate": "2026-01-02T15:22:34.617Z",
+    "startDate": "2026-01-02",
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T16:09:50.648Z",
-    "isPublished": false
+    "updatedAt": "2026-01-03T17:15:17.164Z",
+    "isPublished": true
   },
   {
     "id": "inv-ai-1767367354617-7",
-    "name": "Kushum Stock + Mutual Fund",
+    "name": "stocks",
     "amount": 880000,
     "type": "stocks",
-    "startDate": "2026-01-02T15:22:34.617Z",
+    "startDate": "2026-01-02",
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T16:09:51.293Z",
-    "isPublished": false
+    "updatedAt": "2026-01-03T17:15:27.506Z",
+    "isPublished": true
   },
   {
     "id": "inv-1767454615148",
@@ -112,5 +112,18 @@
     "isPublished": true,
     "createdAt": "2026-01-03T15:36:55.148Z",
     "updatedAt": "2026-01-03T15:36:55.148Z"
+  },
+  {
+    "id": "inv-1767458206518",
+    "name": "Awesome Bank Mutual Funds Investment",
+    "amount": 10000,
+    "type": "mutual-fund",
+    "startDate": "2023-03-01",
+    "maturityDate": null,
+    "interestRate": 8.5,
+    "status": "active",
+    "isPublished": false,
+    "createdAt": "2026-01-03T16:36:46.518Z",
+    "updatedAt": "2026-01-03T16:36:46.518Z"
   }
 ]

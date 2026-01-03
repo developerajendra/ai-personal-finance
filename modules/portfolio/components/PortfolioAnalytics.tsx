@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
-import { Investment, Loan, Property, PortfolioSummary } from "@/core/types";
+import { useQuery } from '@tanstack/react-query';
+import { Investment, Loan, Property, PortfolioSummary } from '@/core/types';
 import {
   PieChart,
   Pie,
@@ -14,44 +14,75 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from "recharts";
-import { TrendingUp, TrendingDown, Home, Wallet } from "lucide-react";
-import { Loader } from "@/shared/components/Loader";
+} from 'recharts';
+import { TrendingUp, TrendingDown, Home, Wallet } from 'lucide-react';
+import { Loader } from '@/shared/components/Loader';
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
+const COLORS = [
+  '#0088FE',
+  '#00C49F',
+  '#FFBB28',
+  '#FF8042',
+  '#8884d8',
+  '#82ca9d',
+];
 
 export function PortfolioAnalytics() {
-  const { data: investments = [], isLoading: isLoadingInvestments } = useQuery<Investment[]>({
-    queryKey: ["investments", "published"],
+  const { data: investments = [], isLoading: isLoadingInvestments } = useQuery<
+    Investment[]
+  >({
+    queryKey: ['investments', 'published'],
     queryFn: async () => {
-      const response = await fetch("/api/portfolio/investments?isPublished=true");
-      if (!response.ok) throw new Error("Failed to fetch investments");
+      const response = await fetch(
+        '/api/portfolio/investments?isPublished=true'
+      );
+      if (!response.ok) throw new Error('Failed to fetch investments');
       return response.json();
     },
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   const { data: loans = [], isLoading: isLoadingLoans } = useQuery<Loan[]>({
-    queryKey: ["loans", "published"],
+    queryKey: ['loans', 'published'],
     queryFn: async () => {
-      const response = await fetch("/api/portfolio/loans?isPublished=true");
-      if (!response.ok) throw new Error("Failed to fetch loans");
+      const response = await fetch('/api/portfolio/loans?isPublished=true');
+      if (!response.ok) throw new Error('Failed to fetch loans');
       return response.json();
     },
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
-  const { data: properties = [], isLoading: isLoadingProperties } = useQuery<Property[]>({
-    queryKey: ["properties", "published"],
+  const { data: properties = [], isLoading: isLoadingProperties } = useQuery<
+    Property[]
+  >({
+    queryKey: ['properties', 'published'],
     queryFn: async () => {
-      const response = await fetch("/api/portfolio/properties?isPublished=true");
-      if (!response.ok) throw new Error("Failed to fetch properties");
+      const response = await fetch(
+        '/api/portfolio/properties?isPublished=true'
+      );
+      if (!response.ok) throw new Error('Failed to fetch properties');
       return response.json();
     },
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
-  const isLoading = isLoadingInvestments || isLoadingLoans || isLoadingProperties;
+  const isLoading =
+    isLoadingInvestments || isLoadingLoans || isLoadingProperties;
 
-  const totalInvestments = investments.reduce((sum, inv) => sum + inv.amount, 0);
-  const totalLoans = loans.reduce((sum, loan) => sum + loan.outstandingAmount, 0);
+  const totalInvestments = investments.reduce(
+    (sum, inv) => sum + inv.amount,
+    0
+  );
+  const totalLoans = loans.reduce(
+    (sum, loan) => sum + loan.outstandingAmount,
+    0
+  );
   const totalProperties = properties.reduce(
     (sum, prop) => sum + (prop.currentValue || prop.purchasePrice),
     0
@@ -69,24 +100,29 @@ export function PortfolioAnalytics() {
   }, {} as Record<string, number>);
 
   const propertyBreakdown = properties.reduce((acc, prop) => {
-    acc[prop.type] = (acc[prop.type] || 0) + (prop.currentValue || prop.purchasePrice);
+    acc[prop.type] =
+      (acc[prop.type] || 0) + (prop.currentValue || prop.purchasePrice);
     return acc;
   }, {} as Record<string, number>);
 
-  const investmentChartData = Object.entries(investmentBreakdown).map(([name, value]) => ({
-    name,
-    value,
-  }));
+  const investmentChartData = Object.entries(investmentBreakdown).map(
+    ([name, value]) => ({
+      name,
+      value,
+    })
+  );
 
   const loanChartData = Object.entries(loanBreakdown).map(([name, value]) => ({
     name,
     value,
   }));
 
-  const propertyChartData = Object.entries(propertyBreakdown).map(([name, value]) => ({
-    name,
-    value,
-  }));
+  const propertyChartData = Object.entries(propertyBreakdown).map(
+    ([name, value]) => ({
+      name,
+      value,
+    })
+  );
 
   if (isLoading) {
     return (
@@ -141,9 +177,8 @@ export function PortfolioAnalytics() {
               <p className="text-sm text-gray-600">Net Worth</p>
               <p
                 className={`text-2xl font-bold mt-2 ${
-                  netWorth >= 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
+                  netWorth >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
                 ₹{netWorth.toLocaleString()}
               </p>
             </div>
@@ -168,8 +203,7 @@ export function PortfolioAnalytics() {
                   }
                   outerRadius={80}
                   fill="#8884d8"
-                  dataKey="value"
-                >
+                  dataKey="value">
                   {investmentChartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
@@ -213,8 +247,7 @@ export function PortfolioAnalytics() {
                   }
                   outerRadius={80}
                   fill="#8884d8"
-                  dataKey="value"
-                >
+                  dataKey="value">
                   {propertyChartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
@@ -234,12 +267,11 @@ export function PortfolioAnalytics() {
         propertyChartData.length === 0 && (
           <div className="bg-white rounded-lg shadow p-12 border border-gray-200 text-center">
             <p className="text-gray-500">
-              No portfolio data available. Add investments, loans, and properties in
-              the Admin Panel to see analytics.
+              No portfolio data available. Add investments, loans, and
+              properties in the Admin Panel to see analytics.
             </p>
           </div>
         )}
     </div>
   );
 }
-

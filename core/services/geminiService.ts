@@ -51,7 +51,7 @@ IMPORTANT INSTRUCTIONS:
 
 - When presenting data:
   * Use tables for structured data
-  * Format numbers as currency (₹ for INR)
+  * Format numbers as currency (Rs for INR)
   * Be comprehensive - include all relevant portfolio data
   * Provide actionable insights and recommendations
   * Calculate totals and percentages when relevant
@@ -84,10 +84,22 @@ IMPORTANT INSTRUCTIONS:
   * Transactions: spending patterns, income sources, category breakdowns
   * Overall financial position and health
   
-- CRITICAL: When user asks to CREATE, ADD, or INVEST money (e.g., "create a new fixed deposit", "add an investment of 5000"):
-  * You have the ability to create DRAFT investments.
+- CRITICAL: When user asks to CREATE, ADD, or INVEST money (e.g., "create a new fixed deposit", "add an investment of 5000", "create investment", "make an investment"):
+  * You have the ability to create DRAFT investments that will be saved to the system.
   * You MUST output an <action> tag with the investment details in JSON format.
-  * infer missing details (like start date = today) if not provided.
+  * Parse the user's request to extract:
+    - name: Investment name (e.g., "HDFC Fixed Deposit", "SBI PPF", "Reliance Mutual Fund")
+    - amount: Investment amount (required, extract from user message)
+    - type: Investment type - map from user's words:
+      * "ppf", "public provident fund" → "ppf"
+      * "fd", "fixed deposit", "term deposit" → "fd"
+      * "mutual fund", "mf", "mutual-fund" → "mutual-fund"
+      * "stocks", "equity", "shares" → "stocks"
+      * "bonds", "government bonds" → "bonds"
+      * default → "other"
+    - startDate: Start date (default to today in YYYY-MM-DD format if not provided)
+    - maturityDate: Maturity date (optional, extract if mentioned, format: YYYY-MM-DD)
+    - interestRate: Interest rate (optional, infer if type suggests it)
   * The format MUST be:
     <action>
     {
@@ -95,14 +107,44 @@ IMPORTANT INSTRUCTIONS:
       "data": {
         "name": "Investment Name",
         "amount": 10000,
-        "type": "fd", // Options: ppf, fd, mutual-fund, stocks, bonds, other
-        "interestRate": 7.5, // Optional, infer if possible
-        "startDate": "YYYY-MM-DD",
-        "maturityDate": "YYYY-MM-DD" // Optional
+        "type": "fd",
+        "startDate": "2026-01-15",
+        "maturityDate": "2027-01-15",
+        "interestRate": 7.5
       }
     }
     </action>
-  * After the <action> tag, provide a confirmation message like "I've created a draft for your new investment..."`;
+  * After the <action> tag, provide a friendly confirmation message like:
+    "I've created a draft investment for you: [Name] of Rs [Amount] ([Type]). 
+    It's been saved in draft mode and you can find it in the Portfolio tab under Investments. 
+    You can review and publish it when ready!"
+  * If the user doesn't provide enough details (like amount), ask for clarification before creating.
+
+- CRITICAL: When user asks to UPDATE or MODIFY an investment (e.g., "update kushum ppf amount to 100", "change investment amount", "modify investment"):
+  * You have the ability to update existing investments in the system.
+  * You MUST output an <action> tag with the update details in JSON format.
+  * Parse the user's request to extract:
+    - investmentName: Name or identifier of the investment to update (required, search in existing investments)
+    - amount: New amount (if mentioned)
+    - interestRate: New interest rate (if mentioned)
+    - maturityDate: New maturity date (if mentioned)
+    - status: New status (if mentioned)
+    - description: New description (if mentioned)
+  * The format MUST be:
+    <action>
+    {
+      "type": "update_investment",
+      "data": {
+        "investmentName": "Kushum PPF",
+        "amount": 100,
+        "interestRate": 7.5,
+        "maturityDate": "2027-01-15"
+      }
+    }
+    </action>
+  * After the <action> tag, provide a friendly confirmation message like:
+    "I've updated the investment [Name]. The changes have been saved. You can review it in the Portfolio tab."
+  * If the investment name cannot be found, ask the user to clarify which investment they want to update.`;
 
   try {
     return await generateChatContent(message, systemPrompt);
@@ -115,31 +157,32 @@ IMPORTANT INSTRUCTIONS:
 function formatFinancialContext(context: ChatContext): string {
   const { transactions, summary, categories, investments, loans, properties, bankBalances } = context;
 
-  let formatted = `\n═══════════════════════════════════════════════════════════\n`;
-  formatted += `COMPREHENSIVE FINANCIAL PORTFOLIO DATA\n`;
-  formatted += `═══════════════════════════════════════════════════════════\n\n`;
+  const separator = '='.repeat(55);
+  let formatted = '\n' + separator + '\n';
+  formatted += 'COMPREHENSIVE FINANCIAL PORTFOLIO DATA\n';
+  formatted += separator + '\n\n';
 
   // TRANSACTIONS SUMMARY
-  formatted += `📊 TRANSACTIONS SUMMARY:\n`;
-  formatted += `- Total Income: ₹${summary.totalIncome.toLocaleString()}\n`;
-  formatted += `- Total Expenses: ₹${summary.totalExpenses.toLocaleString()}\n`;
-  formatted += `- Net Balance: ₹${summary.netBalance.toLocaleString()}\n\n`;
+  formatted += 'TRANSACTIONS SUMMARY:\n';
+  formatted += '- Total Income: Rs ' + summary.totalIncome.toLocaleString() + '\n';
+  formatted += '- Total Expenses: Rs ' + summary.totalExpenses.toLocaleString() + '\n';
+  formatted += '- Net Balance: Rs ' + summary.netBalance.toLocaleString() + '\n\n';
 
   if (Object.keys(summary.categoryBreakdown).length > 0) {
-    formatted += `Category Breakdown:\n`;
+    formatted += 'Category Breakdown:\n';
     Object.entries(summary.categoryBreakdown).forEach(([category, amount]) => {
-      formatted += `  - ${category}: ₹${amount.toLocaleString()}\n`;
+      formatted += '  - ' + category + ': Rs ' + amount.toLocaleString() + '\n';
     });
-    formatted += `\n`;
+    formatted += '\n';
   }
 
   if (transactions && transactions.length > 0) {
-    formatted += `Recent Transactions (last 15):\n`;
+    formatted += 'Recent Transactions (last 15):\n';
     const recentTransactions = transactions.slice(0, 15);
     recentTransactions.forEach((tx) => {
-      formatted += `  - ${tx.date}: ${tx.description} - ₹${tx.amount.toLocaleString()} (${tx.type}, ${tx.category})\n`;
+      formatted += '  - ' + tx.date + ': ' + tx.description + ' - Rs ' + tx.amount.toLocaleString() + ' (' + tx.type + ', ' + tx.category + ')\n';
     });
-    formatted += `\n`;
+    formatted += '\n';
   }
 
   // INVESTMENTS
@@ -150,19 +193,19 @@ function formatFinancialContext(context: ChatContext): string {
       return acc;
     }, {} as Record<string, number>);
 
-    formatted += `💰 INVESTMENTS (Total: ₹${totalInvestments.toLocaleString()}):\n`;
-    formatted += `- Count: ${investments.length} investments\n`;
+    formatted += 'INVESTMENTS (Total: Rs ' + totalInvestments.toLocaleString() + '):\n';
+    formatted += '- Count: ' + investments.length + ' investments\n';
     Object.entries(investmentsByType).forEach(([type, amount]) => {
-      formatted += `  - ${type}: ₹${amount.toLocaleString()} (${investments.filter(i => i.type === type).length} items)\n`;
+      formatted += '  - ' + type + ': Rs ' + amount.toLocaleString() + ' (' + investments.filter(i => i.type === type).length + ' items)\n';
     });
-    formatted += `\nTop Investments:\n`;
+    formatted += '\nTop Investments:\n';
     investments.slice(0, 10).forEach((inv) => {
-      formatted += `  - ${inv.name}: ₹${inv.amount?.toLocaleString() || 0} (${inv.type}, ${inv.status || 'active'})`;
-      if (inv.interestRate) formatted += ` @ ${inv.interestRate}%`;
-      if (inv.maturityDate) formatted += `, Matures: ${inv.maturityDate}`;
-      formatted += `\n`;
+      formatted += '  - ' + inv.name + ': Rs ' + (inv.amount?.toLocaleString() || 0) + ' (' + inv.type + ', ' + (inv.status || 'active') + ')';
+      if (inv.interestRate) formatted += ' @ ' + inv.interestRate + '%';
+      if (inv.maturityDate) formatted += ', Matures: ' + inv.maturityDate;
+      formatted += '\n';
     });
-    formatted += `\n`;
+    formatted += '\n';
   }
 
   // LOANS
@@ -174,20 +217,20 @@ function formatFinancialContext(context: ChatContext): string {
       return acc;
     }, {} as Record<string, number>);
 
-    formatted += `💳 LOANS (Total Outstanding: ₹${totalOutstanding.toLocaleString()}):\n`;
-    formatted += `- Count: ${loans.length} loans\n`;
-    formatted += `- Total Principal: ₹${totalPrincipal.toLocaleString()}\n`;
+    formatted += 'LOANS (Total Outstanding: Rs ' + totalOutstanding.toLocaleString() + '):\n';
+    formatted += '- Count: ' + loans.length + ' loans\n';
+    formatted += '- Total Principal: Rs ' + totalPrincipal.toLocaleString() + '\n';
     Object.entries(loansByType).forEach(([type, amount]) => {
-      formatted += `  - ${type}: ₹${amount.toLocaleString()} outstanding\n`;
+      formatted += '  - ' + type + ': Rs ' + amount.toLocaleString() + ' outstanding\n';
     });
-    formatted += `\nActive Loans:\n`;
+    formatted += '\nActive Loans:\n';
     loans.slice(0, 10).forEach((loan) => {
-      formatted += `  - ${loan.name}: ₹${loan.outstandingAmount?.toLocaleString() || 0} outstanding`;
-      if (loan.interestRate) formatted += ` @ ${loan.interestRate}%`;
-      if (loan.emiAmount) formatted += `, EMI: ₹${loan.emiAmount.toLocaleString()}`;
-      formatted += ` (${loan.status || 'active'})\n`;
+      formatted += '  - ' + loan.name + ': Rs ' + (loan.outstandingAmount?.toLocaleString() || 0) + ' outstanding';
+      if (loan.interestRate) formatted += ' @ ' + loan.interestRate + '%';
+      if (loan.emiAmount) formatted += ', EMI: Rs ' + loan.emiAmount.toLocaleString();
+      formatted += ' (' + (loan.status || 'active') + ')\n';
     });
-    formatted += `\n`;
+    formatted += '\n';
   }
 
   // PROPERTIES
@@ -199,19 +242,19 @@ function formatFinancialContext(context: ChatContext): string {
       return acc;
     }, {} as Record<string, number>);
 
-    formatted += `🏠 PROPERTIES (Total Value: ₹${totalPropertyValue.toLocaleString()}):\n`;
-    formatted += `- Count: ${properties.length} properties\n`;
-    formatted += `- Total Purchase Price: ₹${totalPurchasePrice.toLocaleString()}\n`;
+    formatted += 'PROPERTIES (Total Value: Rs ' + totalPropertyValue.toLocaleString() + '):\n';
+    formatted += '- Count: ' + properties.length + ' properties\n';
+    formatted += '- Total Purchase Price: Rs ' + totalPurchasePrice.toLocaleString() + '\n';
     Object.entries(propertiesByType).forEach(([type, count]) => {
-      formatted += `  - ${type}: ${count} properties\n`;
+      formatted += '  - ' + type + ': ' + count + ' properties\n';
     });
-    formatted += `\nProperties:\n`;
+    formatted += '\nProperties:\n';
     properties.slice(0, 10).forEach((prop) => {
-      formatted += `  - ${prop.name}: ₹${(prop.currentValue || prop.purchasePrice || 0).toLocaleString()}`;
-      if (prop.location && prop.location !== "Unknown") formatted += ` (${prop.location})`;
-      formatted += ` (${prop.type}, ${prop.status || 'owned'})\n`;
+      formatted += '  - ' + prop.name + ': Rs ' + (prop.currentValue || prop.purchasePrice || 0).toLocaleString();
+      if (prop.location && prop.location !== "Unknown") formatted += ' (' + prop.location + ')';
+      formatted += ' (' + prop.type + ', ' + (prop.status || 'owned') + ')\n';
     });
-    formatted += `\n`;
+    formatted += '\n';
   }
 
   // BANK BALANCES
@@ -222,22 +265,22 @@ function formatFinancialContext(context: ChatContext): string {
       return acc;
     }, {} as Record<string, number>);
 
-    formatted += `🏦 BANK BALANCES (Total: ₹${totalBalance.toLocaleString()}):\n`;
-    formatted += `- Count: ${bankBalances.length} accounts\n`;
+    formatted += 'BANK BALANCES (Total: Rs ' + totalBalance.toLocaleString() + '):\n';
+    formatted += '- Count: ' + bankBalances.length + ' accounts\n';
     Object.entries(balancesByBank).forEach(([bank, balance]) => {
-      formatted += `  - ${bank}: ₹${balance.toLocaleString()}\n`;
+      formatted += '  - ' + bank + ': Rs ' + balance.toLocaleString() + '\n';
     });
-    formatted += `\nAccounts:\n`;
+    formatted += '\nAccounts:\n';
     bankBalances.slice(0, 10).forEach((bb) => {
-      formatted += `  - ${bb.bankName} (${bb.accountType}): ₹${bb.balance?.toLocaleString() || 0}`;
-      if (bb.accountNumber) formatted += ` - A/C: ${bb.accountNumber}`;
-      formatted += `\n`;
+      formatted += '  - ' + bb.bankName + ' (' + bb.accountType + '): Rs ' + (bb.balance?.toLocaleString() || 0);
+      if (bb.accountNumber) formatted += ' - A/C: ' + bb.accountNumber;
+      formatted += '\n';
     });
-    formatted += `\n`;
+    formatted += '\n';
   }
 
-  formatted += `Available Categories: ${categories.join(", ")}\n`;
-  formatted += `═══════════════════════════════════════════════════════════\n`;
+  formatted += 'Available Categories: ' + categories.join(", ") + '\n';
+  formatted += separator + '\n';
 
   return formatted;
 }

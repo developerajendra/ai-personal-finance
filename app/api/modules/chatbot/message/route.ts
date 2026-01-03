@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
 
     const responseText = await sendChatMessage(message, chatContext);
 
+    // Clean up response - remove action tag for the user
+    let cleanerResponse = responseText.replace(/<action>[\s\S]*?<\/action>/g, "").trim();
+
     // Check for actions in the response
     const actionMatch = responseText.match(/<action>([\s\S]*?)<\/action>/);
 
@@ -60,17 +63,36 @@ export async function POST(request: NextRequest) {
         if (actionJson.type === "create_investment" && actionJson.data) {
           console.log("[Chatbot] Detected investment creation action:", actionJson.data);
 
+          // Validate required fields
+          if (!actionJson.data.amount || parseFloat(actionJson.data.amount) <= 0) {
+            throw new Error("Investment amount is required and must be greater than 0");
+          }
+
+          // Parse and validate dates
+          const today = new Date().toISOString().split('T')[0];
+          let startDate = actionJson.data.startDate || today;
+          let maturityDate = actionJson.data.maturityDate;
+
+          // Validate date format
+          if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+            startDate = today;
+          }
+          if (maturityDate && !/^\d{4}-\d{2}-\d{2}$/.test(maturityDate)) {
+            maturityDate = undefined;
+          }
+
           // Create new investment
           const newInvestment: any = {
             id: `inv-${Date.now()}`,
-            name: actionJson.data.name || "New Investment",
-            amount: parseFloat(actionJson.data.amount) || 0,
+            name: actionJson.data.name || `New ${actionJson.data.type?.toUpperCase() || 'Investment'}`,
+            amount: parseFloat(actionJson.data.amount),
             type: actionJson.data.type || "other",
-            startDate: actionJson.data.startDate || new Date().toISOString().split('T')[0],
-            maturityDate: actionJson.data.maturityDate,
-            interestRate: parseFloat(actionJson.data.interestRate) || undefined,
+            startDate: startDate,
+            maturityDate: maturityDate,
+            interestRate: actionJson.data.interestRate ? parseFloat(actionJson.data.interestRate) : undefined,
+            description: actionJson.data.description,
             status: "active",
-            isPublished: false, // Draft mode
+            isPublished: false, // Draft mode - always create in draft
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
@@ -80,6 +102,7 @@ export async function POST(request: NextRequest) {
           const { investments } = await import("@/core/dataStore");
 
           // Reload latest data to ensure no conflicts
+          initializeStorage();
           const currentInvestments = loadFromJson("investments");
           currentInvestments.push(newInvestment);
           saveToJson("investments", currentInvestments);
@@ -87,16 +110,95 @@ export async function POST(request: NextRequest) {
           // Update in-memory store
           investments.push(newInvestment);
 
-          console.log("[Chatbot] created draft investment:", newInvestment.id);
+          console.log("[Chatbot] ✅ Created draft investment:", newInvestment.id, newInvestment.name, `Rs ${newInvestment.amount}`);
+          
+          // Enhance the response message with investment details
+          const investmentDetails = `\n\n**Investment Created:**\n- Name: ${newInvestment.name}\n- Amount: Rs ${newInvestment.amount.toLocaleString()}\n- Type: ${newInvestment.type}\n- Start Date: ${newInvestment.startDate}\n${newInvestment.maturityDate ? `- Maturity Date: ${newInvestment.maturityDate}\n` : ''}${newInvestment.interestRate ? `- Interest Rate: ${newInvestment.interestRate}%\n` : ''}\n✅ This investment has been saved in **draft mode**. You can find it in the Admin Panel → Portfolio tab under the Investments section. Review and publish it when you're ready!`;
+          
+          // Append investment details to the response
+          const enhancedResponse = cleanerResponse + investmentDetails;
+          return NextResponse.json({ response: enhancedResponse });
+        }
+
+        if (actionJson.type === "update_investment" && actionJson.data) {
+          console.log("[Chatbot] Detected investment update action:", actionJson.data);
+
+          // Load all investments (including drafts) to find the one to update
+          const { saveToJson, loadFromJson } = await import("@/core/services/jsonStorageService");
+          const { investments } = await import("@/core/dataStore");
+
+          initializeStorage();
+          const allInvestments = loadFromJson("investments");
+          
+          // Find investment by name (case-insensitive partial match)
+          const investmentName = actionJson.data.investmentName?.toLowerCase() || "";
+          const investmentIndex = allInvestments.findIndex((inv: any) => 
+            inv.name?.toLowerCase().includes(investmentName) || 
+            investmentName.includes(inv.name?.toLowerCase() || "")
+          );
+
+          if (investmentIndex === -1) {
+            throw new Error(`Investment "${actionJson.data.investmentName}" not found. Please check the investment name and try again.`);
+          }
+
+          const investment = allInvestments[investmentIndex] as any;
+          const updatedInvestment = { ...investment };
+
+          // Update fields if provided
+          if (actionJson.data.amount !== undefined) {
+            updatedInvestment.amount = parseFloat(actionJson.data.amount);
+          }
+          if (actionJson.data.interestRate !== undefined) {
+            updatedInvestment.interestRate = parseFloat(actionJson.data.interestRate);
+          }
+          if (actionJson.data.maturityDate !== undefined) {
+            if (actionJson.data.maturityDate && /^\d{4}-\d{2}-\d{2}$/.test(actionJson.data.maturityDate)) {
+              updatedInvestment.maturityDate = actionJson.data.maturityDate;
+            }
+          }
+          if (actionJson.data.status !== undefined) {
+            updatedInvestment.status = actionJson.data.status;
+          }
+          if (actionJson.data.description !== undefined) {
+            updatedInvestment.description = actionJson.data.description;
+          }
+          if (actionJson.data.startDate !== undefined) {
+            if (actionJson.data.startDate && /^\d{4}-\d{2}-\d{2}$/.test(actionJson.data.startDate)) {
+              updatedInvestment.startDate = actionJson.data.startDate;
+            }
+          }
+
+          updatedInvestment.updatedAt = new Date().toISOString();
+
+          // Update in array
+          allInvestments[investmentIndex] = updatedInvestment;
+          saveToJson("investments", allInvestments);
+
+          // Update in-memory store
+          const memIndex = investments.findIndex((inv: any) => inv.id === investment.id);
+          if (memIndex !== -1) {
+            investments[memIndex] = updatedInvestment;
+          }
+
+          console.log("[Chatbot] ✅ Updated investment:", updatedInvestment.id, updatedInvestment.name);
+          
+          // Enhance the response message with update details
+          const updateDetails = `\n\n**Investment Updated:**\n- Name: ${updatedInvestment.name}\n${actionJson.data.amount !== undefined ? `- Amount: Rs ${updatedInvestment.amount.toLocaleString()}\n` : ''}${actionJson.data.interestRate !== undefined ? `- Interest Rate: ${updatedInvestment.interestRate}%\n` : ''}${actionJson.data.maturityDate ? `- Maturity Date: ${updatedInvestment.maturityDate}\n` : ''}✅ The investment has been updated successfully. You can review it in the Admin Panel → Portfolio tab.`;
+          
+          // Append update details to the response
+          const enhancedResponse = cleanerResponse + updateDetails;
+          return NextResponse.json({ response: enhancedResponse });
         }
       } catch (e) {
         console.error("[Chatbot] Failed to execute action:", e);
+        // If action failed, still return the cleaned response
+        return NextResponse.json({ 
+          response: cleanerResponse + "\n\n⚠ I encountered an error while creating the investment. Please try again or create it manually in the Portfolio section." 
+        });
       }
     }
 
-    // Clean up response - remove action tag for the user
-    const cleanerResponse = responseText.replace(/<action>[\s\S]*?<\/action>/g, "").trim();
-
+    // Return the cleaned response if no action was processed
     return NextResponse.json({ response: cleanerResponse });
   } catch (error: any) {
     console.error("Chatbot API error:", error);

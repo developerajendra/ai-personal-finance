@@ -6,12 +6,13 @@ import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChatChart } from "./ChatChart";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, X } from "lucide-react";
 import { VoiceModeView } from "./VoiceModeView";
 
 export function ChatbotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [operationPrefix, setOperationPrefix] = useState<string>(""); // Track selected operation
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
@@ -297,18 +298,22 @@ export function ChatbotPage() {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !operationPrefix) || isLoading) return;
+
+    // Combine operation prefix with input if prefix exists
+    const fullMessage = operationPrefix ? `${operationPrefix} ${input.trim()}` : input.trim();
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: fullMessage,
       timestamp: new Date(),
     };
 
     addMessage(userMessage);
-    const messageToSend = input;
+    const messageToSend = fullMessage;
     setInput("");
+    setOperationPrefix("");
     setIsLoading(true);
 
     try {
@@ -577,16 +582,109 @@ export function ChatbotPage() {
       </div>
 
       <div className="p-6 border-t bg-gray-50">
+        {/* Operation Tags */}
+        <div className="max-w-4xl mx-auto mb-3">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => {
+                setOperationPrefix("+ Create Investment");
+                setInput("");
+              }}
+              disabled={isLoading || isListening}
+              className="px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              + Create Investment
+            </button>
+            <button
+              onClick={() => {
+                setOperationPrefix("✏️ Update Investment");
+                setInput("");
+              }}
+              disabled={isLoading || isListening}
+              className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ✏️ Update Investment
+            </button>
+            <button
+              onClick={() => {
+                setOperationPrefix("");
+                setInput("show me my portfolio summary");
+              }}
+              disabled={isLoading || isListening}
+              className="px-3 py-1.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              📊 Portfolio Summary
+            </button>
+            <button
+              onClick={() => {
+                setOperationPrefix("");
+                setInput("show me a chart of my investments");
+              }}
+              disabled={isLoading || isListening}
+              className="px-3 py-1.5 text-xs font-medium bg-orange-100 text-orange-700 rounded-full hover:bg-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              📈 Investment Chart
+            </button>
+            <button
+              onClick={() => {
+                setOperationPrefix("");
+                setInput("what are my total expenses this month?");
+              }}
+              disabled={isLoading || isListening}
+              className="px-3 py-1.5 text-xs font-medium bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              💰 Expenses
+            </button>
+            <button
+              onClick={() => {
+                setOperationPrefix("");
+                setInput("show me my loans");
+              }}
+              disabled={isLoading || isListening}
+              className="px-3 py-1.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              💳 Loans
+            </button>
+          </div>
+        </div>
         <div className="flex gap-2 max-w-4xl mx-auto">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-            placeholder="Ask about your finances or click mic to speak..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading || isListening}
-          />
+          <div className="relative flex-1">
+            {operationPrefix && (
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 z-10">
+                <span className="px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-md border border-blue-200 flex items-center gap-1.5">
+                  {operationPrefix}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOperationPrefix("");
+                    }}
+                    className="hover:bg-blue-200 rounded p-0.5 transition-colors"
+                    title="Remove operation"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+                <span className="w-px h-4 bg-gray-300"></span>
+                <span className="w-0.5 h-4 bg-blue-600 animate-pulse"></span>
+              </div>
+            )}
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value);
+              }}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  handleSend();
+                  setOperationPrefix("");
+                }
+              }}
+              placeholder={operationPrefix ? "Enter details..." : "Ask about your finances or click mic to speak..."}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${operationPrefix ? 'pl-32' : ''}`}
+              disabled={isLoading || isListening}
+            />
+          </div>
           <button
             onClick={isListening || isVoiceMode ? stopListening : startListening}
             disabled={isLoading}
