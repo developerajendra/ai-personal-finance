@@ -16,6 +16,8 @@ import {
   Tag,
   BarChart3,
   User,
+  TrendingUp,
+  PieChart,
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
@@ -30,6 +32,11 @@ const adminSubmenu = [
     name: 'Portfolio (AI Categorized)',
     href: '/admin/portfolio',
     icon: Briefcase,
+    submenu: [
+      { name: 'Overview', href: '/admin/portfolio', icon: Briefcase },
+      { name: 'Stocks', href: '/admin/portfolio/stocks', icon: TrendingUp },
+      { name: 'Mutual Funds', href: '/admin/portfolio/mutual-funds', icon: PieChart },
+    ],
   },
   { name: 'Dynamic Categories', href: '/admin/categories', icon: Tag },
 ];
@@ -40,6 +47,7 @@ export function Sidebar() {
   const isDashboardPath = pathname?.startsWith('/dashboard');
   const [isAdminOpen, setIsAdminOpen] = useState(isAdminPath);
   const [isDashboardOpen, setIsDashboardOpen] = useState(isDashboardPath);
+  const [isPortfolioOpen, setIsPortfolioOpen] = useState(pathname?.startsWith('/admin/portfolio'));
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -51,7 +59,10 @@ export function Sidebar() {
     if (isAdminPath) {
       setIsAdminOpen(true);
     }
-  }, [isDashboardPath, isAdminPath]);
+    if (pathname?.startsWith('/admin/portfolio')) {
+      setIsPortfolioOpen(true);
+    }
+  }, [isDashboardPath, isAdminPath, pathname]);
 
   const handleDashboardClick = () => {
     setIsDashboardOpen(!isDashboardOpen);
@@ -280,28 +291,83 @@ export function Sidebar() {
               {isAdminOpen && (
                 <div className="ml-6 mt-1 space-y-0.5 border-l-2 border-gray-700 pl-3">
                   {adminSubmenu.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive = pathname === item.href || (item.submenu && item.submenu.some(sub => pathname === sub.href));
+                    const hasSubmenu = item.submenu && item.submenu.length > 0;
+                    const isPortfolioItem = item.name === 'Portfolio (AI Categorized)';
+                    
                     return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative',
-                          isActive
-                            ? 'bg-purple-600/20 text-purple-300 font-medium'
-                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                        )}>
-                        <div
-                          className={cn(
-                            'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full',
-                            isActive
-                              ? 'bg-purple-400 -ml-4'
-                              : 'bg-gray-600 -ml-4'
+                      <div key={item.name}>
+                        <div className="flex items-center gap-1">
+                          <Link
+                            href={item.href}
+                            className={cn(
+                              'flex-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative',
+                              isActive
+                                ? 'bg-purple-600/20 text-purple-300 font-medium'
+                                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            )}>
+                            <div
+                              className={cn(
+                                'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full',
+                                isActive
+                                  ? 'bg-purple-400 -ml-4'
+                                  : 'bg-gray-600 -ml-4'
+                              )}
+                            />
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.name}</span>
+                          </Link>
+                          {hasSubmenu && (
+                            <button
+                              onClick={() => {
+                                if (isPortfolioItem) {
+                                  setIsPortfolioOpen(!isPortfolioOpen);
+                                }
+                              }}
+                              className={cn(
+                                'p-1 rounded transition-colors',
+                                isActive
+                                  ? 'text-purple-300 hover:bg-purple-600/30'
+                                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                              )}>
+                              {isPortfolioOpen ? (
+                                <ChevronDown className="w-3 h-3" />
+                              ) : (
+                                <ChevronRight className="w-3 h-3" />
+                              )}
+                            </button>
                           )}
-                        />
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.name}</span>
-                      </Link>
+                        </div>
+                        {hasSubmenu && isPortfolioOpen && (
+                          <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-gray-700 pl-3">
+                            {item.submenu?.map((subItem) => {
+                              const isSubActive = pathname === subItem.href;
+                              return (
+                                <Link
+                                  key={subItem.name}
+                                  href={subItem.href}
+                                  className={cn(
+                                    'flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-xs relative',
+                                    isSubActive
+                                      ? 'bg-purple-600/30 text-purple-200 font-medium'
+                                      : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
+                                  )}>
+                                  <div
+                                    className={cn(
+                                      'absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-0.5 rounded-full',
+                                      isSubActive
+                                        ? 'bg-purple-400 -ml-3.5'
+                                        : 'bg-gray-600 -ml-3.5'
+                                    )}
+                                  />
+                                  <subItem.icon className="w-3 h-3" />
+                                  <span>{subItem.name}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -328,21 +394,55 @@ export function Sidebar() {
               {hoveredItem === 'admin' && isAdminOpen && (
                 <div className="absolute left-full ml-2 top-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 min-w-[200px] z-50">
                   {adminSubmenu.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive = pathname === item.href || (item.submenu && item.submenu.some(sub => pathname === sub.href));
+                    const hasSubmenu = item.submenu && item.submenu.length > 0;
+                    const isPortfolioItem = item.name === 'Portfolio (AI Categorized)';
+                    
                     return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={() => setHoveredItem(null)}
-                        className={cn(
-                          'flex items-center gap-3 px-4 py-2 text-sm',
-                          isActive
-                            ? 'text-purple-300 bg-purple-600/20'
-                            : 'text-gray-300 hover:bg-gray-700'
-                        )}>
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.name}</span>
-                      </Link>
+                      <div key={item.name}>
+                        <Link
+                          href={item.href}
+                          onClick={() => setHoveredItem(null)}
+                          onMouseEnter={() => {
+                            if (isPortfolioItem) {
+                              setIsPortfolioOpen(true);
+                            }
+                          }}
+                          className={cn(
+                            'flex items-center gap-3 px-4 py-2 text-sm',
+                            isActive
+                              ? 'text-purple-300 bg-purple-600/20'
+                              : 'text-gray-300 hover:bg-gray-700'
+                          )}>
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.name}</span>
+                          {hasSubmenu && (
+                            <ChevronRight className="w-3 h-3 ml-auto" />
+                          )}
+                        </Link>
+                        {hasSubmenu && isPortfolioOpen && (
+                          <div className="ml-4 border-l border-gray-700 pl-2">
+                            {item.submenu?.map((subItem) => {
+                              const isSubActive = pathname === subItem.href;
+                              return (
+                                <Link
+                                  key={subItem.name}
+                                  href={subItem.href}
+                                  onClick={() => setHoveredItem(null)}
+                                  className={cn(
+                                    'flex items-center gap-2 px-3 py-1.5 text-xs',
+                                    isSubActive
+                                      ? 'text-purple-200 bg-purple-600/30'
+                                      : 'text-gray-400 hover:bg-gray-700'
+                                  )}>
+                                  <subItem.icon className="w-3 h-3" />
+                                  <span>{subItem.name}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
