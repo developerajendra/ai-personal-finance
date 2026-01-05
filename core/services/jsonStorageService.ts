@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Investment, Loan, Property, BankBalance, Transaction } from "@/core/types";
+import { ZerodhaStock, ZerodhaMutualFund } from "@/core/services/zerodhaService";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILES = {
@@ -9,6 +10,8 @@ const FILES = {
   properties: path.join(DATA_DIR, "properties.json"),
   bankBalances: path.join(DATA_DIR, "bankBalances.json"),
   transactions: path.join(DATA_DIR, "transactions.json"),
+  stocks: path.join(DATA_DIR, "stocks.json"),
+  mutualFunds: path.join(DATA_DIR, "mutualFunds.json"),
 };
 
 // Ensure data directory exists
@@ -189,5 +192,91 @@ export function saveAllPortfolioData(data: {
     console.log(`💾 Saved ${data.transactions.length} transactions to JSON`);
   }
   console.log("✅ All portfolio data saved to JSON files successfully");
+}
+
+// Save stocks data
+export function saveStocks(stocks: ZerodhaStock[]): void {
+  try {
+    ensureDataDir();
+    const filePath = FILES.stocks;
+    const data = {
+      stocks,
+      lastUpdated: new Date().toISOString(),
+    };
+    const jsonString = JSON.stringify(data, null, 2);
+    fs.writeFileSync(filePath, jsonString, "utf-8");
+    console.log(`💾 Saved ${stocks.length} stocks to JSON`);
+  } catch (error) {
+    console.error(`❌ Error saving stocks:`, error);
+    throw error;
+  }
+}
+
+// Load stocks data
+export function loadStocks(): ZerodhaStock[] {
+  try {
+    ensureDataDir();
+    const filePath = FILES.stocks;
+    initializeFile(filePath);
+
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
+
+    const content = fs.readFileSync(filePath, "utf-8");
+    const data = JSON.parse(content || "{}");
+    
+    // Handle both old format (array) and new format (object with stocks property)
+    if (Array.isArray(data)) {
+      return data;
+    }
+    return data.stocks || [];
+  } catch (error) {
+    console.error(`❌ Error loading stocks:`, error);
+    return [];
+  }
+}
+
+// Save mutual funds data
+export function saveMutualFunds(mutualFunds: ZerodhaMutualFund[]): void {
+  try {
+    ensureDataDir();
+    const filePath = FILES.mutualFunds;
+    const data = {
+      mutualFunds,
+      lastUpdated: new Date().toISOString(),
+    };
+    const jsonString = JSON.stringify(data, null, 2);
+    fs.writeFileSync(filePath, jsonString, "utf-8");
+    console.log(`💾 Saved ${mutualFunds.length} mutual funds to JSON`);
+  } catch (error) {
+    console.error(`❌ Error saving mutual funds:`, error);
+    throw error;
+  }
+}
+
+// Load mutual funds data
+export function loadMutualFunds(): ZerodhaMutualFund[] {
+  try {
+    ensureDataDir();
+    const filePath = FILES.mutualFunds;
+    initializeFile(filePath);
+
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
+
+    const content = fs.readFileSync(filePath, "utf-8");
+    const data = JSON.parse(content || "{}");
+    
+    // Handle both old format (array) and new format (object with mutualFunds property)
+    if (Array.isArray(data)) {
+      return data;
+    }
+    return data.mutualFunds || [];
+  } catch (error) {
+    console.error(`❌ Error loading mutual funds:`, error);
+    return [];
+  }
 }
 

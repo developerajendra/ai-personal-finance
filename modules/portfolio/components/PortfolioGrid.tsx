@@ -13,8 +13,12 @@ type PortfolioItem = Investment | Loan | Property | BankBalance;
 type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance';
 type ViewMode = 'draft' | 'published';
 
-export function PortfolioGrid() {
-  const [activeTab, setActiveTab] = useState<ItemType>('investment');
+interface PortfolioGridProps {
+  defaultTab?: ItemType;
+}
+
+export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps = {}) {
+  const [activeTab, setActiveTab] = useState<ItemType>(defaultTab);
   const [viewMode, setViewMode] = useState<ViewMode>('draft');
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [draftCount, setDraftCount] = useState<number>(0);
@@ -37,6 +41,13 @@ export function PortfolioGrid() {
   const [isPublishing, setIsPublishing] = useState<string | null>(null);
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Update active tab when defaultTab prop changes
+  useEffect(() => {
+    if (defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
 
   // Fetch counts for all tabs
   useEffect(() => {

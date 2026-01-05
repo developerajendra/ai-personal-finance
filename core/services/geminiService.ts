@@ -1,5 +1,6 @@
 import { generateChatContent } from "./ollamaService";
 import { Transaction, FinancialSummary, Investment, Loan, Property, BankBalance } from "@/core/types";
+import { ZerodhaStock, ZerodhaMutualFund } from "@/core/services/zerodhaService";
 
 // Re-export or redefine ChatContext here if needed to avoid breaking other files
 export interface ChatContext {
@@ -10,6 +11,8 @@ export interface ChatContext {
   loans?: Loan[];
   properties?: Property[];
   bankBalances?: BankBalance[];
+  stocks?: ZerodhaStock[];
+  mutualFunds?: ZerodhaMutualFund[];
 }
 
 export async function sendChatMessage(
@@ -43,6 +46,8 @@ CRITICAL CHART GENERATION RULES:
 IMPORTANT INSTRUCTIONS:
 - When asked for a summary, provide a COMPREHENSIVE overview including:
   * Total investments value and breakdown by type
+  * Total stocks portfolio value, holdings count, and overall P&L
+  * Total mutual funds value, fund count, and overall P&L
   * Total loans outstanding and breakdown by type
   * Total properties value and breakdown
   * Total bank balances across all accounts
@@ -73,11 +78,16 @@ IMPORTANT INSTRUCTIONS:
     - "show me a chart" → Generate bar chart of expenses by category
     - "chart of investments" → Generate pie chart of investments by type
     - "visualize my loans" → Generate bar chart of loans by type
+    - "chart of my stocks" → Generate bar chart of stocks by symbol with P&L
+    - "mutual funds chart" → Generate pie chart of mutual funds by fund name
+    - "stocks performance" → Generate bar chart showing P&L for each stock
   * After the <chart> tag, provide a brief explanation (1-2 sentences)
   * DO NOT ask questions - just generate the chart automatically
 
 - Answer questions about:
   * Investments: types, amounts, returns, maturity dates
+  * Stocks: holdings, current prices, P&L, portfolio value, individual stock performance
+  * Mutual Funds: fund names, NAV, units, current value, P&L, folio numbers
   * Loans: outstanding amounts, interest rates, EMIs, repayment schedules
   * Properties: values, locations, rental income potential
   * Bank balances: account types, balances, liquidity
@@ -155,7 +165,7 @@ IMPORTANT INSTRUCTIONS:
 }
 
 function formatFinancialContext(context: ChatContext): string {
-  const { transactions, summary, categories, investments, loans, properties, bankBalances } = context;
+  const { transactions, summary, categories, investments, loans, properties, bankBalances, stocks, mutualFunds } = context;
 
   const separator = '='.repeat(55);
   let formatted = '\n' + separator + '\n';
@@ -275,6 +285,53 @@ function formatFinancialContext(context: ChatContext): string {
       formatted += '  - ' + bb.bankName + ' (' + bb.accountType + '): Rs ' + (bb.balance?.toLocaleString() || 0);
       if (bb.accountNumber) formatted += ' - A/C: ' + bb.accountNumber;
       formatted += '\n';
+    });
+    formatted += '\n';
+  }
+
+  // STOCKS (Zerodha Holdings)
+  if (stocks && stocks.length > 0) {
+    const totalStocksValue = stocks.reduce((sum, stock) => sum + (stock.last_price * stock.quantity), 0);
+    const totalStocksPnl = stocks.reduce((sum, stock) => sum + (stock.pnl || 0), 0);
+    const stocksByExchange = stocks.reduce((acc, stock) => {
+      acc[stock.exchange] = (acc[stock.exchange] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    formatted += 'STOCKS PORTFOLIO (Total Value: Rs ' + totalStocksValue.toLocaleString() + '):\n';
+    formatted += '- Count: ' + stocks.length + ' holdings\n';
+    formatted += '- Total P&L: Rs ' + totalStocksPnl.toLocaleString() + '\n';
+    formatted += '- Total P&L %: ' + (totalStocksValue > 0 ? ((totalStocksPnl / (totalStocksValue - totalStocksPnl)) * 100).toFixed(2) : '0.00') + '%\n';
+    Object.entries(stocksByExchange).forEach(([exchange, count]) => {
+      formatted += '  - ' + exchange + ': ' + count + ' stocks\n';
+    });
+    formatted += '\nStock Holdings:\n';
+    stocks.slice(0, 15).forEach((stock) => {
+      const currentValue = stock.last_price * stock.quantity;
+      formatted += '  - ' + stock.tradingsymbol + ' (' + stock.exchange + '): ' + stock.quantity + ' shares @ Rs ' + stock.average_price.toFixed(2);
+      formatted += ' | Current: Rs ' + stock.last_price.toFixed(2) + ' | Value: Rs ' + currentValue.toFixed(2);
+      formatted += ' | P&L: Rs ' + (stock.pnl >= 0 ? '+' : '') + stock.pnl.toFixed(2) + ' (' + (stock.pnl_percentage >= 0 ? '+' : '') + stock.pnl_percentage.toFixed(2) + '%)\n';
+    });
+    formatted += '\n';
+  }
+
+  // MUTUAL FUNDS (Zerodha Holdings)
+  if (mutualFunds && mutualFunds.length > 0) {
+    const totalMFValue = mutualFunds.reduce((sum, mf) => sum + (mf.last_price * mf.quantity), 0);
+    const totalMFPnl = mutualFunds.reduce((sum, mf) => sum + (mf.pnl || 0), 0);
+
+    formatted += 'MUTUAL FUNDS PORTFOLIO (Total Value: Rs ' + totalMFValue.toLocaleString() + '):\n';
+    formatted += '- Count: ' + mutualFunds.length + ' funds\n';
+    formatted += '- Total P&L: Rs ' + totalMFPnl.toLocaleString() + '\n';
+    formatted += '- Total P&L %: ' + (totalMFValue > 0 ? ((totalMFPnl / (totalMFValue - totalMFPnl)) * 100).toFixed(2) : '0.00') + '%\n';
+    formatted += '\nMutual Fund Holdings:\n';
+    mutualFunds.slice(0, 15).forEach((mf) => {
+      const currentValue = mf.last_price * mf.quantity;
+      formatted += '  - ' + mf.fund_name + ' (' + mf.tradingsymbol + '): ' + mf.quantity.toFixed(2) + ' units';
+      formatted += ' | Avg Price: Rs ' + mf.average_price.toFixed(2) + ' | NAV: Rs ' + mf.last_price.toFixed(2);
+      formatted += ' | Value: Rs ' + currentValue.toFixed(2);
+      formatted += ' | P&L: Rs ' + (mf.pnl >= 0 ? '+' : '') + mf.pnl.toFixed(2) + ' (' + (mf.pnl_percentage >= 0 ? '+' : '') + mf.pnl_percentage.toFixed(2) + '%)\n';
+      if (mf.folio) formatted += '    Folio: ' + mf.folio + '\n';
     });
     formatted += '\n';
   }

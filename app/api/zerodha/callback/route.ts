@@ -21,17 +21,17 @@ export async function GET(request: NextRequest) {
       });
 
       // Redirect to portfolio page
-      return NextResponse.redirect(new URL("/admin/portfolio/stocks", request.url));
+      return NextResponse.redirect(new URL("/portfolio/stocks", request.url));
     } else {
       // Authentication failed
       return NextResponse.redirect(
-        new URL("/admin/portfolio?error=auth_failed", request.url)
+        new URL("/portfolio?error=auth_failed", request.url)
       );
     }
   } catch (error: any) {
     console.error("Error in Zerodha callback:", error);
     return NextResponse.redirect(
-      new URL("/admin/portfolio?error=callback_error", request.url)
+      new URL("/portfolio?error=callback_error", request.url)
     );
   }
 }

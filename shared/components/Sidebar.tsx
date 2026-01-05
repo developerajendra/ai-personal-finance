@@ -5,71 +5,123 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
-  Settings,
+  Briefcase,
+  Database,
+  Upload,
   MessageSquare,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
-  Upload,
-  Database,
-  Briefcase,
-  Tag,
-  BarChart3,
-  User,
   TrendingUp,
   PieChart,
+  Home,
+  CreditCard,
+  Wallet,
+  BarChart3,
+  Tag,
+  Sparkles,
+  User,
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 
-const dashboardSubmenu = [
-  { name: 'Quick Chart', href: '/dashboard/chart', icon: BarChart3 },
-];
-
-const adminSubmenu = [
-  { name: 'Upload & AI Analysis', href: '/admin/upload', icon: Upload },
-  { name: 'Transactions', href: '/admin/transactions', icon: Database },
+// Navigation structure - clean and intuitive
+const navigation = [
   {
-    name: 'Portfolio (AI Categorized)',
-    href: '/admin/portfolio',
-    icon: Briefcase,
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    defaultHref: '/dashboard',
     submenu: [
-      { name: 'Overview', href: '/admin/portfolio', icon: Briefcase },
-      { name: 'Stocks', href: '/admin/portfolio/stocks', icon: TrendingUp },
-      { name: 'Mutual Funds', href: '/admin/portfolio/mutual-funds', icon: PieChart },
+      { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+      { name: 'Analytics', href: '/dashboard/chart', icon: BarChart3 },
     ],
   },
-  { name: 'Dynamic Categories', href: '/admin/categories', icon: Tag },
+  {
+    name: 'Portfolio',
+    href: '/portfolio',
+    icon: Briefcase,
+    defaultHref: '/portfolio',
+    submenu: [
+      { name: 'Overview', href: '/portfolio', icon: Briefcase },
+      { name: 'Stocks', href: '/portfolio/stocks', icon: TrendingUp },
+      { name: 'Mutual Funds', href: '/portfolio/mutual-funds', icon: PieChart },
+      { name: 'Loans', href: '/portfolio/loans', icon: CreditCard },
+      { name: 'Properties', href: '/portfolio/properties', icon: Home },
+      { name: 'Bank Balances', href: '/portfolio/bank-balances', icon: Wallet },
+    ],
+  },
+  {
+    name: 'Transactions',
+    href: '/transactions',
+    icon: Database,
+    defaultHref: '/transactions',
+    submenu: [
+      { name: 'All Transactions', href: '/transactions', icon: Database },
+      { name: 'Categories', href: '/transactions/categories', icon: Tag },
+    ],
+  },
+  {
+    name: 'Data',
+    href: '/data',
+    icon: Upload,
+    defaultHref: '/data/upload',
+    submenu: [
+      { name: 'Upload Files', href: '/data/upload', icon: Upload },
+      { name: 'AI Analysis', href: '/data/analysis', icon: Sparkles },
+    ],
+  },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const isAdminPath = pathname?.startsWith('/admin');
-  const isDashboardPath = pathname?.startsWith('/dashboard');
-  const [isAdminOpen, setIsAdminOpen] = useState(isAdminPath);
-  const [isDashboardOpen, setIsDashboardOpen] = useState(isDashboardPath);
-  const [isPortfolioOpen, setIsPortfolioOpen] = useState(pathname?.startsWith('/admin/portfolio'));
+  const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
-  // Auto-expand based on current path
+  // Determine which menu should be open based on current path
   useEffect(() => {
-    if (isDashboardPath) {
-      setIsDashboardOpen(true);
-    }
-    if (isAdminPath) {
-      setIsAdminOpen(true);
-    }
-    if (pathname?.startsWith('/admin/portfolio')) {
-      setIsPortfolioOpen(true);
-    }
-  }, [isDashboardPath, isAdminPath, pathname]);
+    const activeMenu = navigation.find((menu) => {
+      if (pathname === menu.href || pathname === menu.defaultHref) return true;
+      return menu.submenu?.some((item) => pathname === item.href);
+    });
 
-  const handleDashboardClick = () => {
-    setIsDashboardOpen(!isDashboardOpen);
+    if (activeMenu) {
+      setOpenMenus(new Set([activeMenu.name]));
+    }
+  }, [pathname]);
+
+  const toggleMenu = (menuName: string) => {
+    setOpenMenus((prev) => {
+      const next = new Set(prev);
+      if (next.has(menuName)) {
+        next.delete(menuName);
+      } else {
+        next.add(menuName);
+      }
+      return next;
+    });
   };
 
-  const handleAdminClick = () => {
-    setIsAdminOpen(!isAdminOpen);
+  const isMenuOpen = (menuName: string) => openMenus.has(menuName);
+
+  const isActive = (href: string) => pathname === href;
+
+  const isMenuActive = (menu: typeof navigation[0]) => {
+    if (pathname === menu.href || pathname === menu.defaultHref) return true;
+    return menu.submenu?.some((item) => pathname === item.href) || false;
+  };
+
+  const handleMenuClick = (menu: typeof navigation[0], e: React.MouseEvent) => {
+    if (isCollapsed) {
+      e.preventDefault();
+      toggleMenu(menu.name);
+      return;
+    }
+    // Navigate to default href if clicking main menu item
+    if (pathname !== menu.defaultHref && !isMenuActive(menu)) {
+      e.preventDefault();
+      window.location.href = menu.defaultHref;
+    }
   };
 
   return (
@@ -102,7 +154,7 @@ export function Sidebar() {
               </button>
             </>
           ) : (
-            <div className="flex items-center justify-center w-full">
+            <div className="flex items-center justify-center w-full relative">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold">
                 <User className="w-5 h-5" />
               </div>
@@ -119,347 +171,127 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {/* Dashboard Section */}
-        <div className="space-y-1">
-          {!isCollapsed ? (
-            <>
-              <div className="flex items-center gap-1">
+        {navigation.map((menu) => {
+          const menuActive = isMenuActive(menu);
+          const menuOpen = isMenuOpen(menu.name);
+
+          if (isCollapsed) {
+            return (
+              <div key={menu.name} className="relative">
                 <Link
-                  href="/dashboard"
+                  href={menu.defaultHref}
+                  onClick={(e) => handleMenuClick(menu, e)}
+                  onMouseEnter={() => setHoveredItem(menu.name)}
+                  onMouseLeave={() => setHoveredItem(null)}
                   className={cn(
-                    'flex-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
-                    isDashboardPath
+                    'w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200 mb-1',
+                    menuActive
                       ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
                       : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                   )}>
-                  <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
-                  <span className="font-medium">Dashboard</span>
+                  <menu.icon className="w-5 h-5" />
                 </Link>
-                <button
-                  onClick={handleDashboardClick}
-                  className={cn(
-                    'p-2 rounded-lg transition-all duration-200',
-                    isDashboardPath
-                      ? 'text-white hover:bg-purple-700'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  )}>
-                  {isDashboardOpen ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-
-              {isDashboardOpen && (
-                <div className="ml-6 mt-1 space-y-0.5 border-l-2 border-gray-700 pl-3">
-                  <Link
-                    href="/dashboard"
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative',
-                      pathname === '/dashboard'
-                        ? 'bg-purple-600/20 text-purple-300 font-medium'
-                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                    )}>
-                    <div
-                      className={cn(
-                        'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full',
-                        pathname === '/dashboard'
-                          ? 'bg-purple-400 -ml-4'
-                          : 'bg-gray-600 -ml-4'
-                      )}
-                    />
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span>Overview</span>
-                  </Link>
-                  {dashboardSubmenu.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative',
-                          isActive
-                            ? 'bg-purple-600/20 text-purple-300 font-medium'
-                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                        )}>
-                        <div
-                          className={cn(
-                            'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full',
-                            isActive
-                              ? 'bg-purple-400 -ml-4'
-                              : 'bg-gray-600 -ml-4'
-                          )}
-                        />
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.name}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="relative">
-              <Link
-                href="/dashboard"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleDashboardClick();
-                }}
-                onMouseEnter={() => setHoveredItem('dashboard')}
-                onMouseLeave={() => setHoveredItem(null)}
-                className={cn(
-                  'w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200',
-                  isDashboardPath
-                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                )}>
-                <LayoutDashboard className="w-5 h-5" />
-              </Link>
-              {hoveredItem === 'dashboard' && isDashboardOpen && (
-                <div className="absolute left-full ml-2 top-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 min-w-[180px] z-50">
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setHoveredItem(null)}
-                    className={cn(
-                      'flex items-center gap-3 px-4 py-2 text-sm',
-                      pathname === '/dashboard'
-                        ? 'text-purple-300 bg-purple-600/20'
-                        : 'text-gray-300 hover:bg-gray-700'
-                    )}>
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span>Overview</span>
-                  </Link>
-                  {dashboardSubmenu.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        onClick={() => setHoveredItem(null)}
-                        className={cn(
-                          'flex items-center gap-3 px-4 py-2 text-sm',
-                          isActive
-                            ? 'text-purple-300 bg-purple-600/20'
-                            : 'text-gray-300 hover:bg-gray-700'
-                        )}>
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.name}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Admin Section */}
-        <div className="space-y-1">
-          {!isCollapsed ? (
-            <>
-              <div className="flex items-center gap-1">
-                <Link
-                  href="/admin/portfolio"
-                  className={cn(
-                    'flex-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
-                    isAdminPath
-                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  )}>
-                  <Settings className="w-5 h-5 flex-shrink-0" />
-                  <span className="font-medium">Admin</span>
-                </Link>
-                <button
-                  onClick={handleAdminClick}
-                  className={cn(
-                    'p-2 rounded-lg transition-all duration-200',
-                    isAdminPath
-                      ? 'text-white hover:bg-purple-700'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                  )}>
-                  {isAdminOpen ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-
-              {isAdminOpen && (
-                <div className="ml-6 mt-1 space-y-0.5 border-l-2 border-gray-700 pl-3">
-                  {adminSubmenu.map((item) => {
-                    const isActive = pathname === item.href || (item.submenu && item.submenu.some(sub => pathname === sub.href));
-                    const hasSubmenu = item.submenu && item.submenu.length > 0;
-                    const isPortfolioItem = item.name === 'Portfolio (AI Categorized)';
-                    
-                    return (
-                      <div key={item.name}>
-                        <div className="flex items-center gap-1">
-                          <Link
-                            href={item.href}
-                            className={cn(
-                              'flex-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative',
-                              isActive
-                                ? 'bg-purple-600/20 text-purple-300 font-medium'
-                                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                            )}>
-                            <div
-                              className={cn(
-                                'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full',
-                                isActive
-                                  ? 'bg-purple-400 -ml-4'
-                                  : 'bg-gray-600 -ml-4'
-                              )}
-                            />
-                            <item.icon className="w-4 h-4" />
-                            <span>{item.name}</span>
-                          </Link>
-                          {hasSubmenu && (
-                            <button
-                              onClick={() => {
-                                if (isPortfolioItem) {
-                                  setIsPortfolioOpen(!isPortfolioOpen);
-                                }
-                              }}
-                              className={cn(
-                                'p-1 rounded transition-colors',
-                                isActive
-                                  ? 'text-purple-300 hover:bg-purple-600/30'
-                                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                              )}>
-                              {isPortfolioOpen ? (
-                                <ChevronDown className="w-3 h-3" />
-                              ) : (
-                                <ChevronRight className="w-3 h-3" />
-                              )}
-                            </button>
-                          )}
-                        </div>
-                        {hasSubmenu && isPortfolioOpen && (
-                          <div className="ml-4 mt-1 space-y-0.5 border-l-2 border-gray-700 pl-3">
-                            {item.submenu?.map((subItem) => {
-                              const isSubActive = pathname === subItem.href;
-                              return (
-                                <Link
-                                  key={subItem.name}
-                                  href={subItem.href}
-                                  className={cn(
-                                    'flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-xs relative',
-                                    isSubActive
-                                      ? 'bg-purple-600/30 text-purple-200 font-medium'
-                                      : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
-                                  )}>
-                                  <div
-                                    className={cn(
-                                      'absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-0.5 rounded-full',
-                                      isSubActive
-                                        ? 'bg-purple-400 -ml-3.5'
-                                        : 'bg-gray-600 -ml-3.5'
-                                    )}
-                                  />
-                                  <subItem.icon className="w-3 h-3" />
-                                  <span>{subItem.name}</span>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="relative">
-              <Link
-                href="/admin/portfolio"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleAdminClick();
-                }}
-                onMouseEnter={() => setHoveredItem('admin')}
-                onMouseLeave={() => setHoveredItem(null)}
-                className={cn(
-                  'w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200',
-                  isAdminPath
-                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                )}>
-                <Settings className="w-5 h-5" />
-              </Link>
-              {hoveredItem === 'admin' && isAdminOpen && (
-                <div className="absolute left-full ml-2 top-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 min-w-[200px] z-50">
-                  {adminSubmenu.map((item) => {
-                    const isActive = pathname === item.href || (item.submenu && item.submenu.some(sub => pathname === sub.href));
-                    const hasSubmenu = item.submenu && item.submenu.length > 0;
-                    const isPortfolioItem = item.name === 'Portfolio (AI Categorized)';
-                    
-                    return (
-                      <div key={item.name}>
+                {hoveredItem === menu.name && menuOpen && (
+                  <div className="absolute left-full ml-2 top-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 min-w-[200px] z-50">
+                    {menu.submenu?.map((item) => {
+                      const itemActive = isActive(item.href);
+                      return (
                         <Link
+                          key={item.name}
                           href={item.href}
                           onClick={() => setHoveredItem(null)}
-                          onMouseEnter={() => {
-                            if (isPortfolioItem) {
-                              setIsPortfolioOpen(true);
-                            }
-                          }}
                           className={cn(
                             'flex items-center gap-3 px-4 py-2 text-sm',
-                            isActive
+                            itemActive
                               ? 'text-purple-300 bg-purple-600/20'
                               : 'text-gray-300 hover:bg-gray-700'
                           )}>
                           <item.icon className="w-4 h-4" />
                           <span>{item.name}</span>
-                          {hasSubmenu && (
-                            <ChevronRight className="w-3 h-3 ml-auto" />
-                          )}
                         </Link>
-                        {hasSubmenu && isPortfolioOpen && (
-                          <div className="ml-4 border-l border-gray-700 pl-2">
-                            {item.submenu?.map((subItem) => {
-                              const isSubActive = pathname === subItem.href;
-                              return (
-                                <Link
-                                  key={subItem.name}
-                                  href={subItem.href}
-                                  onClick={() => setHoveredItem(null)}
-                                  className={cn(
-                                    'flex items-center gap-2 px-3 py-1.5 text-xs',
-                                    isSubActive
-                                      ? 'text-purple-200 bg-purple-600/30'
-                                      : 'text-gray-400 hover:bg-gray-700'
-                                  )}>
-                                  <subItem.icon className="w-3 h-3" />
-                                  <span>{subItem.name}</span>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <div key={menu.name} className="space-y-1">
+              <div className="flex items-center gap-1">
+                <Link
+                  href={menu.defaultHref}
+                  onClick={(e) => handleMenuClick(menu, e)}
+                  className={cn(
+                    'flex-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
+                    menuActive
+                      ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  )}>
+                  <menu.icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="font-medium">{menu.name}</span>
+                </Link>
+                {menu.submenu && menu.submenu.length > 0 && (
+                  <button
+                    onClick={() => toggleMenu(menu.name)}
+                    className={cn(
+                      'p-2 rounded-lg transition-all duration-200',
+                      menuActive
+                        ? 'text-white hover:bg-purple-700'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    )}>
+                    {menuOpen ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {menuOpen && menu.submenu && (
+                <div className="ml-6 mt-1 space-y-0.5 border-l-2 border-gray-700 pl-3">
+                  {menu.submenu.map((item) => {
+                    const itemActive = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative group',
+                          itemActive
+                            ? 'bg-purple-600/20 text-purple-300 font-medium'
+                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                        )}>
+                        <div
+                          className={cn(
+                            'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full transition-all',
+                            itemActive
+                              ? 'bg-purple-400 -ml-4 w-1.5 h-1.5'
+                              : 'bg-gray-600 -ml-4 group-hover:bg-gray-500'
+                          )}
+                        />
+                        <item.icon className="w-4 h-4 flex-shrink-0" />
+                        <span>{item.name}</span>
+                      </Link>
                     );
                   })}
                 </div>
               )}
             </div>
-          )}
-        </div>
+          );
+        })}
       </nav>
 
       {/* AI Assistant Button */}
       <div className="p-4 border-t border-gray-800">
         {!isCollapsed ? (
           <Link
-            href="/dashboard/chart"
+            href="/chatbot"
             className={cn(
               'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
-              pathname === '/dashboard/chart'
+              pathname === '/chatbot'
                 ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
                 : 'text-gray-300 hover:bg-gray-800 hover:text-white'
             )}>
@@ -469,12 +301,12 @@ export function Sidebar() {
         ) : (
           <div className="relative">
             <Link
-              href="/dashboard/chart"
+              href="/chatbot"
               onMouseEnter={() => setHoveredItem('assistant')}
               onMouseLeave={() => setHoveredItem(null)}
               className={cn(
                 'flex items-center justify-center p-3 rounded-xl transition-all duration-200',
-                pathname === '/dashboard/chart'
+                pathname === '/chatbot'
                   ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
               )}>

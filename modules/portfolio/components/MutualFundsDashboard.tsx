@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ZerodhaMutualFund } from "@/core/services/zerodhaService";
 import { Loader } from "@/shared/components/Loader";
 import { TrendingUp, TrendingDown, RefreshCw, Link as LinkIcon, LogOut, AlertCircle } from "lucide-react";
@@ -18,6 +18,7 @@ export function MutualFundsDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery<MutualFundsResponse>({
     queryKey: ["zerodha-mutual-funds"],
@@ -58,8 +59,18 @@ export function MutualFundsDashboard() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
+    try {
+      // Fetch with refresh=true to sync from API
+      const response = await fetch("/api/zerodha/mutual-funds?refresh=true");
+      if (!response.ok) throw new Error("Failed to refresh mutual funds");
+      // Invalidate and refetch to update the cache
+      await queryClient.invalidateQueries({ queryKey: ["zerodha-mutual-funds"] });
+      await refetch();
+    } catch (error) {
+      console.error("Error refreshing mutual funds:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const totalValue = mutualFunds.reduce(

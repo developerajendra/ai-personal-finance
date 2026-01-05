@@ -1,0 +1,225 @@
+{
+  "stocks": [
+    {
+      "tradingsymbol": "ADANIPORTS",
+      "exchange": "NSE",
+      "instrument_token": "3861249",
+      "quantity": 6,
+      "average_price": 870.45,
+      "last_price": 1489.5,
+      "pnl": 3714.2999999999993,
+      "pnl_percentage": 71.11838704118557
+    },
+    {
+      "tradingsymbol": "ASIANPAINT",
+      "exchange": "NSE",
+      "instrument_token": "60417",
+      "quantity": 4,
+      "average_price": 2908.425,
+      "last_price": 2772.6,
+      "pnl": -543.3000000000011,
+      "pnl_percentage": -4.670053379406388
+    },
+    {
+      "tradingsymbol": "AXISBANK",
+      "exchange": "BSE",
+      "instrument_token": "136247044",
+      "quantity": 124,
+      "average_price": 1062.710483,
+      "last_price": 1269.7,
+      "pnl": 25666.70010800002,
+      "pnl_percentage": 19.477507779510645
+    },
+    {
+      "tradingsymbol": "BAJAJ-AUTO",
+      "exchange": "NSE",
+      "instrument_token": "4267265",
+      "quantity": 3,
+      "average_price": 9627.3,
+      "last_price": 9502.5,
+      "pnl": -374.3999999999978,
+      "pnl_percentage": -1.29631360817674
+    },
+    {
+      "tradingsymbol": "BERGEPAINT",
+      "exchange": "NSE",
+      "instrument_token": "103425",
+      "quantity": 68,
+      "average_price": 584.083088,
+      "last_price": 524.1,
+      "pnl": -4078.849983999993,
+      "pnl_percentage": -10.26961561331834
+    },
+    {
+      "tradingsymbol": "BHARATFORG",
+      "exchange": "BSE",
+      "instrument_token": "128126212",
+      "quantity": 10,
+      "average_price": 740.6,
+      "last_price": 1478.2,
+      "pnl": 7376,
+      "pnl_percentage": 99.59492303537672
+    },
+    {
+      "tradingsymbol": "DMART",
+      "exchange": "BSE",
+      "instrument_token": "138336260",
+      "quantity": 17,
+      "average_price": 4382.755882,
+      "last_price": 3721,
+      "pnl": -11249.849994000004,
+      "pnl_percentage": -15.099081487012198
+    },
+    {
+      "tradingsymbol": "ETERNAL",
+      "exchange": "BSE",
+      "instrument_token": "139089924",
+      "quantity": 237,
+      "average_price": 256.761392,
+      "last_price": 284.15,
+      "pnl": 6491.100095999987,
+      "pnl_percentage": 10.666949492157274
+    },
+    {
+      "tradingsymbol": "HDFCBANK",
+      "exchange": "NSE",
+      "instrument_token": "341249",
+      "quantity": 238,
+      "average_price": 714.713865,
+      "last_price": 1001.6,
+      "pnl": 68278.90013,
+      "pnl_percentage": 40.139998543333135
+    },
+    {
+      "tradingsymbol": "HINDUNILVR",
+      "exchange": "NSE",
+      "instrument_token": "356865",
+      "quantity": 17,
+      "average_price": 2431.270588,
+      "last_price": 2348,
+      "pnl": -1415.5999959999972,
+      "pnl_percentage": -3.4249823286226437
+    },
+    {
+      "tradingsymbol": "ITC",
+      "exchange": "BSE",
+      "instrument_token": "128224004",
+      "quantity": 24,
+      "average_price": 415.333473,
+      "last_price": 350.15,
+      "pnl": -1564.4033520000012,
+      "pnl_percentage": -15.694249858835734
+    },
+    {
+      "tradingsymbol": "ITCHOTELS",
+      "exchange": "NSE",
+      "instrument_token": "7488257",
+      "quantity": 2,
+      "average_price": 648.73643,
+      "last_price": 198.69,
+      "pnl": -900.0928600000001,
+      "pnl_percentage": -69.37276977030564
+    },
+    {
+      "tradingsymbol": "LICI",
+      "exchange": "BSE",
+      "instrument_token": "139142660",
+      "quantity": 21,
+      "average_price": 901.845238,
+      "last_price": 861.25,
+      "pnl": -852.4999979999993,
+      "pnl_percentage": -4.5013530359185605
+    },
+    {
+      "tradingsymbol": "MAITHANALL",
+      "exchange": "NSE",
+      "instrument_token": "6281729",
+      "quantity": 2,
+      "average_price": 1100,
+      "last_price": 1013.3,
+      "pnl": -173.4000000000001,
+      "pnl_percentage": -7.881818181818185
+    },
+    {
+      "tradingsymbol": "MFSL",
+      "exchange": "BSE",
+      "instrument_token": "128069380",
+      "quantity": 80,
+      "average_price": 1124.715,
+      "last_price": 1671.8,
+      "pnl": 43766.8,
+      "pnl_percentage": 48.6421004432234
+    },
+    {
+      "tradingsymbol": "MMTC",
+      "exchange": "NSE",
+      "instrument_token": "4596993",
+      "quantity": 5,
+      "average_price": 78.958,
+      "last_price": 67.3,
+      "pnl": -58.289999999999964,
+      "pnl_percentage": -14.764811672028157
+    },
+    {
+      "tradingsymbol": "MUTHOOTMF",
+      "exchange": "NSE",
+      "instrument_token": "5332737",
+      "quantity": 53,
+      "average_price": 287.522641,
+      "last_price": 176.37,
+      "pnl": -5891.089973,
+      "pnl_percentage": -38.658743747418484
+    },
+    {
+      "tradingsymbol": "POWERGRID",
+      "exchange": "BSE",
+      "instrument_token": "136421892",
+      "quantity": 112,
+      "average_price": 235.0875,
+      "last_price": 271.05,
+      "pnl": 4027.800000000003,
+      "pnl_percentage": 15.297495613335471
+    },
+    {
+      "tradingsymbol": "SBIN",
+      "exchange": "BSE",
+      "instrument_token": "128028676",
+      "quantity": 32,
+      "average_price": 642.05,
+      "last_price": 999.35,
+      "pnl": 11433.600000000002,
+      "pnl_percentage": 55.64987150533449
+    },
+    {
+      "tradingsymbol": "TATAINVEST",
+      "exchange": "NSE",
+      "instrument_token": "414977",
+      "quantity": 80,
+      "average_price": 604.718125,
+      "last_price": 703.75,
+      "pnl": 7922.550000000003,
+      "pnl_percentage": 16.37653493518158
+    },
+    {
+      "tradingsymbol": "TMCV",
+      "exchange": "NSE",
+      "instrument_token": "194504193",
+      "quantity": 238,
+      "average_price": 289.659465,
+      "last_price": 442.25,
+      "pnl": 36316.54733,
+      "pnl_percentage": 52.67928496657274
+    },
+    {
+      "tradingsymbol": "TMPV",
+      "exchange": "NSE",
+      "instrument_token": "884737",
+      "quantity": 238,
+      "average_price": 640.226459,
+      "last_price": 370.35,
+      "pnl": -64230.597242,
+      "pnl_percentage": -42.15328110955189
+    }
+  ],
+  "lastUpdated": "2026-01-04T13:43:15.506Z"
+}

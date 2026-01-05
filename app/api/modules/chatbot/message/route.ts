@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendChatMessage } from "@/core/services/geminiService";
 import { ChatContext } from "@/core/services/geminiService";
-import { loadAllPortfolioData } from "@/core/services/jsonStorageService";
+import { loadAllPortfolioData, loadStocks, loadMutualFunds } from "@/core/services/jsonStorageService";
 import { initializeStorage } from "@/core/services/jsonStorageService";
 
 export async function POST(request: NextRequest) {
@@ -19,6 +19,10 @@ export async function POST(request: NextRequest) {
     // Initialize storage and load all portfolio data from JSON files
     initializeStorage();
     const portfolioData = loadAllPortfolioData();
+    
+    // Load stocks and mutual funds from JSON cache
+    const stocks = loadStocks();
+    const mutualFunds = loadMutualFunds();
 
     // Filter to only published items for dashboard/analytics (chatbot should use published data)
     const publishedInvestments = (portfolioData.investments || []).filter((inv: any) => inv.isPublished === true);
@@ -44,9 +48,11 @@ export async function POST(request: NextRequest) {
       loans: context?.loans || publishedLoans,
       properties: context?.properties || publishedProperties,
       bankBalances: context?.bankBalances || publishedBankBalances,
+      stocks: context?.stocks || stocks,
+      mutualFunds: context?.mutualFunds || mutualFunds,
     };
 
-    console.log(`[Chatbot] Loaded context: ${chatContext.transactions.length} transactions, ${chatContext.investments?.length || 0} investments, ${chatContext.loans?.length || 0} loans, ${chatContext.properties?.length || 0} properties, ${chatContext.bankBalances?.length || 0} bank balances`);
+    console.log(`[Chatbot] Loaded context: ${chatContext.transactions.length} transactions, ${chatContext.investments?.length || 0} investments, ${chatContext.loans?.length || 0} loans, ${chatContext.properties?.length || 0} properties, ${chatContext.bankBalances?.length || 0} bank balances, ${chatContext.stocks?.length || 0} stocks, ${chatContext.mutualFunds?.length || 0} mutual funds`);
 
     const responseText = await sendChatMessage(message, chatContext);
 
