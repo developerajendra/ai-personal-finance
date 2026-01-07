@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exchangeCodeForTokens } from '@/core/services/gmailService';
-import * as fs from 'fs';
-import * as path from 'path';
 import { cookies } from 'next/headers';
-
-const TOKENS_FILE = path.join(process.cwd(), 'data', 'gmail-tokens.json');
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,27 +23,7 @@ export async function GET(request: NextRequest) {
     // Exchange code for tokens
     const tokens = await exchangeCodeForTokens(code);
 
-    // Save tokens to file
-    try {
-      const tokensData = {
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        expiryDate: tokens.expiry_date,
-        updatedAt: new Date().toISOString(),
-      };
-      
-      // Ensure data directory exists
-      const dataDir = path.dirname(TOKENS_FILE);
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-      
-      fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokensData, null, 2), 'utf-8');
-    } catch (error) {
-      console.error('[Gmail Callback] Error saving tokens:', error);
-    }
-
-    // Also set in httpOnly cookie for security
+    // Set tokens in httpOnly cookies for security
     const cookieStore = await cookies();
     cookieStore.set('gmail_access_token', tokens.access_token, {
       httpOnly: true,
@@ -55,8 +31,14 @@ export async function GET(request: NextRequest) {
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
+    cookieStore.set('gmail_refresh_token', tokens.refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
 
-    // Notify portfolio agent about new tokens (will be loaded on next check)
+    // Notify portfolio agent about new tokens (stored in memory)
     try {
       const { getMainOrchestrator } = await import('@/core/agents/agentManager');
       const orchestrator = getMainOrchestrator();
@@ -64,7 +46,7 @@ export async function GET(request: NextRequest) {
       portfolioAgent.setTokens(tokens.access_token, tokens.refresh_token);
     } catch (error) {
       console.error('[Gmail Callback] Error notifying agent:', error);
-      // Non-critical, agent will load tokens from file
+      // Non-critical, agent will load tokens from env vars on restart
     }
 
     // Redirect to admin panel with success

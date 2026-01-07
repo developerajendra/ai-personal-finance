@@ -34,13 +34,15 @@ export class PortfolioManagementAgent extends BaseAgent {
 
   /**
    * Set Gmail authentication tokens
+   * Tokens are stored in memory and cookies, not in files
    */
   setTokens(accessToken: string, refreshToken: string): void {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
     this.isAuthenticated = true;
-    this.saveTokens();
-    console.log('[Portfolio Agent] Gmail tokens set');
+    // Note: Tokens are stored in memory and cookies only
+    // Environment variables should be updated manually if persistence is needed
+    console.log('[Portfolio Agent] Gmail tokens set (stored in memory)');
   }
 
   /**
@@ -50,8 +52,8 @@ export class PortfolioManagementAgent extends BaseAgent {
     this.accessToken = null;
     this.refreshToken = null;
     this.isAuthenticated = false;
-    this.saveTokens();
-    console.log('[Portfolio Agent] Gmail tokens cleared');
+    // Note: In-memory tokens cleared. Cookies should be cleared separately via API
+    console.log('[Portfolio Agent] Gmail tokens cleared from memory');
   }
 
   /**
@@ -225,6 +227,7 @@ export class PortfolioManagementAgent extends BaseAgent {
         description: extractedData.description || `Created from email: ${email.subject}`,
         status: 'active',
         isPublished: false, // Always create as draft
+        tags: ['added from gmail'], // Tag to identify Gmail-created investments
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -305,17 +308,21 @@ export class PortfolioManagementAgent extends BaseAgent {
   }
 
   /**
-   * Load tokens from file
+   * Load tokens from environment variables
    */
   private loadTokens(): void {
     try {
-      const tokensFile = path.join(process.cwd(), 'data', 'gmail-tokens.json');
-      if (fs.existsSync(tokensFile)) {
-        const data = fs.readFileSync(tokensFile, 'utf-8');
-        const tokens = JSON.parse(data);
-        this.accessToken = tokens.accessToken || null;
-        this.refreshToken = tokens.refreshToken || null;
-        this.isAuthenticated = !!(this.accessToken && this.refreshToken);
+      // Read tokens from environment variables
+      const accessToken = process.env.GMAIL_ACCESS_TOKEN;
+      const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
+      
+      if (accessToken && refreshToken) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.isAuthenticated = true;
+        console.log('[Portfolio Agent] Gmail tokens loaded from environment variables');
+      } else {
+        console.log('[Portfolio Agent] Gmail tokens not found in environment variables');
       }
     } catch (error) {
       console.error('[Portfolio Agent] Error loading tokens:', error);
@@ -323,20 +330,13 @@ export class PortfolioManagementAgent extends BaseAgent {
   }
 
   /**
-   * Save tokens to file
+   * Save tokens (no-op since we use env vars and in-memory storage)
+   * Tokens are stored in memory and cookies, not in files
    */
   private saveTokens(): void {
-    try {
-      const tokensFile = path.join(process.cwd(), 'data', 'gmail-tokens.json');
-      const tokens = {
-        accessToken: this.accessToken,
-        refreshToken: this.refreshToken,
-        updatedAt: new Date().toISOString(),
-      };
-      fs.writeFileSync(tokensFile, JSON.stringify(tokens, null, 2), 'utf-8');
-    } catch (error) {
-      console.error('[Portfolio Agent] Error saving tokens:', error);
-    }
+    // Tokens are stored in memory and cookies
+    // Environment variables should be updated manually if needed
+    // Runtime token updates are handled via setTokens() which stores in memory
   }
 
   protected onMessageSent(message: AgentMessage): void {
@@ -363,8 +363,13 @@ export class PortfolioManagementAgent extends BaseAgent {
     investmentCount: number;
     errors?: string[];
   }> {
+    // Try to reload tokens from environment variables if not authenticated
     if (!this.isGmailAuthenticated()) {
-      throw new Error('Gmail not authenticated');
+      this.loadTokens();
+    }
+
+    if (!this.isGmailAuthenticated()) {
+      throw new Error('Gmail not authenticated. Please connect Gmail first.');
     }
 
     console.log('[Portfolio Agent] Manual email processing triggered...');

@@ -1,6 +1,5 @@
 import { Sidebar } from '@/shared/components/Sidebar';
 import { GmailConnection } from '@/modules/admin-panel/components/GmailConnection';
-import { EmailInvestmentsView } from '@/modules/admin-panel/components/EmailInvestmentsView';
 
 export default function AdminPortfolioPage() {
   return (
@@ -16,8 +15,6 @@ export default function AdminPortfolioPage() {
           </div>
 
           <GmailConnection />
-
-          <EmailInvestmentsView />
         </div>
       </div>
     </div>

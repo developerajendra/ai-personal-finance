@@ -805,7 +805,19 @@ function InvestmentGrid({
           investments.map((investment) => (
             <tr key={investment.id} className="hover:bg-gray-50">
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                {investment.name}
+                <div className="flex items-center gap-2">
+                  <span>{investment.name}</span>
+                  {investment.tags?.includes('added from gmail') && (
+                    <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">
+                      📧 Gmail
+                    </span>
+                  )}
+                  {!investment.isPublished && (
+                    <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">
+                      Draft
+                    </span>
+                  )}
+                </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {investment.type}

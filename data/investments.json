@@ -125,5 +125,57 @@
     "isPublished": false,
     "createdAt": "2026-01-03T16:36:46.518Z",
     "updatedAt": "2026-01-03T16:36:46.518Z"
+  },
+  {
+    "id": "inv-email-1767796374780-zlpfq67af",
+    "name": "PPF Account",
+    "amount": 500000000000,
+    "type": "ppf",
+    "startDate": "2026-01-07",
+    "description": "Contribution to PPF account",
+    "status": "active",
+    "isPublished": false,
+    "createdAt": "2026-01-07T14:32:54.780Z",
+    "updatedAt": "2026-01-07T14:32:54.780Z"
+  },
+  {
+    "id": "inv-email-1767796384252-5xhjwck6n",
+    "name": "PPF Account",
+    "amount": 500000000000,
+    "type": "ppf",
+    "startDate": "2026-01-07",
+    "description": "Added to PPF account",
+    "status": "active",
+    "isPublished": false,
+    "createdAt": "2026-01-07T14:33:04.252Z",
+    "updatedAt": "2026-01-07T14:33:04.252Z"
+  },
+  {
+    "id": "inv-email-1767796387806-se1p1z2wi",
+    "name": "RAJENDRA Bank Fixed Deposit",
+    "amount": 100000,
+    "type": "fd",
+    "startDate": "2026-01-07",
+    "interestRate": 7,
+    "description": "Opened a fixed deposit at RAJENDRA Bank with 7% interest.",
+    "status": "active",
+    "isPublished": false,
+    "createdAt": "2026-01-07T14:33:07.806Z",
+    "updatedAt": "2026-01-07T14:33:07.806Z"
+  },
+  {
+    "id": "inv-email-1767796875738-tyaesj2cu",
+    "name": "PPF Account",
+    "amount": 1,
+    "type": "ppf",
+    "startDate": "2026-01-07",
+    "description": "Added to PPF account",
+    "status": "active",
+    "isPublished": true,
+    "tags": [
+      "added from gmail"
+    ],
+    "createdAt": "2026-01-07T14:41:15.738Z",
+    "updatedAt": "2026-01-07T14:45:38.251Z"
   }
 ]

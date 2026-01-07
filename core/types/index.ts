@@ -67,6 +67,7 @@ export interface Investment {
   description?: string;
   status: "active" | "matured" | "closed";
   isPublished: boolean; // Draft (false) or Published (true)
+  tags?: string[]; // Optional tags (e.g., "added from gmail", "auto-imported")
   createdAt: string;
   updatedAt: string;
 }

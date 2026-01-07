@@ -2,7 +2,6 @@ import { Sidebar } from "@/shared/components/Sidebar";
 import { PortfolioGrid } from "@/modules/portfolio/components/PortfolioGrid";
 import { AIAnalysisSummary } from "@/modules/admin-panel/components/AIAnalysisSummary";
 import { GmailConnection } from "@/modules/admin-panel/components/GmailConnection";
-import { EmailInvestmentsView } from "@/modules/admin-panel/components/EmailInvestmentsView";
 import Link from "next/link";
 import { TrendingUp, PieChart, ArrowRight, CreditCard, Home, Wallet } from "lucide-react";
 
@@ -141,7 +140,6 @@ export default function PortfolioPage() {
               </p>
             </div>
             <GmailConnection />
-            <EmailInvestmentsView />
           </div>
 
           <PortfolioGrid />

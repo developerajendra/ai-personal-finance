@@ -26,9 +26,10 @@ export function EmailInvestmentsView() {
       const response = await fetch('/api/portfolio/investments?isPublished=false');
       if (response.ok) {
         const data = await response.json();
-        // Filter investments created from email (have email-related description or ID pattern)
+        // Filter investments created from email (check tags, description, or ID pattern)
         const emailInvestments = (Array.isArray(data) ? data : data.data || []).filter(
           (inv: Investment) =>
+            inv.tags?.includes('added from gmail') ||
             inv.description?.toLowerCase().includes('email') ||
             inv.description?.toLowerCase().includes('extracted from email') ||
             inv.id.startsWith('inv-email-') ||
@@ -77,15 +78,38 @@ export function EmailInvestmentsView() {
   if (investments.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-        <div className="flex items-center gap-3 mb-4">
-          <Mail className="w-6 h-6 text-gray-400" />
-          <h3 className="text-lg font-semibold">Investments from Email</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Mail className="w-6 h-6 text-gray-400" />
+            <h3 className="text-lg font-semibold">Investments from Email</h3>
+          </div>
+          <button
+            onClick={handleProcessEmails}
+            disabled={isProcessing}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+            <RefreshCw className={`w-4 h-4 ${isProcessing ? 'animate-spin' : ''}`} />
+            {isProcessing ? 'Processing...' : 'Process Emails Now'}
+          </button>
         </div>
+
+        {processStatus && (
+          <div className={`mb-4 p-3 rounded ${
+            processStatus.success 
+              ? 'bg-green-50 border border-green-200 text-green-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              <p className="text-sm">{processStatus.message}</p>
+            </div>
+          </div>
+        )}
+
         <div className="text-center py-8 text-gray-500">
           <Mail className="w-12 h-12 mx-auto mb-3 text-gray-300" />
           <p>No investments created from emails yet.</p>
           <p className="text-sm mt-2">
-            Connect Gmail and send an email with investment information to get started.
+            Connect Gmail and send an email with investment information, then click "Process Emails Now" to process them.
           </p>
         </div>
       </div>
@@ -136,10 +160,15 @@ export function EmailInvestmentsView() {
                   <p className="text-sm text-gray-500 mt-1">{investment.description}</p>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">
                   Draft
                 </span>
+                {investment.tags?.includes('added from gmail') && (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                    📧 Added from Gmail
+                  </span>
+                )}
                 {investment.confidence && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
                     {Math.round(investment.confidence * 100)}% confidence

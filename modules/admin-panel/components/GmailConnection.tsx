@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mail, Link as LinkIcon, LogOut, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { Mail, Link as LinkIcon, LogOut, RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 interface GmailStatus {
   isConnected: boolean;
@@ -15,6 +15,8 @@ export function GmailConnection() {
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processStatus, setProcessStatus] = useState<{ success?: boolean; message?: string } | null>(null);
 
   useEffect(() => {
     checkStatus();
@@ -70,6 +72,28 @@ export function GmailConnection() {
     }
   };
 
+  const handleProcessEmails = async () => {
+    setIsProcessing(true);
+    setProcessStatus(null);
+    try {
+      const response = await fetch('/api/agents/email/process', { method: 'POST' });
+      const data = await response.json();
+      
+      if (data.success) {
+        setProcessStatus({ 
+          success: true, 
+          message: `Processed ${data.result?.processedCount || 0} emails, created ${data.result?.investmentCount || 0} investments` 
+        });
+      } else {
+        setProcessStatus({ success: false, message: data.error || 'Failed to process emails' });
+      }
+    } catch (error: any) {
+      setProcessStatus({ success: false, message: error.message || 'Error processing emails' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
@@ -112,9 +136,16 @@ export function GmailConnection() {
         </div>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         {isConnected ? (
           <>
+            <button
+              onClick={handleProcessEmails}
+              disabled={isProcessing}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              <RefreshCw className={`w-4 h-4 ${isProcessing ? 'animate-spin' : ''}`} />
+              {isProcessing ? 'Processing...' : 'Process Emails Now'}
+            </button>
             <button
               onClick={handleDisconnect}
               disabled={isDisconnecting}
@@ -139,6 +170,19 @@ export function GmailConnection() {
           </button>
         )}
       </div>
+
+      {processStatus && (
+        <div className={`mt-4 p-3 rounded ${
+          processStatus.success 
+            ? 'bg-green-50 border border-green-200 text-green-800' 
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            <p className="text-sm">{processStatus.message}</p>
+          </div>
+        </div>
+      )}
 
       {isConnected && (
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">

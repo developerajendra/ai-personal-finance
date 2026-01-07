@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as fs from 'fs';
-import * as path from 'path';
 import { cookies } from 'next/headers';
-
-const TOKENS_FILE = path.join(process.cwd(), 'data', 'gmail-tokens.json');
 
 export async function POST(request: NextRequest) {
   try {
-    // Delete tokens file
-    if (fs.existsSync(TOKENS_FILE)) {
-      fs.unlinkSync(TOKENS_FILE);
-    }
-
-    // Delete cookie
+    // Delete cookies
     const cookieStore = await cookies();
     cookieStore.delete('gmail_access_token');
+    cookieStore.delete('gmail_refresh_token');
 
-    // Also notify the portfolio agent to clear tokens
-    // This will be handled when the agent restarts or checks status
+    // Clear tokens from portfolio agent's memory
+    try {
+      const { getMainOrchestrator } = await import('@/core/agents/agentManager');
+      const orchestrator = getMainOrchestrator();
+      const portfolioAgent = orchestrator.getPortfolioAgent();
+      portfolioAgent.clearTokens();
+    } catch (error) {
+      console.error('[Gmail Disconnect] Error clearing agent tokens:', error);
+      // Non-critical
+    }
+
+    // Note: Environment variables should be cleared manually if needed
 
     return NextResponse.json({
       success: true,
