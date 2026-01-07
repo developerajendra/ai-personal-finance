@@ -1,9 +1,21 @@
 import { Ollama } from "ollama";
+import {
+  loadFromCache,
+  saveToCache,
+  clearExpiredCache,
+} from "./ollamaCacheService";
 
 const OLLAMA_HOST = process.env.OLLAMA_HOST || "http://127.0.0.1:11434";
 const MODEL_NAME = process.env.OLLAMA_MODEL || "llama3:latest";
+const CACHE_TTL = parseInt(process.env.OLLAMA_CACHE_TTL || "86400000", 10); // 24 hours default
+const CACHE_ENABLED = process.env.OLLAMA_CACHE_ENABLED !== "false"; // Enabled by default
 
 const ollama = new Ollama({ host: OLLAMA_HOST });
+
+// Clear expired cache on startup
+if (CACHE_ENABLED) {
+  clearExpiredCache(CACHE_TTL);
+}
 
 export interface OllamaResponse {
   response: string;
@@ -58,8 +70,23 @@ export async function testOllamaConnection(): Promise<{ connected: boolean; erro
   }
 }
 
-export async function generateContent(prompt: string, systemPrompt?: string): Promise<string> {
+export async function generateContent(
+  prompt: string,
+  systemPrompt?: string,
+  options?: { bypassCache?: boolean }
+): Promise<string> {
+  const bypassCache = options?.bypassCache || false;
+
+  // Check cache first (if enabled and not bypassed)
+  if (CACHE_ENABLED && !bypassCache) {
+    const cached = await loadFromCache(prompt, systemPrompt, CACHE_TTL);
+    if (cached) {
+      return cached.response;
+    }
+  }
+
   try {
+    const requestStartTime = Date.now();
     const finalPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
 
     const response = await ollama.generate({
@@ -71,6 +98,18 @@ export async function generateContent(prompt: string, systemPrompt?: string): Pr
       },
     });
 
+    const responseTime = Date.now() - requestStartTime;
+
+    // Save to cache (if enabled and not bypassed)
+    if (CACHE_ENABLED && !bypassCache) {
+      await saveToCache(prompt, systemPrompt, response.response, {
+        model: MODEL_NAME,
+        queryType: "content",
+        responseTime,
+        ttl: CACHE_TTL,
+      });
+    }
+
     return response.response;
   } catch (error) {
     console.error("Error generating content with Ollama:", error);
@@ -80,9 +119,21 @@ export async function generateContent(prompt: string, systemPrompt?: string): Pr
 
 export async function generateChatContent(
   message: string,
-  systemPrompt?: string
+  systemPrompt?: string,
+  options?: { bypassCache?: boolean }
 ): Promise<string> {
+  const bypassCache = options?.bypassCache || false;
+
+  // Check cache first (if enabled and not bypassed)
+  if (CACHE_ENABLED && !bypassCache) {
+    const cached = await loadFromCache(message, systemPrompt, CACHE_TTL);
+    if (cached) {
+      return cached.response;
+    }
+  }
+
   try {
+    const requestStartTime = Date.now();
     const messages = [];
 
     if (systemPrompt) {
@@ -100,6 +151,18 @@ export async function generateChatContent(
       },
     });
 
+    const responseTime = Date.now() - requestStartTime;
+
+    // Save to cache (if enabled and not bypassed)
+    if (CACHE_ENABLED && !bypassCache) {
+      await saveToCache(message, systemPrompt, response.message.content, {
+        model: MODEL_NAME,
+        queryType: "chat",
+        responseTime,
+        ttl: CACHE_TTL,
+      });
+    }
+
     return response.message.content;
   } catch (error) {
     console.error("Error generating chat content with Ollama:", error);
@@ -107,12 +170,34 @@ export async function generateChatContent(
   }
 }
 
-export async function generateJsonContent(prompt: string, systemPrompt?: string): Promise<any> {
-  try {
-    // Use chat API instead of generate for better JSON support
-    const systemMessage = systemPrompt || "You are a financial data analyst AI. You must respond with ONLY valid JSON. No markdown, no explanations, no text before or after the JSON.";
-    const userMessage = `${prompt}\n\nCRITICAL: Return ONLY a valid JSON object. Do not include any markdown code blocks, explanations, or text outside the JSON. Start directly with { and end with }.`;
+export async function generateJsonContent(
+  prompt: string,
+  systemPrompt?: string,
+  options?: { bypassCache?: boolean }
+): Promise<any> {
+  const bypassCache = options?.bypassCache || false;
 
+  // Use chat API instead of generate for better JSON support
+  const systemMessage = systemPrompt || "You are a financial data analyst AI. You must respond with ONLY valid JSON. No markdown, no explanations, no text before or after the JSON.";
+  const userMessage = `${prompt}\n\nCRITICAL: Return ONLY a valid JSON object. Do not include any markdown code blocks, explanations, or text outside the JSON. Start directly with { and end with }.`;
+
+  // Check cache first (if enabled and not bypassed)
+  if (CACHE_ENABLED && !bypassCache) {
+    const cached = await loadFromCache(prompt, systemMessage, CACHE_TTL);
+    if (cached) {
+      try {
+        // Parse the cached JSON response
+        const parsed = JSON.parse(cached.response);
+        console.log(`[Ollama Cache] ✅ Using cached JSON response`);
+        return parsed;
+      } catch (parseError) {
+        // If cached response is not valid JSON, continue to generate new one
+        console.log(`[Ollama Cache] ⚠️  Cached response is not valid JSON, generating new response`);
+      }
+    }
+  }
+
+  try {
     console.log(`[Ollama] ========================================`);
     console.log(`[Ollama] 🚀 Starting JSON generation request`);
     console.log(`[Ollama] Host: ${OLLAMA_HOST}`);
@@ -216,6 +301,17 @@ export async function generateJsonContent(prompt: string, systemPrompt?: string)
     if (!Array.isArray(parsed.bankBalances)) parsed.bankBalances = [];
 
     console.log(`[Ollama] ✅ Final validated structure: ${parsed.investments.length} investments, ${parsed.loans.length} loans, ${parsed.properties.length} properties, ${parsed.bankBalances.length} bank balances`);
+    
+    // Save to cache (if enabled and not bypassed)
+    if (CACHE_ENABLED && !bypassCache) {
+      const responseTime = Date.now() - requestStartTime;
+      await saveToCache(prompt, systemMessage, JSON.stringify(parsed), {
+        model: MODEL_NAME,
+        queryType: "json",
+        responseTime,
+        ttl: CACHE_TTL,
+      });
+    }
     
     return parsed;
   } catch (error: any) {
