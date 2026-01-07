@@ -1,6 +1,8 @@
 import { Sidebar } from "@/shared/components/Sidebar";
 import { PortfolioGrid } from "@/modules/portfolio/components/PortfolioGrid";
 import { AIAnalysisSummary } from "@/modules/admin-panel/components/AIAnalysisSummary";
+import { GmailConnection } from "@/modules/admin-panel/components/GmailConnection";
+import { EmailInvestmentsView } from "@/modules/admin-panel/components/EmailInvestmentsView";
 import Link from "next/link";
 import { TrendingUp, PieChart, ArrowRight, CreditCard, Home, Wallet } from "lucide-react";
 
@@ -129,6 +131,18 @@ export default function PortfolioPage() {
           </div>
 
           <AIAnalysisSummary />
+
+          {/* Gmail Integration Section */}
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-2xl font-semibold">Email Integration</h2>
+              <p className="text-gray-600 text-sm mt-1">
+                Connect Gmail to automatically create investments from emails
+              </p>
+            </div>
+            <GmailConnection />
+            <EmailInvestmentsView />
+          </div>
 
           <PortfolioGrid />
         </div>

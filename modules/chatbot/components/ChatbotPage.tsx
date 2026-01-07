@@ -15,7 +15,7 @@ export function ChatbotPage() {
   const [operationPrefix, setOperationPrefix] = useState<string>(""); // Track selected operation
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false); // Track if we're in voice conversation mode
   const [currentTranscript, setCurrentTranscript] = useState(""); // Track current voice transcript
   const messagesEndRef = useRef<HTMLDivElement>(null);

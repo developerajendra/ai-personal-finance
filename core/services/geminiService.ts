@@ -1,4 +1,6 @@
-import { generateChatContent } from "./ollamaService";
+import { generateChatContent as generateChatContentGemini } from "./geminiJsonService";
+import { generateChatContent as generateChatContentOllama } from "./ollamaService";
+import { getModelForUseCase } from "./aiModelService";
 import { Transaction, FinancialSummary, Investment, Loan, Property, BankBalance } from "@/core/types";
 import { ZerodhaStock, ZerodhaMutualFund } from "@/core/services/zerodhaService";
 
@@ -157,9 +159,18 @@ IMPORTANT INSTRUCTIONS:
   * If the investment name cannot be found, ask the user to clarify which investment they want to update.`;
 
   try {
-    return await generateChatContent(message, systemPrompt);
+    // Use centralized AI model configuration
+    const { provider } = getModelForUseCase('chat');
+    
+    // Use appropriate provider based on configuration
+    if (provider === 'gemini') {
+      return await generateChatContentGemini(message, systemPrompt);
+    } else {
+      // Use Ollama for chat
+      return await generateChatContentOllama(message, systemPrompt);
+    }
   } catch (error) {
-    console.error("Error calling Ollama API:", error);
+    console.error("Error calling AI API:", error);
     throw new Error("Failed to get response from AI");
   }
 }

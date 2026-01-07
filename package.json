@@ -26,6 +26,7 @@
     "date-fns": "^3.3.0",
     "exceljs": "^4.4.0",
     "git": "^0.1.5",
+    "googleapis": "^169.0.0",
     "kiteconnect": "^5.1.0",
     "lucide-react": "^0.344.0",
     "next": "^14.2.0",
