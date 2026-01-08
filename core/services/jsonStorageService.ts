@@ -12,6 +12,7 @@ const FILES = {
   transactions: path.join(DATA_DIR, "transactions.json"),
   stocks: path.join(DATA_DIR, "stocks.json"),
   mutualFunds: path.join(DATA_DIR, "mutualFunds.json"),
+  portfolioCategories: path.join(DATA_DIR, "portfolioCategories.json"),
 };
 
 // Ensure data directory exists

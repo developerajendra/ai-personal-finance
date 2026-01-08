@@ -43,3 +43,5 @@ next-env.d.ts
 /uploads/*
 !/uploads/.gitkeep
 
+# Gmail tokens (contains sensitive OAuth tokens)
+/data/gmail-tokens.json

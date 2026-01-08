@@ -153,3 +153,15 @@ export interface CategoryLearning {
   lastUsed: string;
 }
 
+export interface PortfolioCategory {
+  id: string;
+  name: string; // Display name (e.g., "Cryptocurrency", "Gold", "Real Estate Investment Trust")
+  slug: string; // URL-friendly identifier (e.g., "cryptocurrency", "gold", "reit")
+  icon?: string; // Icon name from lucide-react (e.g., "TrendingUp", "PieChart")
+  href: string; // Route path (e.g., "/portfolio/cryptocurrency")
+  type: "investment" | "loan" | "property" | "bank-balance"; // Category type
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+

@@ -66,30 +66,6 @@
     "isPublished": false
   },
   {
-    "id": "inv-ai-1767367354617-6",
-    "name": " Mutual Fund",
-    "amount": 10276160,
-    "type": "stocks",
-    "startDate": "2026-01-02",
-    "description": "Auto-extracted and categorized from Excel",
-    "status": "active",
-    "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-03T17:15:17.164Z",
-    "isPublished": true
-  },
-  {
-    "id": "inv-ai-1767367354617-7",
-    "name": "stocks",
-    "amount": 880000,
-    "type": "stocks",
-    "startDate": "2026-01-02",
-    "description": "Auto-extracted and categorized from Excel",
-    "status": "active",
-    "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-03T17:15:27.506Z",
-    "isPublished": true
-  },
-  {
     "id": "inv-1767454615148",
     "name": "test",
     "amount": 0,
@@ -99,19 +75,6 @@
     "isPublished": true,
     "createdAt": "2026-01-03T15:36:55.148Z",
     "updatedAt": "2026-01-03T15:36:55.148Z"
-  },
-  {
-    "id": "inv-1767458206518",
-    "name": "Awesome Bank Mutual Funds Investment",
-    "amount": 10000,
-    "type": "mutual-fund",
-    "startDate": "2023-03-01",
-    "maturityDate": null,
-    "interestRate": 8.5,
-    "status": "active",
-    "isPublished": false,
-    "createdAt": "2026-01-03T16:36:46.518Z",
-    "updatedAt": "2026-01-03T16:36:46.518Z"
   },
   {
     "id": "inv-email-1767796374780-zlpfq67af",
@@ -209,5 +172,50 @@
     ],
     "createdAt": "2026-01-08T05:49:53.703Z",
     "updatedAt": "2026-01-08T05:49:53.703Z"
+  },
+  {
+    "id": "inv-email-1767866146956-4yyey6s69",
+    "name": "Fixed Deposit",
+    "amount": 34343434,
+    "type": "fd",
+    "startDate": "2026-01-08",
+    "description": "added new amount",
+    "status": "active",
+    "isPublished": false,
+    "tags": [
+      "added from gmail"
+    ],
+    "createdAt": "2026-01-08T09:55:46.956Z",
+    "updatedAt": "2026-01-08T09:55:46.956Z"
+  },
+  {
+    "id": "inv-email-1767875935100-vx9e77f3u",
+    "name": "Fixed Deposit",
+    "amount": 34343434,
+    "type": "fd",
+    "startDate": "2026-01-08",
+    "description": "added new amount",
+    "status": "active",
+    "isPublished": false,
+    "tags": [
+      "added from gmail"
+    ],
+    "createdAt": "2026-01-08T12:38:55.100Z",
+    "updatedAt": "2026-01-08T12:38:55.100Z"
+  },
+  {
+    "id": "inv-email-1767876408626-40xh7xqw5",
+    "name": "Fixed Deposit",
+    "amount": 34343434,
+    "type": "fd",
+    "startDate": "2026-01-08",
+    "description": "added new amount",
+    "status": "active",
+    "isPublished": false,
+    "tags": [
+      "added from gmail"
+    ],
+    "createdAt": "2026-01-08T12:46:48.626Z",
+    "updatedAt": "2026-01-08T12:46:48.626Z"
   }
 ]

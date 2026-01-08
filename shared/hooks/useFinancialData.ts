@@ -11,6 +11,9 @@ export function useFinancialData() {
       if (!response.ok) throw new Error("Failed to fetch transactions");
       return response.json();
     },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   const { data: summary, isLoading: isLoadingSummary } = useQuery<FinancialSummary>({
@@ -20,6 +23,9 @@ export function useFinancialData() {
       if (!response.ok) throw new Error("Failed to fetch summary");
       return response.json();
     },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   const categories = Array.from(

@@ -28,6 +28,11 @@ const COLORS = [
 ];
 
 export function PortfolioAnalytics() {
+  // Export net worth calculation for use in DashboardModule
+  return <PortfolioAnalyticsContent />;
+}
+
+export function usePortfolioData() {
   const { data: investments = [], isLoading: isLoadingInvestments } = useQuery<
     Investment[]
   >({
@@ -39,9 +44,9 @@ export function PortfolioAnalytics() {
       if (!response.ok) throw new Error('Failed to fetch investments');
       return response.json();
     },
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   const { data: loans = [], isLoading: isLoadingLoans } = useQuery<Loan[]>({
@@ -51,9 +56,9 @@ export function PortfolioAnalytics() {
       if (!response.ok) throw new Error('Failed to fetch loans');
       return response.json();
     },
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   const { data: properties = [], isLoading: isLoadingProperties } = useQuery<
@@ -67,13 +72,37 @@ export function PortfolioAnalytics() {
       if (!response.ok) throw new Error('Failed to fetch properties');
       return response.json();
     },
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+  });
+
+  const { data: stocksData, isLoading: isLoadingStocks } = useQuery<{ stocks: any[] }>({
+    queryKey: ['stocks'],
+    queryFn: async () => {
+      const response = await fetch('/api/zerodha/stocks');
+      if (!response.ok) return { stocks: [] };
+      return response.json();
+    },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+  });
+
+  const { data: mutualFundsData, isLoading: isLoadingMutualFunds } = useQuery<{ mutualFunds: any[] }>({
+    queryKey: ['mutualFunds'],
+    queryFn: async () => {
+      const response = await fetch('/api/zerodha/mutual-funds');
+      if (!response.ok) return { mutualFunds: [] };
+      return response.json();
+    },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 
   const isLoading =
-    isLoadingInvestments || isLoadingLoans || isLoadingProperties;
+    isLoadingInvestments || isLoadingLoans || isLoadingProperties || isLoadingStocks || isLoadingMutualFunds;
 
   const totalInvestments = investments.reduce(
     (sum, inv) => sum + inv.amount,
@@ -87,12 +116,57 @@ export function PortfolioAnalytics() {
     (sum, prop) => sum + (prop.currentValue || prop.purchasePrice),
     0
   );
-  const netWorth = totalInvestments + totalProperties - totalLoans;
+  const totalStocks = stocksData?.stocks?.reduce(
+    (sum, stock) => sum + ((stock.last_price || 0) * (stock.quantity || 0)),
+    0
+  ) || 0;
+  const totalMutualFunds = mutualFundsData?.mutualFunds?.reduce(
+    (sum, mf) => sum + ((mf.last_price || 0) * (mf.quantity || 0)),
+    0
+  ) || 0;
+  const netWorth = totalInvestments + totalProperties + totalStocks + totalMutualFunds - totalLoans;
+
+  return {
+    totalInvestments,
+    totalLoans,
+    totalProperties,
+    totalStocks,
+    totalMutualFunds,
+    netWorth,
+    isLoading,
+    investments,
+    loans,
+    properties,
+    stocksData,
+    mutualFundsData,
+  };
+}
+
+function PortfolioAnalyticsContent() {
+  const {
+    totalInvestments,
+    totalLoans,
+    totalProperties,
+    totalStocks,
+    totalMutualFunds,
+    isLoading,
+    investments,
+    loans,
+    properties,
+  } = usePortfolioData();
 
   const investmentBreakdown = investments.reduce((acc, inv) => {
     acc[inv.type] = (acc[inv.type] || 0) + inv.amount;
     return acc;
   }, {} as Record<string, number>);
+
+  // Add stocks and mutual funds to breakdown
+  if (totalStocks > 0) {
+    investmentBreakdown['stocks'] = (investmentBreakdown['stocks'] || 0) + totalStocks;
+  }
+  if (totalMutualFunds > 0) {
+    investmentBreakdown['mutual-fund'] = (investmentBreakdown['mutual-fund'] || 0) + totalMutualFunds;
+  }
 
   const loanBreakdown = loans.reduce((acc, loan) => {
     acc[loan.type] = (acc[loan.type] || 0) + loan.outstandingAmount;
@@ -134,7 +208,7 @@ export function PortfolioAnalytics() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
         <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -144,6 +218,30 @@ export function PortfolioAnalytics() {
               </p>
             </div>
             <TrendingUp className="w-8 h-8 text-green-600" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Stocks</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-2">
+                ₹{totalStocks.toLocaleString()}
+              </p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-emerald-600" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Mutual Funds</p>
+              <p className="text-2xl font-bold text-purple-600 mt-2">
+                ₹{totalMutualFunds.toLocaleString()}
+              </p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-purple-600" />
           </div>
         </div>
 
@@ -168,21 +266,6 @@ export function PortfolioAnalytics() {
               </p>
             </div>
             <Home className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Net Worth</p>
-              <p
-                className={`text-2xl font-bold mt-2 ${
-                  netWorth >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                ₹{netWorth.toLocaleString()}
-              </p>
-            </div>
-            <Wallet className="w-8 h-8 text-purple-600" />
           </div>
         </div>
       </div>

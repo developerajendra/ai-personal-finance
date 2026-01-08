@@ -71,8 +71,8 @@ export default function PortfolioPage() {
   const totalLoans = loans.reduce((sum, loan) => sum + loan.outstandingAmount, 0);
   const totalProperties = properties.reduce((sum, prop) => sum + (prop.currentValue || prop.purchasePrice), 0);
   const totalBankBalances = bankBalances.reduce((sum, bb) => sum + (bb.balance || 0), 0);
-  const totalStocks = stocksData?.stocks?.reduce((sum, stock) => sum + (stock.currentValue || 0), 0) || 0;
-  const totalMutualFunds = mutualFundsData?.mutualFunds?.reduce((sum, mf) => sum + (mf.currentValue || 0), 0) || 0;
+  const totalStocks = stocksData?.stocks?.reduce((sum, stock) => sum + ((stock.last_price || 0) * (stock.quantity || 0)), 0) || 0;
+  const totalMutualFunds = mutualFundsData?.mutualFunds?.reduce((sum, mf) => sum + ((mf.last_price || 0) * (mf.quantity || 0)), 0) || 0;
 
   return (
     <GmailLoginGate>

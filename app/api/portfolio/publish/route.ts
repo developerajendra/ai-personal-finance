@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { Investment, Loan, Property, BankBalance } from "@/core/types";
 import { investments, loans, properties, bankBalances } from "@/core/dataStore";
 import { loadFromJson, saveToJson, initializeStorage } from "@/core/services/jsonStorageService";
+import { moveEmailToLabel } from "@/core/services/gmailService";
+import { cookies } from "next/headers";
+import * as fs from "fs";
+import * as path from "path";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +33,65 @@ export async function POST(request: NextRequest) {
         item = investments[index];
         saveToJson("investments", investments);
         updated = true;
+
+        // If investment is being published, move associated email to personal-finance folder
+        if (isPublished) {
+          try {
+            console.log(`[Publish] Investment ${id} is being published, looking for associated email...`);
+            // Find emailId from processed-emails.json
+            const processedEmailsFile = path.join(process.cwd(), 'data', 'processed-emails.json');
+            if (fs.existsSync(processedEmailsFile)) {
+              const processedEmails = JSON.parse(fs.readFileSync(processedEmailsFile, 'utf-8'));
+              console.log(`[Publish] Found ${processedEmails.length} processed emails in file`);
+              const processedEmail = processedEmails.find((pe: any) => pe.investmentId === id);
+              
+              if (processedEmail?.emailId) {
+                console.log(`[Publish] Found email ${processedEmail.emailId} for investment ${id}`);
+                // Get Gmail tokens from cookies or environment
+                const cookieStore = await cookies();
+                const accessToken = cookieStore.get('gmail_access_token')?.value || process.env.GMAIL_ACCESS_TOKEN;
+                const refreshToken = cookieStore.get('gmail_refresh_token')?.value || process.env.GMAIL_REFRESH_TOKEN;
+                
+                if (accessToken && refreshToken) {
+                  console.log(`[Publish] Gmail tokens available, moving email to personal-finance label...`);
+                  // Try both "personal-finance" and "personal finance" variations
+                  try {
+                    await moveEmailToLabel(accessToken, refreshToken, processedEmail.emailId, 'personal-finance');
+                    console.log(`[Publish] ✅ Successfully moved email ${processedEmail.emailId} to personal-finance label for investment ${id}`);
+                  } catch (labelError: any) {
+                    // Try with space instead of hyphen
+                    console.log(`[Publish] Trying with space variation...`);
+                    try {
+                      await moveEmailToLabel(accessToken, refreshToken, processedEmail.emailId, 'personal finance');
+                      console.log(`[Publish] ✅ Successfully moved email ${processedEmail.emailId} to "personal finance" label for investment ${id}`);
+                    } catch (spaceError: any) {
+                      console.error(`[Publish] Failed to move email with both variations:`, {
+                        hyphenError: labelError.message,
+                        spaceError: spaceError.message,
+                      });
+                      throw spaceError;
+                    }
+                  }
+                } else {
+                  console.warn('[Publish] Gmail tokens not available, skipping email move');
+                  console.warn('[Publish] Access token present:', !!accessToken);
+                  console.warn('[Publish] Refresh token present:', !!refreshToken);
+                }
+              } else {
+                console.log(`[Publish] No email found for investment ${id} in processed-emails.json`);
+                console.log(`[Publish] Available investment IDs in processed emails:`, 
+                  processedEmails.filter((pe: any) => pe.investmentId).map((pe: any) => pe.investmentId)
+                );
+              }
+            } else {
+              console.warn(`[Publish] Processed emails file not found at: ${processedEmailsFile}`);
+            }
+          } catch (error: any) {
+            // Log error but don't fail the publish operation
+            console.error('[Publish] Error moving email to personal-finance folder:', error);
+            console.error('[Publish] Error stack:', error.stack);
+          }
+        }
       }
     } else if (type === "loan") {
       const data = loadFromJson<Loan>("loans");

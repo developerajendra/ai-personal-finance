@@ -6,7 +6,10 @@ const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET || '';
 const GMAIL_REDIRECT_URI = process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/api/gmail/callback';
 
 // Gmail API scopes
-const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
+const SCOPES = [
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.modify'
+];
 
 export interface GmailEmail {
   id: string;
@@ -253,6 +256,10 @@ export async function markEmailAsRead(
     if (error.code === 401) {
       const newTokens = await refreshAccessToken(refreshToken);
       await markEmailAsRead(newTokens.access_token, refreshToken, emailId);
+    } else if (error.message?.includes('insufficient authentication scopes') || error.message?.includes('insufficient authentication')) {
+      console.error(`[Gmail] ❌ Insufficient authentication scopes for marking email as read.`);
+      console.error(`[Gmail] Please re-authorize Gmail with modify permissions.`);
+      throw new Error('Insufficient Gmail authentication scopes. Please re-authorize Gmail with modify permissions.');
     } else {
       throw error;
     }
@@ -280,7 +287,139 @@ export async function archiveEmail(
     if (error.code === 401) {
       const newTokens = await refreshAccessToken(refreshToken);
       await archiveEmail(newTokens.access_token, refreshToken, emailId);
+    } else if (error.message?.includes('insufficient authentication scopes') || error.message?.includes('insufficient authentication')) {
+      console.error(`[Gmail] ❌ Insufficient authentication scopes for archiving email.`);
+      console.error(`[Gmail] Please re-authorize Gmail with modify permissions.`);
+      throw new Error('Insufficient Gmail authentication scopes. Please re-authorize Gmail with modify permissions.');
     } else {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Normalize label name for comparison (handles spaces, hyphens, case)
+ */
+function normalizeLabelName(name: string): string {
+  return name.toLowerCase().replace(/[\s_-]+/g, '-').trim();
+}
+
+/**
+ * Get or create a Gmail label by name
+ */
+export async function getOrCreateLabel(
+  accessToken: string,
+  refreshToken: string,
+  labelName: string
+): Promise<string> {
+  try {
+    const gmail = getGmailClient(accessToken, refreshToken);
+    
+    // First, try to find existing label
+    const labelsResponse = await gmail.users.labels.list({
+      userId: 'me',
+    });
+    
+    const normalizedSearchName = normalizeLabelName(labelName);
+    console.log(`[Gmail] Looking for label matching: "${labelName}" (normalized: "${normalizedSearchName}")`);
+    
+    // Try exact match first
+    let existingLabel = labelsResponse.data.labels?.find(
+      (label: any) => label.name?.toLowerCase() === labelName.toLowerCase()
+    );
+    
+    // If not found, try normalized match (handles spaces vs hyphens)
+    if (!existingLabel) {
+      existingLabel = labelsResponse.data.labels?.find(
+        (label: any) => normalizeLabelName(label.name || '') === normalizedSearchName
+      );
+    }
+    
+    if (existingLabel?.id) {
+      console.log(`[Gmail] Found existing label: "${existingLabel.name}" (ID: ${existingLabel.id})`);
+      return existingLabel.id;
+    }
+    
+    // Log all available labels for debugging
+    const allLabels = labelsResponse.data.labels?.map((l: any) => l.name).filter(Boolean) || [];
+    console.log(`[Gmail] Available labels: ${allLabels.join(', ')}`);
+    console.log(`[Gmail] Label "${labelName}" not found, creating new label...`);
+    
+    // Create new label if it doesn't exist
+    const createResponse = await gmail.users.labels.create({
+      userId: 'me',
+      requestBody: {
+        name: labelName,
+        labelListVisibility: 'labelShow',
+        messageListVisibility: 'show',
+      },
+    });
+    
+    if (!createResponse.data.id) {
+      throw new Error('Failed to create label');
+    }
+    
+    console.log(`[Gmail] Created new label: "${labelName}" (ID: ${createResponse.data.id})`);
+    return createResponse.data.id;
+  } catch (error: any) {
+    if (error.code === 401) {
+      const newTokens = await refreshAccessToken(refreshToken);
+      return getOrCreateLabel(newTokens.access_token, refreshToken, labelName);
+    } else if (error.message?.includes('insufficient authentication scopes') || error.message?.includes('insufficient authentication')) {
+      console.error(`[Gmail] ❌ Insufficient authentication scopes for creating/getting labels.`);
+      console.error(`[Gmail] Please re-authorize Gmail with modify permissions.`);
+      throw new Error('Insufficient Gmail authentication scopes. Please re-authorize Gmail with modify permissions.');
+    }
+    console.error(`[Gmail] Error in getOrCreateLabel:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Move email to a Gmail label/folder
+ */
+export async function moveEmailToLabel(
+  accessToken: string,
+  refreshToken: string,
+  emailId: string,
+  labelName: string
+): Promise<void> {
+  try {
+    console.log(`[Gmail] Attempting to move email ${emailId} to label "${labelName}"`);
+    const gmail = getGmailClient(accessToken, refreshToken);
+    
+    // Get or create the label
+    const labelId = await getOrCreateLabel(accessToken, refreshToken, labelName);
+    console.log(`[Gmail] Got label ID: ${labelId} for label "${labelName}"`);
+    
+    // Add the label to the email
+    const modifyResponse = await gmail.users.messages.modify({
+      userId: 'me',
+      id: emailId,
+      requestBody: {
+        addLabelIds: [labelId],
+      },
+    });
+    
+    console.log(`[Gmail] ✅ Successfully moved email ${emailId} to label "${labelName}"`);
+    console.log(`[Gmail] Email labels after move:`, modifyResponse.data.labelIds);
+  } catch (error: any) {
+    if (error.code === 401) {
+      console.log(`[Gmail] Token expired, refreshing...`);
+      const newTokens = await refreshAccessToken(refreshToken);
+      await moveEmailToLabel(newTokens.access_token, refreshToken, emailId, labelName);
+    } else if (error.message?.includes('insufficient authentication scopes') || error.message?.includes('insufficient authentication')) {
+      console.error(`[Gmail] ❌ Insufficient authentication scopes. The Gmail token was granted with read-only permissions.`);
+      console.error(`[Gmail] Please re-authorize Gmail with modify permissions by disconnecting and reconnecting in the admin panel.`);
+      console.error(`[Gmail] Required scopes: gmail.readonly and gmail.modify`);
+      throw new Error('Insufficient Gmail authentication scopes. Please re-authorize Gmail with modify permissions in the admin panel.');
+    } else {
+      console.error(`[Gmail] Error moving email ${emailId} to label "${labelName}":`, error);
+      console.error(`[Gmail] Error details:`, {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+      });
       throw error;
     }
   }

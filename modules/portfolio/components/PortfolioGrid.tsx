@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Investment, Loan, Property, BankBalance } from '@/core/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail } from 'lucide-react';
+import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/core/types';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag } from 'lucide-react';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
 import { PropertyForm } from './PropertyForm';
 import { BankBalanceForm } from './BankBalanceForm';
 import { Loader } from '@/shared/components/Loader';
+import { useQuery } from '@tanstack/react-query';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
 type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance';
@@ -41,7 +42,79 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
   const [isPublishing, setIsPublishing] = useState<string | null>(null);
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
   const [isSyncingGmail, setIsSyncingGmail] = useState(false);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [categorySlug, setCategorySlug] = useState('');
+  const [existingCategories, setExistingCategories] = useState<any[]>([]);
+  const [slugError, setSlugError] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const categoryFormRef = useRef<HTMLFormElement | null>(null);
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Helper function to generate slug from name
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
+  };
+
+  // Fetch existing categories when form is shown
+  useEffect(() => {
+    if (showCategoryForm) {
+      fetch('/api/portfolio/categories')
+        .then(res => res.json())
+        .then(data => {
+          setExistingCategories(Array.isArray(data) ? data : []);
+        })
+        .catch(err => {
+          console.error('Error fetching categories:', err);
+          setExistingCategories([]);
+        });
+    }
+  }, [showCategoryForm]);
+
+  // Validate slug when it changes
+  useEffect(() => {
+    if (categorySlug && existingCategories.length > 0) {
+      const slugExists = existingCategories.some(cat => cat.slug === categorySlug);
+      if (slugExists) {
+        // Suggest alternative slug
+        let counter = 1;
+        let suggestedSlug = `${categorySlug}-${counter}`;
+        while (existingCategories.some(cat => cat.slug === suggestedSlug)) {
+          counter++;
+          suggestedSlug = `${categorySlug}-${counter}`;
+        }
+        setSlugError(`This slug already exists. Suggested: ${suggestedSlug}`);
+      } else {
+        setSlugError('');
+      }
+    } else {
+      setSlugError('');
+    }
+  }, [categorySlug, existingCategories]);
+
+  // Fetch stocks and mutual funds for published view
+  const { data: stocksData } = useQuery<{ stocks: any[] }>({
+    queryKey: ["stocks"],
+    queryFn: async () => {
+      const response = await fetch("/api/zerodha/stocks");
+      if (!response.ok) return { stocks: [] };
+      return response.json();
+    },
+  });
+
+  const { data: mutualFundsData } = useQuery<{ mutualFunds: any[] }>({
+    queryKey: ["mutualFunds"],
+    queryFn: async () => {
+      const response = await fetch("/api/zerodha/mutual-funds");
+      if (!response.ok) return { mutualFunds: [] };
+      return response.json();
+    },
+  });
 
   // Update active tab when defaultTab prop changes
   useEffect(() => {
@@ -413,10 +486,47 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     }
   };
 
-  // Filter items based on active tab
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) return;
+
+    try {
+      const response = await fetch(`/api/portfolio/categories/${categoryId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setToast({
+          message: 'Category deleted successfully!',
+          type: 'success'
+        });
+        // Refresh categories
+        fetch('/api/portfolio/categories')
+          .then(res => res.json())
+          .then(data => {
+            setExistingCategories(Array.isArray(data) ? data : []);
+          });
+        // Trigger a custom event to refresh sidebar
+        window.dispatchEvent(new CustomEvent('portfolioCategoriesUpdated'));
+      } else {
+        const errorData = await response.json();
+        setToast({
+          message: errorData.error || 'Failed to delete category',
+          type: 'error'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error deleting category:', error);
+      setToast({
+        message: error.message || 'Error deleting category',
+        type: 'error'
+      });
+    }
+  };
+
+  // Filter items based on active tab and search query
   // Since we're fetching from specific endpoints, items should already be filtered
   // But we'll do a safety check
-  const filteredItems = items.filter((item: any) => {
+  let filteredItems = items.filter((item: any) => {
     if (!item || typeof item !== 'object') return false;
 
     if (activeTab === 'investment') {
@@ -459,6 +569,27 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     }
     return false;
   });
+
+  // Apply search filter if in published mode
+  if (viewMode === 'published' && searchQuery.trim()) {
+    const query = searchQuery.toLowerCase().trim();
+    filteredItems = filteredItems.filter((item: any) => {
+      // Search in name, type, and other relevant fields
+      const searchableText = [
+        item.name,
+        item.type,
+        item.bankName,
+        item.location,
+        item.accountType,
+        item.tradingsymbol,
+        item.fund_name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return searchableText.includes(query);
+    });
+  }
 
   console.log(`[PortfolioGrid] Active tab: ${activeTab}`);
   console.log(`[PortfolioGrid] Total items fetched: ${items.length}`);
@@ -515,6 +646,75 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     }
   };
 
+  const handleCreateCategory = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    // Check if slug already exists before submitting
+    const formData = new FormData(e.currentTarget);
+    const slug = (formData.get('slug') as string) || generateSlug(formData.get('name') as string);
+    
+    if (existingCategories.some(cat => cat.slug === slug)) {
+      setToast({
+        message: 'A category with this slug already exists. Please use a different slug.',
+        type: 'error'
+      });
+      return;
+    }
+
+    setIsCreatingCategory(true);
+    try {
+      const name = formData.get('name') as string;
+      const icon = formData.get('icon') as string;
+      const type = formData.get('type') as PortfolioCategory['type'];
+      const description = formData.get('description') as string;
+      
+      // Generate href from slug
+      const href = `/portfolio/${slug}`;
+
+      const response = await fetch('/api/portfolio/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, slug, icon, href, type, description }),
+      });
+
+      if (response.ok) {
+        setToast({
+          message: 'Category created successfully! It will appear in the sidebar.',
+          type: 'success'
+        });
+        setShowCategoryForm(false);
+        setCategorySlug('');
+        setSlugError('');
+        // Trigger a custom event to refresh sidebar
+        window.dispatchEvent(new CustomEvent('portfolioCategoriesUpdated'));
+        // Refresh existing categories
+        fetch('/api/portfolio/categories')
+          .then(res => res.json())
+          .then(data => {
+            setExistingCategories(Array.isArray(data) ? data : []);
+          });
+        // Reset form safely
+        if (categoryFormRef.current) {
+          categoryFormRef.current.reset();
+        }
+      } else {
+        const errorData = await response.json();
+        setToast({
+          message: errorData.error || 'Failed to create category',
+          type: 'error'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error creating category:', error);
+      setToast({
+        message: error.message || 'Error creating category',
+        type: 'error'
+      });
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200">
       <div className="p-6 border-b">
@@ -537,24 +737,154 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                 </>
               )}
             </button>
-            <button
-              onClick={() => handleAdd(activeTab)}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-                </>
-              )}
-            </button>
           </div>
         </div>
+
+        {/* Category Creation Form */}
+        {showCategoryForm && (
+          <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-purple-900">Create New Portfolio Category</h3>
+              {existingCategories.length > 0 && (
+                <div className="text-sm text-gray-600">
+                  {existingCategories.length} categor{existingCategories.length === 1 ? 'y' : 'ies'} exist
+                </div>
+              )}
+            </div>
+            {existingCategories.length > 0 && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Existing Categories</h4>
+                <div className="space-y-2">
+                  {existingCategories.map((cat) => (
+                    <div key={cat.id} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{cat.name}</span>
+                        <span className="text-xs text-gray-500">({cat.slug})</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(cat.id)}
+                        className="px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <form ref={categoryFormRef} onSubmit={handleCreateCategory} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    placeholder="e.g., Cryptocurrency"
+                    onChange={(e) => {
+                      if (!categorySlug || categorySlug === generateSlug(e.target.value)) {
+                        setCategorySlug(generateSlug(e.target.value));
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Slug (URL-friendly) *
+                  </label>
+                  <input
+                    type="text"
+                    name="slug"
+                    required
+                    value={categorySlug}
+                    onChange={(e) => setCategorySlug(e.target.value)}
+                    placeholder="e.g., cryptocurrency"
+                    pattern="[a-z0-9-]+"
+                    title="Only lowercase letters, numbers, and hyphens allowed"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                      slugError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    }`}
+                  />
+                  {slugError ? (
+                    <p className="text-xs text-red-600 mt-1">{slugError}</p>
+                  ) : (
+                    <p className="text-xs text-gray-500 mt-1">Auto-generated from name, but you can edit it</p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type *
+                  </label>
+                  <select
+                    name="type"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    <option value="investment">Investment</option>
+                    <option value="loan">Loan</option>
+                    <option value="property">Property</option>
+                    <option value="bank-balance">Bank Balance</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Icon (optional)
+                  </label>
+                  <input
+                    type="text"
+                    name="icon"
+                    placeholder="e.g., TrendingUp, PieChart, Home"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Icon name from lucide-react</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description (optional)
+                </label>
+                <textarea
+                  name="description"
+                  rows={2}
+                  placeholder="Brief description of this category"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCategoryForm(false);
+                    setCategorySlug('');
+                    setSlugError('');
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingCategory || !!slugError}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  {isCreatingCategory ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Create Category
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         <div className="flex gap-2 border-b mb-4">
           <button
@@ -621,10 +951,17 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               {isLoadingCounts ? '...' : tabCounts['bank-balance']}
             </span>
           </button>
+          <button
+            onClick={() => setShowCategoryForm(!showCategoryForm)}
+            className="ml-2 px-3 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors flex items-center gap-1">
+            <Tag className="w-4 h-4" />
+            {showCategoryForm ? 'Cancel' : 'Add New Category'}
+          </button>
         </div>
 
         {/* Draft/Published Tabs */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center justify-between">
+          <div className="flex gap-2 items-center flex-1">
           <button
             onClick={() => setViewMode('draft')}
             className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 ${
@@ -655,6 +992,36 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               {isLoadingCounts ? '...' : publishedCount}
             </span>
           </button>
+          </div>
+          {viewMode === 'published' && (
+            <div className="flex-1 max-w-xs">
+              <input
+                type="text"
+                placeholder="Search published items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleAdd(activeTab)}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -726,6 +1093,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         {activeTab === 'investment' && (
           <InvestmentGrid
             investments={filteredItems as Investment[]}
+            stocks={viewMode === 'published' ? (stocksData?.stocks || []) : []}
+            mutualFunds={viewMode === 'published' ? (mutualFundsData?.mutualFunds || []) : []}
             onDelete={(id) => handleDelete(id, 'investment')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
@@ -814,6 +1183,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
 
 function InvestmentGrid({
   investments,
+  stocks,
+  mutualFunds,
   onDelete,
   onEdit,
   onPublishToggle,
@@ -825,6 +1196,8 @@ function InvestmentGrid({
   isPublishing,
 }: {
   investments: Investment[];
+  stocks?: any[];
+  mutualFunds?: any[];
   onDelete: (id: string) => void;
   onEdit: (investment: Investment) => void;
   onPublishToggle: (id: string, isPublished: boolean) => void;
@@ -835,6 +1208,46 @@ function InvestmentGrid({
   isDeleting: string | null;
   isPublishing: string | null;
 }) {
+  // Calculate totals for stocks and mutual funds
+  const stocksTotal = stocks?.reduce((sum, stock) => sum + ((stock.last_price || 0) * (stock.quantity || 0)), 0) || 0;
+  const stocksPnl = stocks?.reduce((sum, stock) => sum + (stock.pnl || 0), 0) || 0;
+  const stocksCount = stocks?.length || 0;
+
+  const mutualFundsTotal = mutualFunds?.reduce((sum, mf) => sum + ((mf.last_price || 0) * (mf.quantity || 0)), 0) || 0;
+  const mutualFundsPnl = mutualFunds?.reduce((sum, mf) => sum + (mf.pnl || 0), 0) || 0;
+  const mutualFundsCount = mutualFunds?.length || 0;
+
+  // Build items array with summary rows for stocks and mutual funds
+  const allItems = [
+    ...investments,
+    // Add stocks summary row if there are stocks
+    ...(stocks && stocks.length > 0 ? [{
+      id: 'stocks-total',
+      name: `Stocks (${stocksCount} holdings)`,
+      type: 'stocks' as const,
+      amount: stocksTotal,
+      startDate: new Date().toISOString(),
+      status: 'active' as const,
+      isPublished: true,
+      isReadOnly: true,
+      pnl: stocksPnl,
+      holdingsCount: stocksCount,
+    }] : []),
+    // Add mutual funds summary row if there are mutual funds
+    ...(mutualFunds && mutualFunds.length > 0 ? [{
+      id: 'mutual-funds-total',
+      name: `Mutual Funds (${mutualFundsCount} funds)`,
+      type: 'mutual-fund' as const,
+      amount: mutualFundsTotal,
+      startDate: new Date().toISOString(),
+      status: 'active' as const,
+      isPublished: true,
+      isReadOnly: true,
+      pnl: mutualFundsPnl,
+      holdingsCount: mutualFundsCount,
+    }] : []),
+  ];
+
   return (
     <table className="w-full">
       <thead className="bg-gray-50">
@@ -863,112 +1276,130 @@ function InvestmentGrid({
         </tr>
       </thead>
       <tbody className="bg-white divide-y divide-gray-200">
-        {investments.length === 0 ? (
+        {allItems.length === 0 ? (
           <tr>
             <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
               No investments found. Click "Add Investment" to create one.
             </td>
           </tr>
         ) : (
-          investments.map((investment) => (
-            <tr key={investment.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex items-center gap-2">
-                  <span>{investment.name}</span>
-                  {investment.tags?.includes('added from gmail') && (
-                    <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">
-                      📧 Gmail
-                    </span>
-                  )}
-                  {!investment.isPublished && (
-                    <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">
-                      Draft
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {investment.type}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                ₹{investment.amount.toLocaleString()}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                {new Date(investment.startDate).toLocaleDateString()}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                {investment.maturityDate
-                  ? new Date(investment.maturityDate).toLocaleDateString()
-                  : 'N/A'}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <span
-                  className={`px-2 py-1 rounded text-xs ${
-                    investment.status === 'active'
-                      ? 'bg-green-100 text-green-800'
-                      : investment.status === 'matured'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                  {investment.status}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <div className="flex gap-2 items-center">
-                  <button
-                    onClick={() => onEdit(investment)}
-                    className="text-blue-600 hover:text-blue-700"
-                    title="Edit">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(investment.id)}
-                    disabled={isDeleting === investment.id}
-                    className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Delete">
-                    {isDeleting === investment.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
+          allItems.map((item: any) => {
+            const isReadOnly = item.isReadOnly;
+            return (
+              <tr key={item.id} className={`hover:bg-gray-50 ${isReadOnly ? 'bg-gray-50' : ''}`}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <span>{item.name}</span>
+                    {item.tags?.includes('added from gmail') && (
+                      <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">
+                        📧 Gmail
+                      </span>
                     )}
-                  </button>
-                  <div className="relative" ref={(el) => { menuRefs.current[investment.id] = el; }}>
-                    <button
-                      onClick={() => setOpenMenuId(openMenuId === investment.id ? null : investment.id)}
-                      className="text-gray-600 hover:text-gray-800 p-1"
-                      title="More options">
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                    {openMenuId === investment.id && (
-                      <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                        <button
-                          onClick={() => onPublishToggle(investment.id, investment.isPublished || false)}
-                          disabled={isPublishing === investment.id}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                          {isPublishing === investment.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : investment.isPublished ? (
-                            <>
-                              <XCircle className="w-4 h-4" />
-                              Unpublish
-                            </>
-                          ) : (
-                            <>
-                              <Check className="w-4 h-4" />
-                              Publish
-                            </>
-                          )}
-                        </button>
-                      </div>
+                    {isReadOnly && (
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
+                        <Lock className="w-3 h-3" />
+                        Zerodha
+                      </span>
+                    )}
+                    {!item.isPublished && !isReadOnly && (
+                      <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">
+                        Draft
+                      </span>
                     )}
                   </div>
-                </div>
-              </td>
-            </tr>
-          ))
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {item.type}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                  ₹{item.amount.toLocaleString()}
+                  {item.pnl !== undefined && (
+                    <span className={`ml-2 text-xs ${item.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ({item.pnl >= 0 ? '+' : ''}₹{item.pnl.toLocaleString()})
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {item.maturityDate
+                    ? new Date(item.maturityDate).toLocaleDateString()
+                    : 'N/A'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <span
+                    className={`px-2 py-1 rounded text-xs ${
+                      item.status === 'active'
+                        ? 'bg-green-100 text-green-800'
+                        : item.status === 'matured'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                    {item.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {isReadOnly ? (
+                    <span className="text-xs text-gray-500 italic">Read-only (from Zerodha)</span>
+                  ) : (
+                    <div className="flex gap-2 items-center">
+                      <button
+                        onClick={() => onEdit(item)}
+                        className="text-blue-600 hover:text-blue-700"
+                        title="Edit">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => onDelete(item.id)}
+                        disabled={isDeleting === item.id}
+                        className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete">
+                        {isDeleting === item.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                      <div className="relative" ref={(el) => { menuRefs.current[item.id] = el; }}>
+                        <button
+                          onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
+                          className="text-gray-600 hover:text-gray-800 p-1"
+                          title="More options">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        {openMenuId === item.id && (
+                          <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                            <button
+                              onClick={() => onPublishToggle(item.id, item.isPublished || false)}
+                              disabled={isPublishing === item.id}
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                              {isPublishing === item.id ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Processing...
+                                </>
+                              ) : item.isPublished ? (
+                                <>
+                                  <XCircle className="w-4 h-4" />
+                                  Unpublish
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="w-4 h-4" />
+                                  Publish
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            );
+          })
         )}
       </tbody>
     </table>

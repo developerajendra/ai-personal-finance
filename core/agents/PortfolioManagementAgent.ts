@@ -1,5 +1,5 @@
 import { BaseAgent, AgentMessage } from './base/BaseAgent';
-import { fetchEmails, markEmailAsRead, archiveEmail, GmailEmail } from '@/core/services/gmailService';
+import { fetchEmails, markEmailAsRead, archiveEmail, moveEmailToLabel, GmailEmail } from '@/core/services/gmailService';
 import { analyzeEmail, ExtractedInvestment } from '@/core/services/emailParserService';
 import { Investment } from '@/core/types';
 import * as fs from 'fs';
@@ -137,9 +137,26 @@ export class PortfolioManagementAgent extends BaseAgent {
               investmentCount++;
               this.markEmailAsProcessed(email.id, investment.id);
               
-              // Mark email as read and archive
-              await markEmailAsRead(this.accessToken!, this.refreshToken!, email.id);
-              await archiveEmail(this.accessToken!, this.refreshToken!, email.id);
+              // Mark email as read, move to personal-finance label, and archive
+              try {
+                await markEmailAsRead(this.accessToken!, this.refreshToken!, email.id);
+              } catch (error: any) {
+                console.error(`[Portfolio Agent] Error marking email as read:`, error.message);
+                // Continue even if marking as read fails
+              }
+              try {
+                await moveEmailToLabel(this.accessToken!, this.refreshToken!, email.id, 'personal-finance');
+                console.log(`[Portfolio Agent] Moved email ${email.id} to personal-finance label`);
+              } catch (error: any) {
+                console.error(`[Portfolio Agent] Error moving email to personal-finance label:`, error.message);
+                // Continue even if label move fails
+              }
+              try {
+                await archiveEmail(this.accessToken!, this.refreshToken!, email.id);
+              } catch (error: any) {
+                console.error(`[Portfolio Agent] Error archiving email:`, error.message);
+                // Continue even if archiving fails
+              }
 
               console.log(
                 `[Portfolio Agent] ✅ Created investment "${investment.name}" from email ${email.id}`
@@ -164,6 +181,28 @@ export class PortfolioManagementAgent extends BaseAgent {
           } else {
             // Not an investment email, mark as processed to avoid re-checking
             this.markEmailAsProcessed(email.id);
+            
+            // Mark email as read, move to personal-finance label, and archive
+            try {
+              await markEmailAsRead(this.accessToken!, this.refreshToken!, email.id);
+            } catch (error: any) {
+              console.error(`[Portfolio Agent] Error marking email as read:`, error.message);
+              // Continue even if marking as read fails
+            }
+            try {
+              await moveEmailToLabel(this.accessToken!, this.refreshToken!, email.id, 'personal-finance');
+              console.log(`[Portfolio Agent] Moved email ${email.id} to personal-finance label`);
+            } catch (error: any) {
+              console.error(`[Portfolio Agent] Error moving email to personal-finance label:`, error.message);
+              // Continue even if label move fails
+            }
+            try {
+              await archiveEmail(this.accessToken!, this.refreshToken!, email.id);
+            } catch (error: any) {
+              console.error(`[Portfolio Agent] Error archiving email:`, error.message);
+              // Continue even if archiving fails
+            }
+            
             console.log(
               `[Portfolio Agent] Email ${email.id} is not an investment email (confidence: ${analysis.confidence})`
             );
@@ -419,9 +458,26 @@ export class PortfolioManagementAgent extends BaseAgent {
               investmentCount++;
               this.markEmailAsProcessed(email.id, investment.id);
               
-              // Mark email as read and archive
-              await markEmailAsRead(this.accessToken!, this.refreshToken!, email.id);
-              await archiveEmail(this.accessToken!, this.refreshToken!, email.id);
+              // Mark email as read, move to personal-finance label, and archive
+              try {
+                await markEmailAsRead(this.accessToken!, this.refreshToken!, email.id);
+              } catch (error: any) {
+                console.error(`[Portfolio Agent] Error marking email as read:`, error.message);
+                // Continue even if marking as read fails
+              }
+              try {
+                await moveEmailToLabel(this.accessToken!, this.refreshToken!, email.id, 'personal-finance');
+                console.log(`[Portfolio Agent] Moved email ${email.id} to personal-finance label`);
+              } catch (error: any) {
+                console.error(`[Portfolio Agent] Error moving email to personal-finance label:`, error.message);
+                // Continue even if label move fails
+              }
+              try {
+                await archiveEmail(this.accessToken!, this.refreshToken!, email.id);
+              } catch (error: any) {
+                console.error(`[Portfolio Agent] Error archiving email:`, error.message);
+                // Continue even if archiving fails
+              }
 
               console.log(
                 `[Portfolio Agent] ✅ Created investment "${investment.name}" from email ${email.id}`
@@ -432,6 +488,28 @@ export class PortfolioManagementAgent extends BaseAgent {
           } else {
             // Not an investment email, mark as processed to avoid re-checking
             this.markEmailAsProcessed(email.id);
+            
+            // Mark email as read, move to personal-finance label, and archive
+            try {
+              await markEmailAsRead(this.accessToken!, this.refreshToken!, email.id);
+            } catch (error: any) {
+              console.error(`[Portfolio Agent] Error marking email as read:`, error.message);
+              // Continue even if marking as read fails
+            }
+            try {
+              await moveEmailToLabel(this.accessToken!, this.refreshToken!, email.id, 'personal-finance');
+              console.log(`[Portfolio Agent] Moved email ${email.id} to personal-finance label`);
+            } catch (error: any) {
+              console.error(`[Portfolio Agent] Error moving email to personal-finance label:`, error.message);
+              // Continue even if label move fails
+            }
+            try {
+              await archiveEmail(this.accessToken!, this.refreshToken!, email.id);
+            } catch (error: any) {
+              console.error(`[Portfolio Agent] Error archiving email:`, error.message);
+              // Continue even if archiving fails
+            }
+            
             console.log(
               `[Portfolio Agent] Email ${email.id} is not an investment email (confidence: ${analysis.confidence})`
             );

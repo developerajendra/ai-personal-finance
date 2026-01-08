@@ -1,94 +1,14 @@
 {
   "mutualFunds": [
     {
-      "tradingsymbol": "INF204K01E54",
-      "fund_name": "INF204K01E54",
-      "folio": "488245279701",
-      "quantity": 10.866,
-      "average_price": 4601.344,
-      "last_price": 4597.2282,
-      "pnl": -44.72228280000854,
-      "pnl_percentage": -0.08944777873596901
-    },
-    {
-      "tradingsymbol": "INF966L01689",
-      "fund_name": "INF966L01689",
-      "folio": "51072679611",
-      "quantity": 107.285,
-      "average_price": 279.614,
-      "last_price": 272.9636,
-      "pnl": -713.4881639999985,
-      "pnl_percentage": -2.378421681317812
-    },
-    {
-      "tradingsymbol": "INF179K01UT0",
-      "fund_name": "INF179K01UT0",
-      "folio": "16737095/86",
-      "quantity": 112.249,
-      "average_price": 534.523,
-      "last_price": 2252.766,
-      "pnl": 192871.058507,
-      "pnl_percentage": 321.45352024141147
-    },
-    {
-      "tradingsymbol": "INF179K01YV8",
-      "fund_name": "INF179K01YV8",
-      "folio": "16737095/86",
-      "quantity": 390.174,
-      "average_price": 1134.315,
-      "last_price": 1269.43,
-      "pnl": 52718.360010000004,
-      "pnl_percentage": 11.911594222063538
-    },
-    {
-      "tradingsymbol": "INF200KA16P2",
-      "fund_name": "INF200KA16P2",
-      "folio": "23896073",
-      "quantity": 12826.087,
-      "average_price": 17.152,
-      "last_price": 17.9797,
-      "pnl": 10616.1522099,
-      "pnl_percentage": 4.825676305970148
-    },
-    {
-      "tradingsymbol": "INF277K011O1",
-      "fund_name": "INF277K011O1",
-      "folio": "11354121/60",
-      "quantity": 2156.675,
-      "average_price": 44.047,
-      "last_price": 40.8741,
-      "pnl": -6842.914107499993,
-      "pnl_percentage": -7.203441778100658
-    },
-    {
       "tradingsymbol": "INF846K01S29",
       "fund_name": "INF846K01S29",
       "folio": "91076678192",
       "quantity": 20647.727,
-      "average_price": 20.582,
-      "last_price": 23.5907,
-      "pnl": 62122.81622489996,
-      "pnl_percentage": 14.618112914196862
-    },
-    {
-      "tradingsymbol": "INF200K01QX4",
-      "fund_name": "INF200K01QX4",
-      "folio": "23896073",
-      "quantity": 3613.068,
-      "average_price": 92.161,
-      "last_price": 106.23,
-      "pnl": 50832.253692,
-      "pnl_percentage": 15.265676370699099
-    },
-    {
-      "tradingsymbol": "INF204K01J91",
-      "fund_name": "INF204K01J91",
-      "folio": "488245279701",
-      "quantity": 506.596,
-      "average_price": 59.216,
-      "last_price": 101.6137,
-      "pnl": 21478.505229199993,
-      "pnl_percentage": 71.59838557146713
+      "average_price": 20.582352,
+      "last_price": 23.924,
+      "pnl": 68997.43563409598,
+      "pnl_percentage": 16.235501171100363
     },
     {
       "tradingsymbol": "INF740K01PX1",
@@ -96,129 +16,29 @@
       "folio": "7054870/14",
       "quantity": 103.519,
       "average_price": 96.596,
-      "last_price": 164.469,
-      "pnl": 7026.145087000001,
-      "pnl_percentage": 70.26481427802393
+      "last_price": 168.728,
+      "pnl": 7467.032508,
+      "pnl_percentage": 74.67389954035363
     },
     {
-      "tradingsymbol": "INF846K01EF7",
-      "fund_name": "INF846K01EF7",
-      "folio": "91076678192",
-      "quantity": 3599.471,
-      "average_price": 47.227,
-      "last_price": 55.4,
-      "pnl": 29418.476483000006,
-      "pnl_percentage": 17.305778474177913
-    },
-    {
-      "tradingsymbol": "INF174K01NE8",
-      "fund_name": "INF174K01NE8",
-      "folio": "8258886/52",
-      "quantity": 2.406,
-      "average_price": 4156.399,
-      "last_price": 5482.479,
-      "pnl": 3190.5484799999995,
-      "pnl_percentage": 31.90454044474555
-    },
-    {
-      "tradingsymbol": "INF174K01KT2",
-      "fund_name": "INF174K01KT2",
-      "folio": "8258886/52",
-      "quantity": 159.789,
-      "average_price": 281.607,
-      "last_price": 291.16,
-      "pnl": 1526.4643169999981,
-      "pnl_percentage": 3.3923162421388624
-    },
-    {
-      "tradingsymbol": "INF917K01FZ1",
-      "fund_name": "INF917K01FZ1",
-      "folio": "21171009/51",
-      "quantity": 264.247,
-      "average_price": 454.098,
-      "last_price": 453.7856,
-      "pnl": -82.55076280000503,
-      "pnl_percentage": -0.06879572250924228
-    },
-    {
-      "tradingsymbol": "INF204K01K15",
-      "fund_name": "INF204K01K15",
+      "tradingsymbol": "INF204K01J91",
+      "fund_name": "INF204K01J91",
       "folio": "488245279701",
-      "quantity": 508.049,
-      "average_price": 186.981,
-      "last_price": 185.0574,
-      "pnl": -977.2830564000033,
-      "pnl_percentage": -1.0287676287965122
+      "quantity": 506.596,
+      "average_price": 59.2158,
+      "last_price": 103.5014,
+      "pnl": 22434.907817599997,
+      "pnl_percentage": 74.78679676707904
     },
     {
-      "tradingsymbol": "INF204K01YC4",
-      "fund_name": "INF204K01YC4",
-      "folio": "488245279701",
-      "quantity": 40.759,
-      "average_price": 49.067,
-      "last_price": 53.6255,
-      "pnl": 185.79990150000026,
-      "pnl_percentage": 9.290358081806522
-    },
-    {
-      "tradingsymbol": "INF846K01K35",
-      "fund_name": "INF846K01K35",
-      "folio": "91076678192",
-      "quantity": 1205.374,
-      "average_price": 107.845,
-      "last_price": 120.57,
-      "pnl": 15338.384149999998,
-      "pnl_percentage": 11.799341647735172
-    },
-    {
-      "tradingsymbol": "INF846K01DP8",
-      "fund_name": "INF846K01DP8",
-      "folio": "91076678192",
-      "quantity": 7583.999,
-      "average_price": 37.578,
-      "last_price": 71.11,
-      "pnl": 254306.65446799994,
-      "pnl_percentage": 89.23306189791896
-    },
-    {
-      "tradingsymbol": "INF769K01AX2",
-      "fund_name": "INF769K01AX2",
-      "folio": "78827875893",
-      "quantity": 2129.523,
-      "average_price": 75.132,
-      "last_price": 132.445,
-      "pnl": 122049.35169899999,
-      "pnl_percentage": 76.28307512112015
-    },
-    {
-      "tradingsymbol": "INF200K01TC2",
-      "fund_name": "INF200K01TC2",
+      "tradingsymbol": "INF200K01QX4",
+      "fund_name": "INF200K01QX4",
       "folio": "23896073",
-      "quantity": 3188.635,
-      "average_price": 88.121,
-      "last_price": 123.7347,
-      "pnl": 113559.09029950004,
-      "pnl_percentage": 40.414543638860216
-    },
-    {
-      "tradingsymbol": "INF789F01WY2",
-      "fund_name": "INF789F01WY2",
-      "folio": "588340114227",
-      "quantity": 3968.63,
-      "average_price": 67.274,
-      "last_price": 91.3006,
-      "pnl": 95352.685558,
-      "pnl_percentage": 35.71454053571959
-    },
-    {
-      "tradingsymbol": "INF174K01LU8",
-      "fund_name": "INF174K01LU8",
-      "folio": "8258886/52",
-      "quantity": 1823.232,
-      "average_price": 79.525,
-      "last_price": 93.46,
-      "pnl": 25406.737919999985,
-      "pnl_percentage": 17.52279157497641
+      "quantity": 3613.068,
+      "average_price": 92.161065,
+      "last_price": 107.9636,
+      "pnl": 57095.63352738001,
+      "pnl_percentage": 17.14664972675826
     },
     {
       "tradingsymbol": "INF740K01QD1",
@@ -226,50 +46,230 @@
       "folio": "7054870/14",
       "quantity": 321.149,
       "average_price": 155.683,
-      "last_price": 213.108,
-      "pnl": 18441.981325000008,
-      "pnl_percentage": 36.88585137747861
+      "last_price": 219.658,
+      "pnl": 20545.507275000004,
+      "pnl_percentage": 41.093118709171854
     },
     {
       "tradingsymbol": "INF109K016L0",
       "fund_name": "INF109K016L0",
       "folio": "14881242/39",
       "quantity": 4506.119,
-      "average_price": 53.26,
-      "last_price": 126.23,
-      "pnl": 328811.50343000004,
-      "pnl_percentage": 137.00713481036428
+      "average_price": 53.259607,
+      "last_price": 128.19,
+      "pnl": 337645.267574767,
+      "pnl_percentage": 140.6889709118582
     },
     {
-      "tradingsymbol": "INF204KC1378",
-      "fund_name": "INF204KC1378",
-      "folio": "488245279701",
-      "quantity": 924.16,
-      "average_price": 23.804,
-      "last_price": 35.0007,
-      "pnl": 10347.542272000006,
-      "pnl_percentage": 47.03705259620236
+      "tradingsymbol": "INF174K01LU8",
+      "fund_name": "INF174K01LU8",
+      "folio": "8258886/52",
+      "quantity": 1823.232,
+      "average_price": 79.525101,
+      "last_price": 95.624,
+      "pnl": 29352.027821567986,
+      "pnl_percentage": 20.243795729350904
     },
     {
-      "tradingsymbol": "INF204KB16W8",
-      "fund_name": "INF204KB16W8",
+      "tradingsymbol": "INF179K01YV8",
+      "fund_name": "INF179K01YV8",
+      "folio": "16737095/86",
+      "quantity": 390.174,
+      "average_price": 1134.314611,
+      "last_price": 1290.289,
+      "pnl": 60857.15125368594,
+      "pnl_percentage": 13.750540413342152
+    },
+    {
+      "tradingsymbol": "INF200KA16P2",
+      "fund_name": "INF200KA16P2",
+      "folio": "23896073",
+      "quantity": 12826.087,
+      "average_price": 17.151684,
+      "last_price": 18.3614,
+      "pnl": 15515.922661291988,
+      "pnl_percentage": 7.053045053768477
+    },
+    {
+      "tradingsymbol": "INF277K011O1",
+      "fund_name": "INF277K011O1",
+      "folio": "11354121/60",
+      "quantity": 2156.675,
+      "average_price": 44.047093,
+      "last_price": 41.877,
+      "pnl": -4680.1853207749955,
+      "pnl_percentage": -4.926756460409312
+    },
+    {
+      "tradingsymbol": "INF917K01FZ1",
+      "fund_name": "INF917K01FZ1",
+      "folio": "21171009/51",
+      "quantity": 264.247,
+      "average_price": 454.09793,
+      "last_price": 459.1106,
+      "pnl": 1324.5830094899866,
+      "pnl_percentage": 1.1038742237825108
+    },
+    {
+      "tradingsymbol": "INF204K01K15",
+      "fund_name": "INF204K01K15",
       "folio": "488245279701",
-      "quantity": 3107.4,
-      "average_price": 32.18,
-      "last_price": 32.6626,
-      "pnl": 1499.6312400000024,
-      "pnl_percentage": 1.4996892479801143
+      "quantity": 508.049,
+      "average_price": 186.980466,
+      "last_price": 188.4951,
+      "pnl": 769.5082890659978,
+      "pnl_percentage": 0.8100493235480523
+    },
+    {
+      "tradingsymbol": "INF769K01AX2",
+      "fund_name": "INF769K01AX2",
+      "folio": "78827875893",
+      "quantity": 2129.523,
+      "average_price": 75.131595,
+      "last_price": 133.921,
+      "pnl": 125193.39010381498,
+      "pnl_percentage": 78.24857837771178
+    },
+    {
+      "tradingsymbol": "INF200K01TC2",
+      "fund_name": "INF200K01TC2",
+      "folio": "23896073",
+      "quantity": 3188.635,
+      "average_price": 88.121108,
+      "last_price": 125.2156,
+      "pnl": 118280.79549841996,
+      "pnl_percentage": 42.09489966921431
+    },
+    {
+      "tradingsymbol": "INF846K01EF7",
+      "fund_name": "INF846K01EF7",
+      "folio": "91076678192",
+      "quantity": 3599.471,
+      "average_price": 47.226807,
+      "last_price": 56.42,
+      "pnl": 33090.631600903,
+      "pnl_percentage": 19.4660481704808
+    },
+    {
+      "tradingsymbol": "INF174K01NE8",
+      "fund_name": "INF174K01NE8",
+      "folio": "8258886/52",
+      "quantity": 2.406,
+      "average_price": 4156.3989,
+      "last_price": 5489.7326,
+      "pnl": 3208.0008822,
+      "pnl_percentage": 32.07906007289146
+    },
+    {
+      "tradingsymbol": "INF174K01KT2",
+      "fund_name": "INF174K01KT2",
+      "folio": "8258886/52",
+      "quantity": 159.789,
+      "average_price": 281.606566,
+      "last_price": 298.216,
+      "pnl": 2654.0048494260045,
+      "pnl_percentage": 5.898098981115388
+    },
+    {
+      "tradingsymbol": "INF789F01WY2",
+      "fund_name": "INF789F01WY2",
+      "folio": "588340114227",
+      "quantity": 3968.63,
+      "average_price": 67.274244,
+      "last_price": 92.3933,
+      "pnl": 99688.23921328003,
+      "pnl_percentage": 37.33829547010593
+    },
+    {
+      "tradingsymbol": "INF204K01YC4",
+      "fund_name": "INF204K01YC4",
+      "folio": "488245279701",
+      "quantity": 40.759,
+      "average_price": 49.0666,
+      "last_price": 54.4681,
+      "pnl": 220.15973849999978,
+      "pnl_percentage": 11.008506805036408
+    },
+    {
+      "tradingsymbol": "INF846K01DP8",
+      "fund_name": "INF846K01DP8",
+      "folio": "91076678192",
+      "quantity": 7583.999,
+      "average_price": 37.57833,
+      "last_price": 72.08,
+      "pnl": 261660.63077833003,
+      "pnl_percentage": 91.81267501775626
+    },
+    {
+      "tradingsymbol": "INF846K01K35",
+      "fund_name": "INF846K01K35",
+      "folio": "91076678192",
+      "quantity": 1205.374,
+      "average_price": 107.844944,
+      "last_price": 123.33,
+      "pnl": 18665.28389094399,
+      "pnl_percentage": 14.358629552443357
+    },
+    {
+      "tradingsymbol": "INF179K01UT0",
+      "fund_name": "INF179K01UT0",
+      "folio": "16737095/86",
+      "quantity": 112.249,
+      "average_price": 534.523172,
+      "last_price": 2296.88,
+      "pnl": 197822.79158617198,
+      "pnl_percentage": 329.70634769786926
+    },
+    {
+      "tradingsymbol": "INF204K01E54",
+      "fund_name": "INF204K01E54",
+      "folio": "488245279701",
+      "quantity": 10.866,
+      "average_price": 4601.3435,
+      "last_price": 4718.4296,
+      "pnl": 1272.2575626000034,
+      "pnl_percentage": 2.544606808859202
+    },
+    {
+      "tradingsymbol": "INF966L01689",
+      "fund_name": "INF966L01689",
+      "folio": "51072679611",
+      "quantity": 107.285,
+      "average_price": 279.614188,
+      "last_price": 277.8661,
+      "pnl": -187.54362107999987,
+      "pnl_percentage": -0.6251785764175881
     },
     {
       "tradingsymbol": "INF179K01VX0",
       "fund_name": "INF179K01VX0",
       "folio": "16737095/86",
       "quantity": 2194.236,
-      "average_price": 22.786,
-      "last_price": 42.0107,
-      "pnl": 42183.528829200004,
-      "pnl_percentage": 84.37066619854298
+      "average_price": 22.785832,
+      "last_price": 42.6378,
+      "pnl": 43559.902856447996,
+      "pnl_percentage": 87.12417435536257
+    },
+    {
+      "tradingsymbol": "INF204KB16W8",
+      "fund_name": "INF204KB16W8",
+      "folio": "488245279701",
+      "quantity": 3107.4,
+      "average_price": 32.179643,
+      "last_price": 33.3575,
+      "pnl": 3660.072841800007,
+      "pnl_percentage": 3.6602550252033628
+    },
+    {
+      "tradingsymbol": "INF204KC1378",
+      "fund_name": "INF204KC1378",
+      "folio": "488245279701",
+      "quantity": 924.16,
+      "average_price": 23.804192,
+      "last_price": 36.1754,
+      "pnl": 11432.975585280004,
+      "pnl_percentage": 51.97071171329826
     }
   ],
-  "lastUpdated": "2026-01-04T13:42:26.480Z"
+  "lastUpdated": "2026-01-08T12:45:46.544Z"
 }

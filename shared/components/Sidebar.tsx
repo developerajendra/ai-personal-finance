@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   LayoutDashboard,
   Briefcase,
@@ -23,11 +23,38 @@ import {
   User,
   LogOut,
   Mail,
+  LucideIcon,
+  X,
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { PortfolioCategory } from '@/core/types';
 
-// Navigation structure - clean and intuitive
-const navigation = [
+// Icon mapping for dynamic categories
+const iconMap: Record<string, LucideIcon> = {
+  TrendingUp,
+  PieChart,
+  Home,
+  CreditCard,
+  Wallet,
+  Tag,
+  Briefcase,
+  BarChart3,
+  LayoutDashboard,
+  Database,
+  Upload,
+  Sparkles,
+  Mail,
+  // Add more icons as needed
+};
+
+// Get icon component from name
+function getIcon(iconName?: string): LucideIcon {
+  if (!iconName) return Tag; // Default icon
+  return iconMap[iconName] || Tag;
+}
+
+// Base navigation structure - clean and intuitive
+const baseNavigation = [
   {
     name: 'Dashboard',
     href: '/dashboard',
@@ -82,7 +109,88 @@ export function Sidebar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [gmailStatus, setGmailStatus] = useState<{ isConnected: boolean } | null>(null);
+  const [portfolioCategories, setPortfolioCategories] = useState<PortfolioCategory[]>([]);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Fetch portfolio categories
+  const fetchPortfolioCategories = async () => {
+    try {
+      const response = await fetch('/api/portfolio/categories');
+      if (response.ok) {
+        const categories = await response.json();
+        setPortfolioCategories(categories);
+      }
+    } catch (error) {
+      console.error('Error fetching portfolio categories:', error);
+    }
+  };
+
+  // Load categories on mount and listen for updates
+  useEffect(() => {
+    fetchPortfolioCategories();
+
+    // Listen for category updates
+    const handleCategoryUpdate = () => {
+      fetchPortfolioCategories();
+    };
+    window.addEventListener('portfolioCategoriesUpdated', handleCategoryUpdate);
+
+    return () => {
+      window.removeEventListener('portfolioCategoriesUpdated', handleCategoryUpdate);
+    };
+  }, []);
+
+  const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
+    if (!confirm(`Are you sure you want to delete the category "${categoryName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/portfolio/categories/${categoryId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Refresh categories
+        fetchPortfolioCategories();
+        // Trigger event for other components
+        window.dispatchEvent(new CustomEvent('portfolioCategoriesUpdated'));
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to delete category');
+      }
+    } catch (error: any) {
+      console.error('Error deleting category:', error);
+      alert(error.message || 'Error deleting category');
+    }
+  };
+
+  // Build navigation with dynamic categories - memoized to update when categories change
+  const navigation = useMemo(() => {
+    return baseNavigation.map((menu) => {
+      if (menu.name === 'Portfolio') {
+        // Sort dynamic categories alphabetically by name
+        const sortedCategories = [...portfolioCategories].sort((a, b) => 
+          a.name.localeCompare(b.name)
+        );
+        
+        // Add dynamic categories to Portfolio submenu with full category data
+        const dynamicSubmenu = sortedCategories.map((cat) => ({
+          name: cat.name,
+          href: cat.href,
+          icon: getIcon(cat.icon),
+          categoryId: cat.id, // Store ID for deletion
+          isDynamic: true, // Flag to identify dynamic categories
+        }));
+        
+        return {
+          ...menu,
+          submenu: [...(menu.submenu || []), ...dynamicSubmenu],
+        };
+      }
+      return menu;
+    });
+  }, [portfolioCategories]);
 
   // Determine which menu should be open based on current path
   useEffect(() => {
@@ -94,7 +202,7 @@ export function Sidebar() {
     if (activeMenu) {
       setOpenMenus(new Set([activeMenu.name]));
     }
-  }, [pathname]);
+  }, [pathname, portfolioCategories]); // Include portfolioCategories to update when categories change
 
   const toggleMenu = (menuName: string) => {
     setOpenMenus((prev) => {
@@ -340,22 +448,38 @@ export function Sidebar() {
                 </Link>
                 {hoveredItem === menu.name && menuOpen && (
                   <div className="absolute left-full ml-2 top-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 min-w-[200px] z-50">
-                    {menu.submenu?.map((item) => {
+                    {menu.submenu?.map((item: any) => {
                       const itemActive = isActive(item.href);
+                      const isDynamic = item.isDynamic;
                       return (
-                        <Link
+                        <div
                           key={item.name}
-                          href={item.href}
-                          onClick={() => setHoveredItem(null)}
-                          className={cn(
-                            'flex items-center gap-3 px-4 py-2 text-sm',
-                            itemActive
-                              ? 'text-purple-300 bg-purple-600/20'
-                              : 'text-gray-300 hover:bg-gray-700'
-                          )}>
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.name}</span>
-                        </Link>
+                          className="flex items-center gap-2 group/item">
+                          <Link
+                            href={item.href}
+                            onClick={() => setHoveredItem(null)}
+                            className={cn(
+                              'flex-1 flex items-center gap-3 px-4 py-2 text-sm',
+                              itemActive
+                                ? 'text-purple-300 bg-purple-600/20'
+                                : 'text-gray-300 hover:bg-gray-700'
+                            )}>
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.name}</span>
+                          </Link>
+                          {isDynamic && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDeleteCategory(item.categoryId, item.name);
+                                setHoveredItem(null);
+                              }}
+                              className="opacity-0 group-hover/item:opacity-100 p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all mr-2"
+                              title="Delete category">
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
@@ -399,29 +523,49 @@ export function Sidebar() {
 
               {menuOpen && menu.submenu && (
                 <div className="ml-6 mt-1 space-y-0.5 border-l-2 border-gray-700 pl-3">
-                  {menu.submenu.map((item) => {
+                  {menu.submenu.map((item: any) => {
                     const itemActive = isActive(item.href);
+                    const isDynamic = item.isDynamic;
                     return (
-                      <Link
+                      <div
                         key={item.name}
-                        href={item.href}
                         className={cn(
-                          'flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative group',
+                          'flex items-center gap-2 group/item',
                           itemActive
-                            ? 'bg-purple-600/20 text-purple-300 font-medium'
-                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            ? 'bg-purple-600/20 rounded-lg'
+                            : 'hover:bg-gray-800 rounded-lg'
                         )}>
-                        <div
+                        <Link
+                          href={item.href}
                           className={cn(
-                            'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full transition-all',
+                            'flex-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative',
                             itemActive
-                              ? 'bg-purple-400 -ml-4 w-1.5 h-1.5'
-                              : 'bg-gray-600 -ml-4 group-hover:bg-gray-500'
-                          )}
-                        />
-                        <item.icon className="w-4 h-4 flex-shrink-0" />
-                        <span>{item.name}</span>
-                      </Link>
+                              ? 'text-purple-300 font-medium'
+                              : 'text-gray-400 hover:text-white'
+                          )}>
+                          <div
+                            className={cn(
+                              'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full transition-all',
+                              itemActive
+                                ? 'bg-purple-400 -ml-4 w-1.5 h-1.5'
+                                : 'bg-gray-600 -ml-4 group-hover/item:bg-gray-500'
+                            )}
+                          />
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          <span>{item.name}</span>
+                        </Link>
+                        {isDynamic && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleDeleteCategory(item.categoryId, item.name);
+                            }}
+                            className="opacity-0 group-hover/item:opacity-100 p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all mr-2"
+                            title="Delete category">
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
