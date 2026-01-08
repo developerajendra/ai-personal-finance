@@ -10,7 +10,7 @@ export default function AdminPortfolioPage() {
           <div>
             <h1 className="text-3xl font-bold">Portfolio Management</h1>
             <p className="text-gray-600 mt-1">
-              Connect Gmail to automatically create investments from emails
+              Login with Gmail to automatically create investments from emails
             </p>
           </div>
 

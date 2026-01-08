@@ -109,7 +109,7 @@ export function EmailInvestmentsView() {
           <Mail className="w-12 h-12 mx-auto mb-3 text-gray-300" />
           <p>No investments created from emails yet.</p>
           <p className="text-sm mt-2">
-            Connect Gmail and send an email with investment information, then click "Process Emails Now" to process them.
+            Login with Gmail and send an email with investment information, then click "Process Emails Now" to process them.
           </p>
         </div>
       </div>

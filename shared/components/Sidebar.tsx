@@ -21,9 +21,10 @@ import {
   Tag,
   Sparkles,
   User,
+  LogOut,
+  Mail,
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
-import { GmailConnectionTooltip } from '@/modules/admin-panel/components/GmailConnectionTooltip';
 
 // Navigation structure - clean and intuitive
 const navigation = [
@@ -78,9 +79,10 @@ export function Sidebar() {
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [showGmailTooltip, setShowGmailTooltip] = useState(false);
-  const [gmailTooltipOpen, setGmailTooltipOpen] = useState(false);
-  const gmailTooltipRef = useRef<HTMLDivElement>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [gmailStatus, setGmailStatus] = useState<{ isConnected: boolean } | null>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Determine which menu should be open based on current path
   useEffect(() => {
@@ -115,26 +117,56 @@ export function Sidebar() {
     return menu.submenu?.some((item) => pathname === item.href) || false;
   };
 
-  // Close tooltip when clicking outside
+  // Check Gmail status
+  useEffect(() => {
+    const checkGmailStatus = async () => {
+      try {
+        const response = await fetch('/api/gmail/status');
+        const data = await response.json();
+        setGmailStatus({ isConnected: data.isConnected || data.hasTokens });
+      } catch (error) {
+        console.error('Error checking Gmail status:', error);
+      }
+    };
+    checkGmailStatus();
+    const interval = setInterval(checkGmailStatus, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      // Don't close if clicking on the user icon or inside the tooltip
-      if (
-        gmailTooltipRef.current &&
-        !gmailTooltipRef.current.contains(target) &&
-        !target.closest('.user-icon-container')
-      ) {
-        setGmailTooltipOpen(false);
-        setShowGmailTooltip(false);
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
       }
     };
 
-    if (gmailTooltipOpen) {
+    if (showUserMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [gmailTooltipOpen]);
+  }, [showUserMenu]);
+
+  const handleLogout = async () => {
+    if (!confirm('Are you sure you want to logout? You will need to login again to access your data.')) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+    try {
+      const response = await fetch('/api/gmail/disconnect', { method: 'POST' });
+      if (response.ok) {
+        // Reload the page to show login screen
+        window.location.reload();
+      } else {
+        throw new Error('Failed to logout');
+      }
+    } catch (error) {
+      console.error('Error logging out:', error);
+      alert('Failed to logout. Please try again.');
+      setIsLoggingOut(false);
+    }
+  };
 
   const handleMenuClick = (menu: typeof navigation[0], e: React.MouseEvent) => {
     if (isCollapsed) {
@@ -156,53 +188,123 @@ export function Sidebar() {
         isCollapsed ? 'w-20' : 'w-64'
       )}>
       {/* User Profile Section */}
-      <div className="p-4 border-b border-gray-800">
+      <div className="p-4 border-b border-gray-800 relative">
         <div className="flex items-center justify-between">
           {!isCollapsed ? (
             <>
-              <div className="flex items-center gap-3 flex-1 relative">
-                <div 
-                  className="user-icon-container w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold cursor-pointer hover:ring-2 hover:ring-purple-400 transition-all"
-                  onMouseEnter={() => !gmailTooltipOpen && setShowGmailTooltip(true)}
-                  onMouseLeave={() => !gmailTooltipOpen && setShowGmailTooltip(false)}
-                  onClick={() => setGmailTooltipOpen(!gmailTooltipOpen)}
-                >
-                  <User className="w-5 h-5" />
-                </div>
-                {(showGmailTooltip || gmailTooltipOpen) && (
-                  <div ref={gmailTooltipRef} className="absolute left-0 top-full mt-2 z-50">
-                    <GmailConnectionTooltip onClose={() => setGmailTooltipOpen(false)} />
+              <div className="flex items-center gap-3 flex-1" ref={userMenuRef}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-3 flex-1 hover:bg-gray-800 rounded-lg p-2 -m-2 transition-colors group">
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold">
+                      <User className="w-5 h-5" />
+                    </div>
+                    {gmailStatus?.isConnected && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide">
+                      Finance Manager
+                    </p>
+                    <p className="text-sm font-semibold truncate">User</p>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {/* User Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute left-0 top-full mt-2 w-56 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 z-[100]">
+                    <div className="px-4 py-3 border-b border-gray-700">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold">
+                            <User className="w-5 h-5" />
+                          </div>
+                          {gmailStatus?.isConnected && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-800"></div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white">User</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Mail className={`w-3 h-3 ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`} />
+                            <p className={`text-xs ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`}>
+                              {gmailStatus?.isConnected ? 'Gmail Connected' : 'Not Connected'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      <LogOut className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        {isLoggingOut ? 'Logging out...' : 'Logout'}
+                      </span>
+                    </button>
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Finance Manager
-                  </p>
-                  <p className="text-sm font-semibold truncate">User</p>
-                </div>
               </div>
               <button
                 onClick={() => setIsCollapsed(true)}
-                className="p-1.5 rounded-lg hover:bg-gray-800 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-gray-800 transition-colors ml-2"
                 aria-label="Collapse sidebar">
                 <ChevronLeft className="w-4 h-4" />
               </button>
             </>
           ) : (
-            <div className="flex items-center justify-center w-full relative">
-              <div 
-                className="user-icon-container w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold cursor-pointer hover:ring-2 hover:ring-purple-400 transition-all"
-                onMouseEnter={() => !gmailTooltipOpen && setShowGmailTooltip(true)}
-                onMouseLeave={() => !gmailTooltipOpen && setShowGmailTooltip(false)}
-                onClick={() => setGmailTooltipOpen(!gmailTooltipOpen)}
-              >
-                <User className="w-5 h-5" />
-              </div>
-              {(showGmailTooltip || gmailTooltipOpen) && (
-                <div ref={gmailTooltipRef} className="absolute left-full ml-2 top-0 z-50">
-                  <GmailConnectionTooltip onClose={() => setGmailTooltipOpen(false)} />
+            <div className="flex items-center justify-center w-full relative" ref={userMenuRef}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="relative">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold hover:ring-2 hover:ring-purple-400 transition-all">
+                  <User className="w-5 h-5" />
+                </div>
+                {gmailStatus?.isConnected && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></div>
+                )}
+              </button>
+              
+              {/* User Dropdown Menu (Collapsed) */}
+              {showUserMenu && (
+                <div className="absolute left-full ml-2 top-0 w-56 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 z-[100]">
+                  <div className="px-4 py-3 border-b border-gray-700">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold">
+                          <User className="w-5 h-5" />
+                        </div>
+                        {gmailStatus?.isConnected && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-800"></div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white">User</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Mail className={`w-3 h-3 ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`} />
+                          <p className={`text-xs ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`}>
+                            {gmailStatus?.isConnected ? 'Gmail Connected' : 'Not Connected'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {isLoggingOut ? 'Logging out...' : 'Logout'}
+                    </span>
+                  </button>
                 </div>
               )}
+              
               <button
                 onClick={() => setIsCollapsed(false)}
                 className="absolute -right-3 top-6 p-1.5 rounded-full bg-gray-800 border-2 border-gray-700 hover:bg-gray-700 transition-colors z-10"

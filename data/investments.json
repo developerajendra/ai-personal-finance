@@ -194,5 +194,20 @@
     ],
     "createdAt": "2026-01-07T16:59:52.604Z",
     "updatedAt": "2026-01-07T16:59:52.604Z"
+  },
+  {
+    "id": "inv-email-1767851393703-41j3sai3h",
+    "name": "PPF",
+    "amount": 5,
+    "type": "ppf",
+    "startDate": "2026-01-08",
+    "description": "Added to PPF account",
+    "status": "active",
+    "isPublished": false,
+    "tags": [
+      "added from gmail"
+    ],
+    "createdAt": "2026-01-08T05:49:53.703Z",
+    "updatedAt": "2026-01-08T05:49:53.703Z"
   }
 ]

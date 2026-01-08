@@ -34,7 +34,7 @@ export function GmailConnection() {
     }
   };
 
-  const handleConnect = async () => {
+  const handleLogin = async () => {
     setIsConnecting(true);
     try {
       const response = await fetch('/api/gmail/auth');
@@ -43,8 +43,8 @@ export function GmailConnection() {
         window.location.href = loginUrl;
       }
     } catch (error) {
-      console.error('Error connecting to Gmail:', error);
-      alert('Failed to connect to Gmail. Please try again.');
+      console.error('Error logging in with Gmail:', error);
+      alert('Failed to login with Gmail. Please try again.');
     } finally {
       setIsConnecting(false);
     }
@@ -117,7 +117,7 @@ export function GmailConnection() {
             <p className="text-sm text-gray-500">
               {isConnected
                 ? 'Connected - Agent monitoring emails for investments'
-                : 'Not connected - Connect to enable email-based investment creation'}
+                : 'Not connected - Login with Gmail to enable email-based investment creation'}
             </p>
           </div>
         </div>
@@ -162,11 +162,13 @@ export function GmailConnection() {
           </>
         ) : (
           <button
-            onClick={handleConnect}
+            onClick={handleLogin}
             disabled={isConnecting}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-            <LinkIcon className="w-4 h-4" />
-            {isConnecting ? 'Connecting...' : 'Connect Gmail'}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-md hover:shadow-lg transition-all">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
+            </svg>
+            {isConnecting ? 'Logging in...' : 'Login with Gmail'}
           </button>
         )}
       </div>

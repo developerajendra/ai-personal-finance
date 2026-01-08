@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Investment, Loan, Property, BankBalance } from '@/core/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail } from 'lucide-react';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
 import { PropertyForm } from './PropertyForm';
@@ -40,6 +40,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState<string | null>(null);
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
+  const [isSyncingGmail, setIsSyncingGmail] = useState(false);
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Update active tab when defaultTab prop changes
@@ -123,66 +124,68 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     fetchAllTabCounts();
   }, [activeTab]);
 
+  // Fetch data function
+  const fetchItems = async () => {
+    setIsLoading(true);
+    try {
+      // Handle special endpoint cases
+      let endpoint;
+      if (activeTab === 'bank-balance') {
+        endpoint = `/api/portfolio/bank-balances`;
+      } else if (activeTab === 'property') {
+        endpoint = `/api/portfolio/properties`; // properties (not propertys)
+      } else {
+        endpoint = `/api/portfolio/${activeTab}s`;
+      }
+      
+      // Add isPublished filter
+      const isPublished = viewMode === 'published';
+      endpoint += `?isPublished=${isPublished}`;
+      
+      console.log(
+        `[PortfolioGrid] 🔄 Fetching ${activeTab}s (${viewMode}) from: ${endpoint}`
+      );
+      const response = await fetch(endpoint, {
+        cache: 'no-store', // Ensure fresh data
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Handle paginated response or direct array
+        const itemsArray = Array.isArray(data) ? data : data.data || [];
+        console.log(
+          `[PortfolioGrid] ✅ Fetched ${itemsArray.length} ${activeTab}(s)`
+        );
+        if (itemsArray.length > 0) {
+          console.log(`[PortfolioGrid] Sample item:`, itemsArray[0]);
+          console.log(
+            `[PortfolioGrid] Item keys:`,
+            Object.keys(itemsArray[0])
+          );
+        } else {
+          console.log(`[PortfolioGrid] ⚠️ No ${activeTab} items found`);
+        }
+        setItems(itemsArray);
+      } else {
+        const errorText = await response.text();
+        console.error(
+          `[PortfolioGrid] ❌ Failed to fetch ${activeTab}s:`,
+          response.status,
+          errorText
+        );
+      }
+    } catch (error) {
+      console.error(
+        `[PortfolioGrid] ❌ Error fetching ${activeTab}s:`,
+        error
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Fetch data on mount and when tab changes
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        // Handle special endpoint cases
-        let endpoint;
-        if (activeTab === 'bank-balance') {
-          endpoint = `/api/portfolio/bank-balances`;
-        } else if (activeTab === 'property') {
-          endpoint = `/api/portfolio/properties`; // properties (not propertys)
-        } else {
-          endpoint = `/api/portfolio/${activeTab}s`;
-        }
-        
-        // Add isPublished filter
-        const isPublished = viewMode === 'published';
-        endpoint += `?isPublished=${isPublished}`;
-        
-        console.log(
-          `[PortfolioGrid] 🔄 Fetching ${activeTab}s (${viewMode}) from: ${endpoint}`
-        );
-        const response = await fetch(endpoint, {
-          cache: 'no-store', // Ensure fresh data
-        });
-        if (response.ok) {
-          const data = await response.json();
-          // Handle paginated response or direct array
-          const itemsArray = Array.isArray(data) ? data : data.data || [];
-          console.log(
-            `[PortfolioGrid] ✅ Fetched ${itemsArray.length} ${activeTab}(s)`
-          );
-          if (itemsArray.length > 0) {
-            console.log(`[PortfolioGrid] Sample item:`, itemsArray[0]);
-            console.log(
-              `[PortfolioGrid] Item keys:`,
-              Object.keys(itemsArray[0])
-            );
-          } else {
-            console.log(`[PortfolioGrid] ⚠️ No ${activeTab} items found`);
-          }
-          setItems(itemsArray);
-        } else {
-          const errorText = await response.text();
-          console.error(
-            `[PortfolioGrid] ❌ Failed to fetch ${activeTab}s:`,
-            response.status,
-            errorText
-          );
-        }
-      } catch (error) {
-        console.error(
-          `[PortfolioGrid] ❌ Error fetching ${activeTab}s:`,
-          error
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
+    fetchItems();
   }, [activeTab, viewMode]);
 
   // Close menu when clicking outside
@@ -465,27 +468,92 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     console.log(`[PortfolioGrid] Item keys:`, Object.keys(items[0]));
   }
 
+  const handleSyncGmail = async () => {
+    setIsSyncingGmail(true);
+    try {
+      // Check if Gmail is connected
+      const statusResponse = await fetch('/api/gmail/status');
+      const statusData = await statusResponse.json();
+      
+      if (statusData.isConnected || statusData.hasTokens) {
+        // Process emails
+        const processResponse = await fetch('/api/agents/email/process', { method: 'POST' });
+        const processData = await processResponse.json();
+        
+        if (processData.success) {
+          const processedCount = processData.result?.processedCount || 0;
+          const investmentCount = processData.result?.investmentCount || 0;
+          
+          // Show success message
+          setToast({
+            message: `Synced: Processed ${processedCount} emails, created ${investmentCount} investments`,
+            type: 'success'
+          });
+          
+          // Refresh the data
+          await fetchItems();
+        } else {
+          setToast({
+            message: processData.error || 'Failed to sync emails',
+            type: 'error'
+          });
+        }
+      } else {
+        setToast({
+          message: 'Gmail not connected. Please login with Gmail first.',
+          type: 'error'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error syncing Gmail data:', error);
+      setToast({
+        message: error.message || 'Error syncing Gmail data',
+        type: 'error'
+      });
+    } finally {
+      setIsSyncingGmail(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200">
       <div className="p-6 border-b">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Portfolio Management</h2>
-          <button
-            onClick={() => handleAdd(activeTab)}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-            {isSaving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" />
-                Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSyncGmail}
+              disabled={isSyncingGmail}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+              {isSyncingGmail ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4" />
+                  Sync Gmail
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => handleAdd(activeTab)}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4" />
+                  Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-2 border-b mb-4">
