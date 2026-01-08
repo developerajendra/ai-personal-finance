@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard,
   Briefcase,
@@ -23,6 +23,7 @@ import {
   User,
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
+import { GmailConnectionTooltip } from '@/modules/admin-panel/components/GmailConnectionTooltip';
 
 // Navigation structure - clean and intuitive
 const navigation = [
@@ -77,6 +78,9 @@ export function Sidebar() {
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [showGmailTooltip, setShowGmailTooltip] = useState(false);
+  const [gmailTooltipOpen, setGmailTooltipOpen] = useState(false);
+  const gmailTooltipRef = useRef<HTMLDivElement>(null);
 
   // Determine which menu should be open based on current path
   useEffect(() => {
@@ -111,6 +115,27 @@ export function Sidebar() {
     return menu.submenu?.some((item) => pathname === item.href) || false;
   };
 
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Don't close if clicking on the user icon or inside the tooltip
+      if (
+        gmailTooltipRef.current &&
+        !gmailTooltipRef.current.contains(target) &&
+        !target.closest('.user-icon-container')
+      ) {
+        setGmailTooltipOpen(false);
+        setShowGmailTooltip(false);
+      }
+    };
+
+    if (gmailTooltipOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [gmailTooltipOpen]);
+
   const handleMenuClick = (menu: typeof navigation[0], e: React.MouseEvent) => {
     if (isCollapsed) {
       e.preventDefault();
@@ -135,10 +160,20 @@ export function Sidebar() {
         <div className="flex items-center justify-between">
           {!isCollapsed ? (
             <>
-              <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold">
+              <div className="flex items-center gap-3 flex-1 relative">
+                <div 
+                  className="user-icon-container w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold cursor-pointer hover:ring-2 hover:ring-purple-400 transition-all"
+                  onMouseEnter={() => !gmailTooltipOpen && setShowGmailTooltip(true)}
+                  onMouseLeave={() => !gmailTooltipOpen && setShowGmailTooltip(false)}
+                  onClick={() => setGmailTooltipOpen(!gmailTooltipOpen)}
+                >
                   <User className="w-5 h-5" />
                 </div>
+                {(showGmailTooltip || gmailTooltipOpen) && (
+                  <div ref={gmailTooltipRef} className="absolute left-0 top-full mt-2 z-50">
+                    <GmailConnectionTooltip onClose={() => setGmailTooltipOpen(false)} />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-400 uppercase tracking-wide">
                     Finance Manager
@@ -155,9 +190,19 @@ export function Sidebar() {
             </>
           ) : (
             <div className="flex items-center justify-center w-full relative">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold">
+              <div 
+                className="user-icon-container w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold cursor-pointer hover:ring-2 hover:ring-purple-400 transition-all"
+                onMouseEnter={() => !gmailTooltipOpen && setShowGmailTooltip(true)}
+                onMouseLeave={() => !gmailTooltipOpen && setShowGmailTooltip(false)}
+                onClick={() => setGmailTooltipOpen(!gmailTooltipOpen)}
+              >
                 <User className="w-5 h-5" />
               </div>
+              {(showGmailTooltip || gmailTooltipOpen) && (
+                <div ref={gmailTooltipRef} className="absolute left-full ml-2 top-0 z-50">
+                  <GmailConnectionTooltip onClose={() => setGmailTooltipOpen(false)} />
+                </div>
+              )}
               <button
                 onClick={() => setIsCollapsed(false)}
                 className="absolute -right-3 top-6 p-1.5 rounded-full bg-gray-800 border-2 border-gray-700 hover:bg-gray-700 transition-colors z-10"

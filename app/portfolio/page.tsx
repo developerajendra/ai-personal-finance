@@ -1,21 +1,94 @@
+'use client';
+
 import { Sidebar } from "@/shared/components/Sidebar";
 import { PortfolioGrid } from "@/modules/portfolio/components/PortfolioGrid";
 import { AIAnalysisSummary } from "@/modules/admin-panel/components/AIAnalysisSummary";
-import { GmailConnection } from "@/modules/admin-panel/components/GmailConnection";
 import Link from "next/link";
-import { TrendingUp, PieChart, ArrowRight, CreditCard, Home, Wallet } from "lucide-react";
+import { TrendingUp, PieChart, ArrowRight, CreditCard, Home, Wallet, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function PortfolioPage() {
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{ message?: string; success?: boolean } | null>(null);
+
+  useEffect(() => {
+    // Auto-sync Gmail data when page loads
+    const syncGmailData = async () => {
+      try {
+        // Check if Gmail is connected
+        const statusResponse = await fetch('/api/gmail/status');
+        const statusData = await statusResponse.json();
+        
+        if (statusData.isConnected || statusData.hasTokens) {
+          setIsSyncing(true);
+          setSyncStatus(null);
+          
+          // Process emails automatically
+          const processResponse = await fetch('/api/agents/email/process', { method: 'POST' });
+          const processData = await processResponse.json();
+          
+          if (processData.success) {
+            const processedCount = processData.result?.processedCount || 0;
+            const investmentCount = processData.result?.investmentCount || 0;
+            setSyncStatus({
+              success: true,
+              message: `Synced: Processed ${processedCount} emails, created ${investmentCount} investments`
+            });
+            console.log(`Auto-synced: Processed ${processedCount} emails, created ${investmentCount} investments`);
+          } else {
+            setSyncStatus({
+              success: false,
+              message: processData.error || 'Failed to sync emails'
+            });
+          }
+        }
+      } catch (error: any) {
+        console.error('Error auto-syncing Gmail data:', error);
+        setSyncStatus({
+          success: false,
+          message: error.message || 'Error syncing Gmail data'
+        });
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
+    syncGmailData();
+  }, []);
   return (
     <div className="flex h-screen">
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <div className="p-6 space-y-6">
           <div>
-            <h1 className="text-3xl font-bold">Portfolio Overview</h1>
-            <p className="text-gray-600 mt-1">
-              Manage your investments, loans, properties, and bank balances
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold">Portfolio Overview</h1>
+                <p className="text-gray-600 mt-1">
+                  Manage your investments, loans, properties, and bank balances
+                </p>
+              </div>
+              {isSyncing && (
+                <div className="flex items-center gap-2 text-blue-600">
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  <span className="text-sm">Syncing Gmail...</span>
+                </div>
+              )}
+            </div>
+            {syncStatus && (
+              <div className={`mt-3 p-3 rounded-lg flex items-center gap-2 ${
+                syncStatus.success 
+                  ? 'bg-green-50 border border-green-200 text-green-800' 
+                  : 'bg-red-50 border border-red-200 text-red-800'
+              }`}>
+                {syncStatus.success ? (
+                  <CheckCircle className="w-4 h-4" />
+                ) : (
+                  <XCircle className="w-4 h-4" />
+                )}
+                <p className="text-sm">{syncStatus.message}</p>
+              </div>
+            )}
           </div>
 
           {/* Quick Navigation Cards */}
@@ -130,17 +203,6 @@ export default function PortfolioPage() {
           </div>
 
           <AIAnalysisSummary />
-
-          {/* Gmail Integration Section */}
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-2xl font-semibold">Email Integration</h2>
-              <p className="text-gray-600 text-sm mt-1">
-                Connect Gmail to automatically create investments from emails
-              </p>
-            </div>
-            <GmailConnection />
-          </div>
 
           <PortfolioGrid />
         </div>

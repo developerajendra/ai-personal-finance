@@ -53,19 +53,6 @@
     "isPublished": true
   },
   {
-    "id": "inv-ai-1767367354617-4",
-    "name": "PPF",
-    "amount": 100,
-    "type": "ppf",
-    "startDate": "2026-01-02T15:22:34.617Z",
-    "interestRate": null,
-    "description": null,
-    "status": null,
-    "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-03T16:46:55.622Z",
-    "isPublished": false
-  },
-  {
     "id": "inv-ai-1767367354617-5",
     "name": "Kushum PPF",
     "amount": 355200,
@@ -177,5 +164,35 @@
     ],
     "createdAt": "2026-01-07T14:41:15.738Z",
     "updatedAt": "2026-01-07T14:45:38.251Z"
+  },
+  {
+    "id": "inv-email-1767805190329-noyizl86b",
+    "name": "PPF Account",
+    "amount": 1,
+    "type": "ppf",
+    "startDate": "2026-01-07",
+    "description": "Added to PPF account today.",
+    "status": "active",
+    "isPublished": false,
+    "tags": [
+      "added from gmail"
+    ],
+    "createdAt": "2026-01-07T16:59:50.329Z",
+    "updatedAt": "2026-01-07T16:59:50.329Z"
+  },
+  {
+    "id": "inv-email-1767805192604-iq0dcpjgy",
+    "name": "PPF Account",
+    "amount": 1,
+    "type": "ppf",
+    "startDate": "2026-01-07",
+    "description": "Added 1 to my PPF account today.",
+    "status": "active",
+    "isPublished": false,
+    "tags": [
+      "added from gmail"
+    ],
+    "createdAt": "2026-01-07T16:59:52.604Z",
+    "updatedAt": "2026-01-07T16:59:52.604Z"
   }
 ]
