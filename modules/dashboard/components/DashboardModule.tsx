@@ -1,15 +1,10 @@
 'use client';
 
 import { useFinancialData } from '@/shared/hooks/useFinancialData';
-import { SummaryCards } from './SummaryCards';
 import { FinancialCharts } from './FinancialCharts';
 import { TransactionTable } from './TransactionTable';
-import {
-  PortfolioAnalytics,
-  usePortfolioData,
-} from '@/modules/portfolio/components/PortfolioAnalytics';
+import { PortfolioAnalytics } from '@/modules/portfolio/components/PortfolioAnalytics';
 import { Loader } from '@/shared/components/Loader';
-import { Wallet } from 'lucide-react';
 
 export function DashboardModule() {
   const { transactions, summary, isLoading } = useFinancialData();
@@ -39,12 +34,7 @@ export function DashboardModule() {
         </p>
       </div>
 
-      <SummaryCardsWithNetWorth summary={summary} />
-
-      <div>
-        <h2 className="text-2xl font-semibold mb-4">Portfolio Analytics</h2>
-        <PortfolioAnalytics />
-      </div>
+      <PortfolioAnalytics />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FinancialCharts transactions={transactions} summary={summary} />
@@ -54,8 +44,3 @@ export function DashboardModule() {
   );
 }
 
-function SummaryCardsWithNetWorth({ summary }: { summary: any }) {
-  const { netWorth, isLoading } = usePortfolioData();
-  
-  return <SummaryCards summary={summary} netWorth={netWorth} isLoadingNetWorth={isLoading} />;
-}

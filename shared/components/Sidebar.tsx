@@ -181,6 +181,7 @@ export function Sidebar() {
           icon: getIcon(cat.icon),
           categoryId: cat.id, // Store ID for deletion
           isDynamic: true, // Flag to identify dynamic categories
+          slug: cat.slug, // Store slug to check if deletable
         }));
         
         return {
@@ -450,37 +451,38 @@ export function Sidebar() {
                   <div className="absolute left-full ml-2 top-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 min-w-[200px] z-50">
                     {menu.submenu?.map((item: any) => {
                       const itemActive = isActive(item.href);
-                      const isDynamic = item.isDynamic;
-                      return (
-                        <div
-                          key={item.name}
-                          className="flex items-center gap-2 group/item">
-                          <Link
-                            href={item.href}
-                            onClick={() => setHoveredItem(null)}
-                            className={cn(
-                              'flex-1 flex items-center gap-3 px-4 py-2 text-sm',
-                              itemActive
-                                ? 'text-purple-300 bg-purple-600/20'
-                                : 'text-gray-300 hover:bg-gray-700'
-                            )}>
-                            <item.icon className="w-4 h-4" />
-                            <span>{item.name}</span>
-                          </Link>
-                          {isDynamic && (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleDeleteCategory(item.categoryId, item.name);
-                                setHoveredItem(null);
-                              }}
-                              className="opacity-0 group-hover/item:opacity-100 p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all mr-2"
-                              title="Delete category">
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      );
+                    const isDynamic = item.isDynamic;
+                    const isDeletable = isDynamic && item.slug !== 'receivables'; // Don't allow deleting receivables
+                    return (
+                      <div
+                        key={item.name}
+                        className="flex items-center gap-2 group/item">
+                        <Link
+                          href={item.href}
+                          onClick={() => setHoveredItem(null)}
+                          className={cn(
+                            'flex-1 flex items-center gap-3 px-4 py-2 text-sm',
+                            itemActive
+                              ? 'text-purple-300 bg-purple-600/20'
+                              : 'text-gray-300 hover:bg-gray-700'
+                          )}>
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.name}</span>
+                        </Link>
+                        {isDeletable && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleDeleteCategory(item.categoryId, item.name);
+                              setHoveredItem(null);
+                            }}
+                            className="opacity-0 group-hover/item:opacity-100 p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all mr-2"
+                            title="Delete category">
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    );
                     })}
                   </div>
                 )}
@@ -525,48 +527,49 @@ export function Sidebar() {
                 <div className="ml-6 mt-1 space-y-0.5 border-l-2 border-gray-700 pl-3">
                   {menu.submenu.map((item: any) => {
                     const itemActive = isActive(item.href);
-                    const isDynamic = item.isDynamic;
-                    return (
-                      <div
-                        key={item.name}
-                        className={cn(
-                          'flex items-center gap-2 group/item',
-                          itemActive
-                            ? 'bg-purple-600/20 rounded-lg'
-                            : 'hover:bg-gray-800 rounded-lg'
-                        )}>
-                        <Link
-                          href={item.href}
+                      const isDynamic = item.isDynamic;
+                      const isDeletable = isDynamic && item.slug !== 'receivables'; // Don't allow deleting receivables
+                      return (
+                        <div
+                          key={item.name}
                           className={cn(
-                            'flex-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative',
+                            'flex items-center gap-2 group/item',
                             itemActive
-                              ? 'text-purple-300 font-medium'
-                              : 'text-gray-400 hover:text-white'
+                              ? 'bg-purple-600/20 rounded-lg'
+                              : 'hover:bg-gray-800 rounded-lg'
                           )}>
-                          <div
+                          <Link
+                            href={item.href}
                             className={cn(
-                              'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full transition-all',
+                              'flex-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative',
                               itemActive
-                                ? 'bg-purple-400 -ml-4 w-1.5 h-1.5'
-                                : 'bg-gray-600 -ml-4 group-hover/item:bg-gray-500'
-                            )}
-                          />
-                          <item.icon className="w-4 h-4 flex-shrink-0" />
-                          <span>{item.name}</span>
-                        </Link>
-                        {isDynamic && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleDeleteCategory(item.categoryId, item.name);
-                            }}
-                            className="opacity-0 group-hover/item:opacity-100 p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all mr-2"
-                            title="Delete category">
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    );
+                                ? 'text-purple-300 font-medium'
+                                : 'text-gray-400 hover:text-white'
+                            )}>
+                            <div
+                              className={cn(
+                                'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full transition-all',
+                                itemActive
+                                  ? 'bg-purple-400 -ml-4 w-1.5 h-1.5'
+                                  : 'bg-gray-600 -ml-4 group-hover/item:bg-gray-500'
+                              )}
+                            />
+                            <item.icon className="w-4 h-4 flex-shrink-0" />
+                            <span>{item.name}</span>
+                          </Link>
+                          {isDeletable && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDeleteCategory(item.categoryId, item.name);
+                              }}
+                              className="opacity-0 group-hover/item:opacity-100 p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all mr-2"
+                              title="Delete category">
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      );
                   })}
                 </div>
               )}

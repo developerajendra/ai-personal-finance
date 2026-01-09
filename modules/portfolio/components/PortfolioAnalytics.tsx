@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Investment, Loan, Property, PortfolioSummary } from '@/core/types';
+import { Investment, Loan, Property, PortfolioSummary, BankBalance } from '@/core/types';
 import {
   PieChart,
   Pie,
@@ -15,7 +15,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp, TrendingDown, Home, Wallet } from 'lucide-react';
+import { TrendingUp, TrendingDown, Home, Wallet, FileText } from 'lucide-react';
 import { Loader } from '@/shared/components/Loader';
 
 const COLORS = [
@@ -101,8 +101,20 @@ export function usePortfolioData() {
     refetchOnReconnect: true,
   });
 
+  const { data: bankBalances = [], isLoading: isLoadingBankBalances } = useQuery<BankBalance[]>({
+    queryKey: ['bankBalances', 'published'],
+    queryFn: async () => {
+      const response = await fetch('/api/portfolio/bank-balances?isPublished=true');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+  });
+
   const isLoading =
-    isLoadingInvestments || isLoadingLoans || isLoadingProperties || isLoadingStocks || isLoadingMutualFunds;
+    isLoadingInvestments || isLoadingLoans || isLoadingProperties || isLoadingStocks || isLoadingMutualFunds || isLoadingBankBalances;
 
   const totalInvestments = investments.reduce(
     (sum, inv) => sum + inv.amount,
@@ -124,7 +136,30 @@ export function usePortfolioData() {
     (sum, mf) => sum + ((mf.last_price || 0) * (mf.quantity || 0)),
     0
   ) || 0;
-  const netWorth = totalInvestments + totalProperties + totalStocks + totalMutualFunds - totalLoans;
+  const totalBankBalances = bankBalances
+    .filter((bb: any) => !bb.tags?.includes('receivable')) // Exclude receivables
+    .reduce((sum, bb) => sum + (bb.balance || 0), 0);
+  
+  // Calculate receivables - use expected total if available, otherwise use balance
+  const totalReceivables = bankBalances
+    .filter((bb: any) => bb.tags?.includes('receivable'))
+    .reduce((sum, bb: any) => {
+      // If interest exists, calculate expected total
+      if (bb.interestRate && bb.issueDate) {
+        const principal = bb.balance || 0;
+        const interestRate = bb.interestRate / 100;
+        const issueDate = new Date(bb.issueDate);
+        const dueDate = bb.dueDate ? new Date(bb.dueDate) : new Date();
+        const daysDiff = Math.max(0, Math.floor((dueDate.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24)));
+        const years = daysDiff / 365;
+        const interestAmount = principal * interestRate * years;
+        return sum + (principal + interestAmount);
+      }
+      // Otherwise, just use the balance (principal amount)
+      return sum + (bb.balance || 0);
+    }, 0);
+  
+  const netWorth = totalInvestments + totalProperties + totalStocks + totalMutualFunds + totalBankBalances + totalReceivables - totalLoans;
 
   return {
     totalInvestments,
@@ -132,6 +167,8 @@ export function usePortfolioData() {
     totalProperties,
     totalStocks,
     totalMutualFunds,
+    totalBankBalances,
+    totalReceivables,
     netWorth,
     isLoading,
     investments,
@@ -139,6 +176,7 @@ export function usePortfolioData() {
     properties,
     stocksData,
     mutualFundsData,
+    bankBalances,
   };
 }
 
@@ -149,11 +187,26 @@ function PortfolioAnalyticsContent() {
     totalProperties,
     totalStocks,
     totalMutualFunds,
+    totalBankBalances,
+    totalReceivables,
+    netWorth,
     isLoading,
     investments,
     loans,
     properties,
+    stocksData,
+    mutualFundsData,
+    bankBalances,
   } = usePortfolioData();
+
+  // Calculate counts for each category
+  const investmentsCount = investments.length;
+  const loansCount = loans.length;
+  const propertiesCount = properties.length;
+  const stocksCount = stocksData?.stocks?.length || 0;
+  const mutualFundsCount = mutualFundsData?.mutualFunds?.length || 0;
+  const bankBalancesCount = bankBalances.filter((bb: any) => !bb.tags?.includes('receivable')).length;
+  const receivablesCount = bankBalances.filter((bb: any) => bb.tags?.includes('receivable')).length;
 
   const investmentBreakdown = investments.reduce((acc, inv) => {
     acc[inv.type] = (acc[inv.type] || 0) + inv.amount;
@@ -173,11 +226,17 @@ function PortfolioAnalyticsContent() {
     return acc;
   }, {} as Record<string, number>);
 
+  // Show individual properties in the breakdown chart instead of grouping by type
   const propertyBreakdown = properties.reduce((acc, prop) => {
-    acc[prop.type] =
-      (acc[prop.type] || 0) + (prop.currentValue || prop.purchasePrice);
+    // Only process properties with valid values
+    const value = prop.currentValue || prop.purchasePrice || 0;
+    if (value > 0 && prop.name) {
+      // Use property name for individual breakdown
+      acc[prop.name] = (acc[prop.name] || 0) + value;
+    }
     return acc;
   }, {} as Record<string, number>);
+
 
   const investmentChartData = Object.entries(investmentBreakdown).map(
     ([name, value]) => ({
@@ -191,12 +250,13 @@ function PortfolioAnalyticsContent() {
     value,
   }));
 
-  const propertyChartData = Object.entries(propertyBreakdown).map(
-    ([name, value]) => ({
-      name,
+  const propertyChartData = Object.entries(propertyBreakdown)
+    .filter(([name, value]) => value > 0) // Only include types with values > 0
+    .map(([name, value]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1), // Ensure first letter is capitalized
       value,
-    })
-  );
+    }))
+    .sort((a, b) => b.value - a.value); // Sort by value descending
 
   if (isLoading) {
     return (
@@ -208,64 +268,122 @@ function PortfolioAnalyticsContent() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+      {/* First Row: Net Worth, Total Investments, Total Loans, Total Properties */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Net Worth - First Card */}
         <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Investments</p>
-              <p className="text-2xl font-bold text-green-600 mt-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">Net Worth</p>
+              <p
+                className={`text-sm font-bold mt-2 truncate ${
+                  netWorth >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                ₹{netWorth.toLocaleString()}
+              </p>
+            </div>
+            <Wallet className="w-8 h-8 text-purple-600 flex-shrink-0 ml-2" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">
+                Total Investments{investmentsCount > 0 && ` (${investmentsCount})`}
+              </p>
+              <p className="text-sm font-bold text-green-600 mt-2 truncate">
                 ₹{totalInvestments.toLocaleString()}
               </p>
             </div>
-            <TrendingUp className="w-8 h-8 text-green-600" />
+            <TrendingUp className="w-8 h-8 text-green-600 flex-shrink-0 ml-2" />
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Stocks</p>
-              <p className="text-2xl font-bold text-emerald-600 mt-2">
-                ₹{totalStocks.toLocaleString()}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">
+                Total Loans{loansCount > 0 && ` (${loansCount})`}
               </p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-emerald-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Mutual Funds</p>
-              <p className="text-2xl font-bold text-purple-600 mt-2">
-                ₹{totalMutualFunds.toLocaleString()}
-              </p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-purple-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Loans</p>
-              <p className="text-2xl font-bold text-red-600 mt-2">
+              <p className="text-sm font-bold text-red-600 mt-2 truncate">
                 ₹{totalLoans.toLocaleString()}
               </p>
             </div>
-            <TrendingDown className="w-8 h-8 text-red-600" />
+            <TrendingDown className="w-8 h-8 text-red-600 flex-shrink-0 ml-2" />
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Properties</p>
-              <p className="text-2xl font-bold text-blue-600 mt-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">
+                Total Properties{propertiesCount > 0 && ` (${propertiesCount})`}
+              </p>
+              <p className="text-sm font-bold text-blue-600 mt-2 truncate">
                 ₹{totalProperties.toLocaleString()}
               </p>
             </div>
-            <Home className="w-8 h-8 text-blue-600" />
+            <Home className="w-8 h-8 text-blue-600 flex-shrink-0 ml-2" />
+          </div>
+        </div>
+      </div>
+
+      {/* Second Row: Stocks, Mutual Funds, Bank Balances, Receivables */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">
+                Stocks{stocksCount > 0 && ` (${stocksCount})`}
+              </p>
+              <p className="text-sm font-bold text-emerald-600 mt-2 truncate">
+                ₹{totalStocks.toLocaleString()}
+              </p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-emerald-600 flex-shrink-0 ml-2" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">
+                Mutual Funds{mutualFundsCount > 0 && ` (${mutualFundsCount})`}
+              </p>
+              <p className="text-sm font-bold text-purple-600 mt-2 truncate">
+                ₹{totalMutualFunds.toLocaleString()}
+              </p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-purple-600 flex-shrink-0 ml-2" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">
+                Bank Balances{bankBalancesCount > 0 && ` (${bankBalancesCount})`}
+              </p>
+              <p className="text-sm font-bold text-indigo-600 mt-2 truncate">
+                ₹{totalBankBalances.toLocaleString()}
+              </p>
+            </div>
+            <Wallet className="w-8 h-8 text-indigo-600 flex-shrink-0 ml-2" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">
+                Receivables{receivablesCount > 0 && ` (${receivablesCount})`}
+              </p>
+              <p className="text-sm font-bold text-teal-600 mt-2 truncate">
+                ₹{totalReceivables.toLocaleString()}
+              </p>
+            </div>
+            <FileText className="w-8 h-8 text-teal-600 flex-shrink-0 ml-2" />
           </div>
         </div>
       </div>
@@ -338,7 +456,7 @@ function PortfolioAnalyticsContent() {
                     />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value: number) => `₹${value.toLocaleString()}`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -353,6 +471,11 @@ function PortfolioAnalyticsContent() {
               No portfolio data available. Add investments, loans, and
               properties in the Admin Panel to see analytics.
             </p>
+            {properties.length > 0 && (
+              <p className="text-sm text-gray-400 mt-2">
+                Note: {properties.length} propert{properties.length === 1 ? 'y' : 'ies'} found but may not be published or have valid values.
+              </p>
+            )}
           </div>
         )}
     </div>

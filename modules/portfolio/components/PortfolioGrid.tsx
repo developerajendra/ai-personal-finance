@@ -11,7 +11,7 @@ import { Loader } from '@/shared/components/Loader';
 import { useQuery } from '@tanstack/react-query';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
-type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance';
+type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance' | 'receivables';
 type ViewMode = 'draft' | 'published';
 
 interface PortfolioGridProps {
@@ -29,6 +29,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     loan: 0,
     property: 0,
     'bank-balance': 0,
+    receivables: 0,
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
@@ -116,10 +117,19 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     },
   });
 
+  // Helper function to handle tab switching with auto-publish logic
+  const handleTabSwitch = (newTab: ItemType) => {
+    setActiveTab(newTab);
+    // Check if the new tab has any drafts, if not, switch to published
+    const tabData = tabCounts[newTab];
+    // We'll check the actual draft count after it's fetched, but for now reset to draft
+    setViewMode('draft');
+  };
+
   // Update active tab when defaultTab prop changes
   useEffect(() => {
     if (defaultTab) {
-      setActiveTab(defaultTab);
+      handleTabSwitch(defaultTab);
     }
   }, [defaultTab]);
 
@@ -128,13 +138,13 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     const fetchAllTabCounts = async () => {
       setIsLoadingCounts(true);
       try {
-        const tabs: ItemType[] = ['investment', 'loan', 'property', 'bank-balance'];
+        const tabs: ItemType[] = ['investment', 'loan', 'property', 'bank-balance', 'receivables'];
         
         const counts = await Promise.all(
           tabs.map(async (tab) => {
             try {
               let endpoint;
-              if (tab === 'bank-balance') {
+              if (tab === 'bank-balance' || tab === 'receivables') {
                 endpoint = `/api/portfolio/bank-balances`;
               } else if (tab === 'property') {
                 endpoint = `/api/portfolio/properties`;
@@ -153,13 +163,29 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               if (draftResponse.ok) {
                 const draftData = await draftResponse.json();
                 const draftArray = Array.isArray(draftData) ? draftData : draftData.data || [];
-                draftCount = draftArray.length;
+                // Filter receivables: only count items with 'receivable' tag
+                if (tab === 'receivables') {
+                  draftCount = draftArray.filter((item: any) => item.tags?.includes('receivable')).length;
+                } else if (tab === 'bank-balance') {
+                  // Bank balance: exclude items with 'receivable' tag
+                  draftCount = draftArray.filter((item: any) => !item.tags?.includes('receivable')).length;
+                } else {
+                  draftCount = draftArray.length;
+                }
               }
 
               if (publishedResponse.ok) {
                 const publishedData = await publishedResponse.json();
                 const publishedArray = Array.isArray(publishedData) ? publishedData : publishedData.data || [];
-                publishedCount = publishedArray.length;
+                // Filter receivables: only count items with 'receivable' tag
+                if (tab === 'receivables') {
+                  publishedCount = publishedArray.filter((item: any) => item.tags?.includes('receivable')).length;
+                } else if (tab === 'bank-balance') {
+                  // Bank balance: exclude items with 'receivable' tag
+                  publishedCount = publishedArray.filter((item: any) => !item.tags?.includes('receivable')).length;
+                } else {
+                  publishedCount = publishedArray.length;
+                }
               }
 
               return { tab, count: draftCount + publishedCount, draftCount, publishedCount };
@@ -175,6 +201,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
           loan: 0,
           property: 0,
           'bank-balance': 0,
+          receivables: 0,
         };
 
         counts.forEach(({ tab, count }) => {
@@ -188,6 +215,14 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         if (currentTabData) {
           setDraftCount(currentTabData.draftCount);
           setPublishedCount(currentTabData.publishedCount);
+          
+          // If draft count is 0 and we're in draft mode, automatically switch to published
+          if (currentTabData.draftCount === 0 && viewMode === 'draft') {
+            // Only switch if there are published items, otherwise stay in draft
+            if (currentTabData.publishedCount > 0) {
+              setViewMode('published');
+            }
+          }
         }
       } finally {
         setIsLoadingCounts(false);
@@ -203,7 +238,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     try {
       // Handle special endpoint cases
       let endpoint;
-      if (activeTab === 'bank-balance') {
+      if (activeTab === 'bank-balance' || activeTab === 'receivables') {
         endpoint = `/api/portfolio/bank-balances`;
       } else if (activeTab === 'property') {
         endpoint = `/api/portfolio/properties`; // properties (not propertys)
@@ -299,7 +334,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
       if (editingId && editingItem) {
         // Update existing item
         let endpoint;
-        if (formType === 'bank-balance') {
+        if (formType === 'bank-balance' || formType === 'receivables') {
           endpoint = `/api/portfolio/bank-balances/${editingId}`;
         } else if (formType === 'property') {
           endpoint = `/api/portfolio/properties/${editingId}`;
@@ -318,7 +353,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
           setEditingItem(null);
           // Refresh the list
           let refreshEndpoint;
-          if (activeTab === 'bank-balance') {
+          if (activeTab === 'bank-balance' || activeTab === 'receivables') {
             refreshEndpoint = `/api/portfolio/bank-balances`;
           } else if (activeTab === 'property') {
             refreshEndpoint = `/api/portfolio/properties`;
@@ -336,7 +371,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
       } else {
         // Create new item
         let endpoint;
-        if (formType === 'bank-balance') {
+        if (formType === 'bank-balance' || formType === 'receivables') {
           endpoint = `/api/portfolio/bank-balances`;
         } else if (formType === 'property') {
           endpoint = `/api/portfolio/properties`;
@@ -353,7 +388,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
           setShowForm(false);
           // Refresh the list
           let refreshEndpoint;
-          if (activeTab === 'bank-balance') {
+          if (activeTab === 'bank-balance' || activeTab === 'receivables') {
             refreshEndpoint = `/api/portfolio/bank-balances`;
           } else if (activeTab === 'property') {
             refreshEndpoint = `/api/portfolio/properties`;
@@ -406,7 +441,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
 
       // Refresh data and counts
       let endpoint;
-      if (activeTab === 'bank-balance') {
+      if (activeTab === 'bank-balance' || activeTab === 'receivables') {
         endpoint = `/api/portfolio/bank-balances`;
       } else if (activeTab === 'property') {
         endpoint = `/api/portfolio/properties`;
@@ -466,17 +501,29 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
 
     setIsDeleting(id);
     try {
-      const response = await fetch(`/api/portfolio/${type}s/${id}`, {
+      // Handle receivables and bank-balance the same way
+      const apiType = type === 'receivables' ? 'bank-balance' : type;
+      const response = await fetch(`/api/portfolio/${apiType}s/${id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         setItems(items.filter((item) => item.id !== id));
         // Refresh the list
-        const refreshResponse = await fetch(`/api/portfolio/${activeTab}s`);
+        let refreshEndpoint;
+        if (activeTab === 'bank-balance' || activeTab === 'receivables') {
+          refreshEndpoint = `/api/portfolio/bank-balances`;
+        } else if (activeTab === 'property') {
+          refreshEndpoint = `/api/portfolio/properties`;
+        } else {
+          refreshEndpoint = `/api/portfolio/${activeTab}s`;
+        }
+        const isPublished = viewMode === 'published';
+        const refreshResponse = await fetch(`${refreshEndpoint}?isPublished=${isPublished}`);
         if (refreshResponse.ok) {
           const data = await refreshResponse.json();
-          setItems(data);
+          const itemsArray = Array.isArray(data) ? data : data.data || [];
+          setItems(itemsArray);
         }
       }
     } catch (error) {
@@ -564,7 +611,17 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
       return (
         'bankName' in item &&
         typeof item.balance === 'number' &&
-        'accountType' in item
+        'accountType' in item &&
+        !item.tags?.includes('receivable')
+      );
+    }
+    if (activeTab === 'receivables') {
+      // Receivables are BankBalances with receivable tag
+      return (
+        'bankName' in item &&
+        typeof item.balance === 'number' &&
+        'accountType' in item &&
+        item.tags?.includes('receivable')
       );
     }
     return false;
@@ -888,7 +945,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
 
         <div className="flex gap-2 border-b mb-4">
           <button
-            onClick={() => setActiveTab('investment')}
+            onClick={() => handleTabSwitch('investment')}
             className={`px-4 py-2 font-medium flex items-center gap-2 ${
               activeTab === 'investment'
                 ? 'border-b-2 border-blue-600 text-blue-600'
@@ -904,7 +961,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
             </span>
           </button>
           <button
-            onClick={() => setActiveTab('loan')}
+            onClick={() => handleTabSwitch('loan')}
             className={`px-4 py-2 font-medium flex items-center gap-2 ${
               activeTab === 'loan'
                 ? 'border-b-2 border-blue-600 text-blue-600'
@@ -920,7 +977,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
             </span>
           </button>
           <button
-            onClick={() => setActiveTab('property')}
+            onClick={() => handleTabSwitch('property')}
             className={`px-4 py-2 font-medium flex items-center gap-2 ${
               activeTab === 'property'
                 ? 'border-b-2 border-blue-600 text-blue-600'
@@ -936,7 +993,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
             </span>
           </button>
           <button
-            onClick={() => setActiveTab('bank-balance')}
+            onClick={() => handleTabSwitch('bank-balance')}
             className={`px-4 py-2 font-medium flex items-center gap-2 ${
               activeTab === 'bank-balance'
                 ? 'border-b-2 border-blue-600 text-blue-600'
@@ -949,6 +1006,22 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                 : 'bg-gray-100 text-gray-700'
             }`}>
               {isLoadingCounts ? '...' : tabCounts['bank-balance']}
+            </span>
+          </button>
+          <button
+            onClick={() => handleTabSwitch('receivables')}
+            className={`px-4 py-2 font-medium flex items-center gap-2 ${
+              activeTab === 'receivables'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}>
+            Receivables
+            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+              activeTab === 'receivables' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'bg-gray-100 text-gray-700'
+            }`}>
+              {isLoadingCounts ? '...' : tabCounts.receivables}
             </span>
           </button>
           <button
@@ -1017,7 +1090,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               ) : (
                 <>
                   <Plus className="w-4 h-4" />
-                  Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                  Add {activeTab === 'bank-balance' ? 'Bank Balance' : activeTab === 'receivables' ? 'Receivables' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                 </>
               )}
             </button>
@@ -1069,10 +1142,22 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               isSaving={isSaving}
             />
           )}
-          {formType === 'bank-balance' && (
+          {(formType === 'bank-balance' || formType === 'receivables') && (
             <BankBalanceForm
               initialData={editingItem as BankBalance | undefined}
-              onSave={(bankBalance) => handleSave(bankBalance)}
+              isReceivable={formType === 'receivables'}
+              onSave={(bankBalance) => {
+                // Add receivable tag if it's a receivables form (avoid duplicates)
+                if (formType === 'receivables') {
+                  const existingTags = bankBalance.tags || [];
+                  const itemToSave = existingTags.includes('receivable')
+                    ? bankBalance
+                    : { ...bankBalance, tags: [...existingTags, 'receivable'] };
+                  handleSave(itemToSave);
+                } else {
+                  handleSave(bankBalance);
+                }
+              }}
               onCancel={() => {
                 setShowForm(false);
                 setEditingId(null);
@@ -1148,6 +1233,20 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
             isPublishing={isPublishing}
           />
         )}
+        {activeTab === 'receivables' && (
+          <BankBalanceGrid
+            bankBalances={filteredItems as BankBalance[]}
+            onDelete={(id) => handleDelete(id, 'receivables')}
+            onEdit={(item) => handleEdit(item)}
+            onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
+            viewMode={viewMode}
+            openMenuId={openMenuId}
+            setOpenMenuId={setOpenMenuId}
+            menuRefs={menuRefs}
+            isDeleting={isDeleting}
+            isPublishing={isPublishing}
+          />
+        )}
 
         {/* Debug panel - shows what data we have */}
         {items.length === 0 && (
@@ -1156,6 +1255,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
             <p className="text-sm text-gray-400">
               {activeTab === 'bank-balance'
                 ? "Click 'Add Bank Balance' to add your bank account information."
+                : activeTab === 'receivables'
+                ? "Click 'Add Receivables' to add money owed to you."
                 : "Upload an Excel file in the 'Upload & AI Analysis' tab to automatically create portfolio items."}
             </p>
           </div>
@@ -1709,22 +1810,68 @@ function BankBalanceGrid({
   isDeleting: string | null;
   isPublishing: string | null;
 }) {
+  // Check if any balance is a receivable
+  const hasReceivables = bankBalances.some(b => b.tags?.includes('receivable'));
+  
+  // Helper function to calculate interest for a receivable
+  const calculateInterest = (balance: BankBalance) => {
+    if (!balance.tags?.includes('receivable') || !balance.interestRate || !balance.issueDate) {
+      return null;
+    }
+    const principal = balance.balance;
+    const interestRate = balance.interestRate / 100;
+    const issueDate = new Date(balance.issueDate);
+    const currentDate = new Date();
+    const dueDate = balance.dueDate ? new Date(balance.dueDate) : null;
+    const endDate = dueDate && dueDate > currentDate ? dueDate : currentDate;
+    const daysDiff = Math.max(0, Math.floor((endDate.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24)));
+    const years = daysDiff / 365;
+    const interestAmount = principal * interestRate * years;
+    const totalWithInterest = principal + interestAmount;
+    return { interestAmount, totalWithInterest, daysDiff };
+  };
+
+  const colSpan = hasReceivables ? 10 : 6;
+
   return (
     <table className="w-full">
       <thead className="bg-gray-50">
         <tr>
           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-            Bank Name
+            {hasReceivables ? 'Debtor Name' : 'Bank Name'}
           </th>
+          {!hasReceivables && (
+            <>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Account Number
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Account Type
+              </th>
+            </>
+          )}
           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-            Account Number
+            {hasReceivables ? 'Amount' : 'Balance'}
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-            Account Type
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-            Balance
-          </th>
+          {hasReceivables && (
+            <>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Issue Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Due Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Interest Rate
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Interest Amount
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Expected Total
+              </th>
+            </>
+          )}
           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
             Last Updated
           </th>
@@ -1736,84 +1883,117 @@ function BankBalanceGrid({
       <tbody className="bg-white divide-y divide-gray-200">
         {bankBalances.length === 0 ? (
           <tr>
-            <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-              No bank balances found. Click "Add Bank Balance" to create one.
+            <td colSpan={colSpan} className="px-6 py-8 text-center text-gray-500">
+              No {hasReceivables ? 'receivables' : 'bank balances'} found. Click "Add {hasReceivables ? 'Receivables' : 'Bank Balance'}" to create one.
             </td>
           </tr>
         ) : (
-          bankBalances.map((balance) => (
-            <tr key={balance.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                {balance.bankName}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {balance.accountNumber}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {balance.accountType}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                {balance.currency} {balance.balance.toLocaleString()}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                {new Date(balance.lastUpdated).toLocaleDateString()}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm">
-                <div className="flex gap-2 items-center">
-                  <button
-                    onClick={() => onEdit(balance)}
-                    className="text-blue-600 hover:text-blue-700"
-                    title="Edit">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(balance.id)}
-                    disabled={isDeleting === balance.id}
-                    className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Delete">
-                    {isDeleting === balance.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                  </button>
-                  <div className="relative" ref={(el) => { menuRefs.current[balance.id] = el; }}>
+          bankBalances.map((balance) => {
+            const isReceivable = balance.tags?.includes('receivable');
+            const interestCalc = calculateInterest(balance);
+            
+            return (
+              <tr key={balance.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  {balance.bankName}
+                </td>
+                {!hasReceivables && (
+                  <>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {balance.accountNumber || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {balance.accountType}
+                    </td>
+                  </>
+                )}
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                  {balance.originalCurrency || balance.currency} {balance.originalAmount ? balance.originalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : balance.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {balance.originalCurrency && balance.originalCurrency !== 'INR' && (
+                    <span className="text-xs text-gray-500 ml-1">
+                      (₹{balance.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                    </span>
+                  )}
+                </td>
+                {hasReceivables && (
+                  <>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {balance.issueDate ? new Date(balance.issueDate).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {balance.dueDate ? new Date(balance.dueDate).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {balance.interestRate ? `${balance.interestRate}%` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                      {interestCalc ? `₹${interestCalc.interestAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
+                      {interestCalc ? `₹${interestCalc.totalWithInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                    </td>
+                  </>
+                )}
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {new Date(balance.lastUpdated).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <div className="flex gap-2 items-center">
                     <button
-                      onClick={() => setOpenMenuId(openMenuId === balance.id ? null : balance.id)}
-                      className="text-gray-600 hover:text-gray-800 p-1"
-                      title="More options">
-                      <MoreVertical className="w-4 h-4" />
+                      onClick={() => onEdit(balance)}
+                      className="text-blue-600 hover:text-blue-700"
+                      title="Edit">
+                      <Edit2 className="w-4 h-4" />
                     </button>
-                    {openMenuId === balance.id && (
-                      <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                        <button
-                          onClick={() => onPublishToggle(balance.id, balance.isPublished || false)}
-                          disabled={isPublishing === balance.id}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                          {isPublishing === balance.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : balance.isPublished ? (
-                            <>
-                              <XCircle className="w-4 h-4" />
-                              Unpublish
-                            </>
-                          ) : (
-                            <>
-                              <Check className="w-4 h-4" />
-                              Publish
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
+                    <button
+                      onClick={() => onDelete(balance.id)}
+                      disabled={isDeleting === balance.id}
+                      className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete">
+                      {isDeleting === balance.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                    <div className="relative" ref={(el) => { menuRefs.current[balance.id] = el; }}>
+                      <button
+                        onClick={() => setOpenMenuId(openMenuId === balance.id ? null : balance.id)}
+                        className="text-gray-600 hover:text-gray-800 p-1"
+                        title="More options">
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                      {openMenuId === balance.id && (
+                        <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                          <button
+                            onClick={() => onPublishToggle(balance.id, balance.isPublished || false)}
+                            disabled={isPublishing === balance.id}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            {isPublishing === balance.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Processing...
+                              </>
+                            ) : balance.isPublished ? (
+                              <>
+                                <XCircle className="w-4 h-4" />
+                                Unpublish
+                              </>
+                            ) : (
+                              <>
+                                <Check className="w-4 h-4" />
+                                Publish
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-          ))
+                </td>
+              </tr>
+            );
+          })
         )}
       </tbody>
     </table>

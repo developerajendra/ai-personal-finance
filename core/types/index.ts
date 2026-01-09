@@ -111,14 +111,21 @@ export interface BankBalance {
   bankName: string; // e.g., "HDFC Bank", "SBI", "ICICI Bank"
   accountNumber?: string; // Optional for privacy
   accountType: "savings" | "current" | "salary" | "fd" | "rd" | "other";
-  balance: number; // Current balance
-  currency: string; // Default: "INR"
+  balance: number; // Current balance in INR (always converted to INR for calculations)
+  currency: string; // Original currency: "INR" | "NPR" | "USD"
+  originalAmount?: number; // Original amount in the selected currency (before conversion)
+  originalCurrency?: string; // Original currency if different from currency field (for backward compatibility)
   lastUpdated: string; // ISO date string
   description?: string;
   status: "active" | "closed" | "dormant";
   isPublished: boolean; // Draft (false) or Published (true)
   createdAt: string;
   updatedAt: string;
+  // Receivables-specific fields
+  issueDate?: string; // Date when the receivable was issued/given (ISO date string)
+  dueDate?: string; // Expected date when receivable should be received (ISO date string)
+  interestRate?: number; // Annual interest rate as percentage (e.g., 12 for 12%)
+  tags?: string[]; // Tags to identify receivables (e.g., ['receivable'])
 }
 
 export interface PortfolioSummary {

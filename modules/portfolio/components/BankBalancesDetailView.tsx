@@ -220,10 +220,24 @@ export function BankBalancesDetailView() {
                     {balance.accountNumber || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-semibold">
-                    ₹{balance.balance.toLocaleString()}
+                    {(() => {
+                      const currency = balance.originalCurrency || balance.currency || 'INR';
+                      const amount = balance.originalAmount ?? balance.balance;
+                      const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : 'Rs';
+                      return (
+                        <>
+                          {symbol}{amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {currency !== 'INR' && (
+                            <span className="text-xs text-gray-500 ml-1">
+                              (₹{balance.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {balance.currency}
+                    {balance.originalCurrency || balance.currency || 'INR'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(balance.lastUpdated).toLocaleDateString()}

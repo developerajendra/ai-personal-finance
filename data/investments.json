@@ -26,19 +26,6 @@
     "isPublished": true
   },
   {
-    "id": "inv-ai-1767367354617-2",
-    "name": "Himal + Vishal FD",
-    "amount": 1000000,
-    "type": "fd",
-    "startDate": "2025-09-06",
-    "interestRate": 12,
-    "description": "Auto-extracted and categorized from Excel",
-    "status": "active",
-    "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T16:13:00.241Z",
-    "isPublished": true
-  },
-  {
     "id": "inv-ai-1767367354617-3",
     "name": "Shine Reaunga Bank FD",
     "amount": 793700.526,
@@ -62,160 +49,19 @@
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.617Z",
-    "updatedAt": "2026-01-02T15:22:34.617Z",
-    "isPublished": false
-  },
-  {
-    "id": "inv-1767454615148",
-    "name": "test",
-    "amount": 0,
-    "type": "ppf",
-    "startDate": "2026-01-03",
-    "status": "active",
-    "isPublished": true,
-    "createdAt": "2026-01-03T15:36:55.148Z",
-    "updatedAt": "2026-01-03T15:36:55.148Z"
+    "updatedAt": "2026-01-09T14:32:01.198Z",
+    "isPublished": true
   },
   {
     "id": "inv-email-1767796374780-zlpfq67af",
     "name": "PPF Account",
-    "amount": 500000000000,
+    "amount": 1233300,
     "type": "ppf",
     "startDate": "2026-01-07",
     "description": "Contribution to PPF account",
     "status": "active",
-    "isPublished": false,
-    "createdAt": "2026-01-07T14:32:54.780Z",
-    "updatedAt": "2026-01-07T14:32:54.780Z"
-  },
-  {
-    "id": "inv-email-1767796384252-5xhjwck6n",
-    "name": "PPF Account",
-    "amount": 500000000000,
-    "type": "ppf",
-    "startDate": "2026-01-07",
-    "description": "Added to PPF account",
-    "status": "active",
-    "isPublished": false,
-    "createdAt": "2026-01-07T14:33:04.252Z",
-    "updatedAt": "2026-01-07T14:33:04.252Z"
-  },
-  {
-    "id": "inv-email-1767796387806-se1p1z2wi",
-    "name": "RAJENDRA Bank Fixed Deposit",
-    "amount": 100000,
-    "type": "fd",
-    "startDate": "2026-01-07",
-    "interestRate": 7,
-    "description": "Opened a fixed deposit at RAJENDRA Bank with 7% interest.",
-    "status": "active",
-    "isPublished": false,
-    "createdAt": "2026-01-07T14:33:07.806Z",
-    "updatedAt": "2026-01-07T14:33:07.806Z"
-  },
-  {
-    "id": "inv-email-1767796875738-tyaesj2cu",
-    "name": "PPF Account",
-    "amount": 1,
-    "type": "ppf",
-    "startDate": "2026-01-07",
-    "description": "Added to PPF account",
-    "status": "active",
     "isPublished": true,
-    "tags": [
-      "added from gmail"
-    ],
-    "createdAt": "2026-01-07T14:41:15.738Z",
-    "updatedAt": "2026-01-07T14:45:38.251Z"
-  },
-  {
-    "id": "inv-email-1767805190329-noyizl86b",
-    "name": "PPF Account",
-    "amount": 1,
-    "type": "ppf",
-    "startDate": "2026-01-07",
-    "description": "Added to PPF account today.",
-    "status": "active",
-    "isPublished": false,
-    "tags": [
-      "added from gmail"
-    ],
-    "createdAt": "2026-01-07T16:59:50.329Z",
-    "updatedAt": "2026-01-07T16:59:50.329Z"
-  },
-  {
-    "id": "inv-email-1767805192604-iq0dcpjgy",
-    "name": "PPF Account",
-    "amount": 1,
-    "type": "ppf",
-    "startDate": "2026-01-07",
-    "description": "Added 1 to my PPF account today.",
-    "status": "active",
-    "isPublished": false,
-    "tags": [
-      "added from gmail"
-    ],
-    "createdAt": "2026-01-07T16:59:52.604Z",
-    "updatedAt": "2026-01-07T16:59:52.604Z"
-  },
-  {
-    "id": "inv-email-1767851393703-41j3sai3h",
-    "name": "PPF",
-    "amount": 5,
-    "type": "ppf",
-    "startDate": "2026-01-08",
-    "description": "Added to PPF account",
-    "status": "active",
-    "isPublished": false,
-    "tags": [
-      "added from gmail"
-    ],
-    "createdAt": "2026-01-08T05:49:53.703Z",
-    "updatedAt": "2026-01-08T05:49:53.703Z"
-  },
-  {
-    "id": "inv-email-1767866146956-4yyey6s69",
-    "name": "Fixed Deposit",
-    "amount": 34343434,
-    "type": "fd",
-    "startDate": "2026-01-08",
-    "description": "added new amount",
-    "status": "active",
-    "isPublished": false,
-    "tags": [
-      "added from gmail"
-    ],
-    "createdAt": "2026-01-08T09:55:46.956Z",
-    "updatedAt": "2026-01-08T09:55:46.956Z"
-  },
-  {
-    "id": "inv-email-1767875935100-vx9e77f3u",
-    "name": "Fixed Deposit",
-    "amount": 34343434,
-    "type": "fd",
-    "startDate": "2026-01-08",
-    "description": "added new amount",
-    "status": "active",
-    "isPublished": false,
-    "tags": [
-      "added from gmail"
-    ],
-    "createdAt": "2026-01-08T12:38:55.100Z",
-    "updatedAt": "2026-01-08T12:38:55.100Z"
-  },
-  {
-    "id": "inv-email-1767876408626-40xh7xqw5",
-    "name": "Fixed Deposit",
-    "amount": 34343434,
-    "type": "fd",
-    "startDate": "2026-01-08",
-    "description": "added new amount",
-    "status": "active",
-    "isPublished": false,
-    "tags": [
-      "added from gmail"
-    ],
-    "createdAt": "2026-01-08T12:46:48.626Z",
-    "updatedAt": "2026-01-08T12:46:48.626Z"
+    "createdAt": "2026-01-07T14:32:54.780Z",
+    "updatedAt": "2026-01-09T14:31:12.062Z"
   }
 ]
