@@ -9,6 +9,7 @@ import { PropertyForm } from './PropertyForm';
 import { BankBalanceForm } from './BankBalanceForm';
 import { Loader } from '@/shared/components/Loader';
 import { useQuery } from '@tanstack/react-query';
+import { convertFromINR } from '@/core/services/currencyService';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
 type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance' | 'receivables';
@@ -1309,6 +1310,20 @@ function InvestmentGrid({
   isDeleting: string | null;
   isPublishing: string | null;
 }) {
+  // State to trigger recalculation of current values periodically
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+
+  // Update current values every minute
+  useEffect(() => {
+    const hasFormulaInvestments = investments.some(inv => inv.ruleFormula && inv.startDate);
+    if (hasFormulaInvestments) {
+      const interval = setInterval(() => {
+        setUpdateTrigger(prev => prev + 1);
+      }, 60000); // Update every minute
+      return () => clearInterval(interval);
+    }
+  }, [investments]);
+
   // Calculate totals for stocks and mutual funds
   const stocksTotal = stocks?.reduce((sum, stock) => sum + ((stock.last_price || 0) * (stock.quantity || 0)), 0) || 0;
   const stocksPnl = stocks?.reduce((sum, stock) => sum + (stock.pnl || 0), 0) || 0;
@@ -1363,10 +1378,16 @@ function InvestmentGrid({
             Amount
           </th>
           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Current Value
+          </th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
             Start Date
           </th>
           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
             Maturity Date
+          </th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Maturity Amount
           </th>
           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
             Status
@@ -1379,13 +1400,87 @@ function InvestmentGrid({
       <tbody className="bg-white divide-y divide-gray-200">
         {allItems.length === 0 ? (
           <tr>
-            <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+            <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
               No investments found. Click "Add Investment" to create one.
             </td>
           </tr>
         ) : (
           allItems.map((item: any) => {
             const isReadOnly = item.isReadOnly;
+            
+            // Calculate current value from formula if it exists
+            // This function is recreated on each render to use current date (updateTrigger ensures fresh calculation)
+            const calculateCurrentValue = (investment: any): number | null => {
+              if (!investment.ruleFormula || !investment.startDate) {
+                return null;
+              }
+
+              try {
+                // Get principal amount in INR
+                const principal = investment.amount || 0; // Already in INR
+                const startDate = new Date(investment.startDate);
+                const currentDate = new Date(); // Uses current date, updates with updateTrigger
+                const daysElapsed = Math.max(0, Math.floor((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+                const yearsElapsed = daysElapsed / 365;
+                const monthsElapsed = daysElapsed / 30;
+
+                // Safety check
+                const dangerousPatterns = [
+                  /eval\s*\(/i,
+                  /function\s*\(/i,
+                  /require\s*\(/i,
+                  /import\s+/i,
+                  /process\./i,
+                  /global\./i,
+                  /window\./i,
+                  /document\./i,
+                ];
+
+                if (dangerousPatterns.some(pattern => pattern.test(investment.ruleFormula))) {
+                  return null;
+                }
+
+                // Create safe evaluation context
+                const context = {
+                  principal,
+                  amount: principal,
+                  daysElapsed,
+                  yearsElapsed,
+                  monthsElapsed,
+                  Math: {
+                    pow: Math.pow,
+                    exp: Math.exp,
+                    log: Math.log,
+                    sqrt: Math.sqrt,
+                    abs: Math.abs,
+                    round: Math.round,
+                    floor: Math.floor,
+                    ceil: Math.ceil,
+                    min: Math.min,
+                    max: Math.max,
+                    PI: Math.PI,
+                    E: Math.E,
+                  },
+                };
+
+                // Evaluate the formula safely
+                const func = new Function(...Object.keys(context), `return ${investment.ruleFormula}`);
+                const result = func(...Object.values(context));
+
+                if (typeof result !== 'number' || !isFinite(result) || isNaN(result)) {
+                  return null;
+                }
+
+                return result; // Returns in INR
+              } catch (error) {
+                console.error('Error calculating current value:', error);
+                return null;
+              }
+            };
+
+            // Calculate current value (updateTrigger causes re-render which recalculates with current date)
+            const currentValue = calculateCurrentValue(item);
+            
             return (
               <tr key={item.id} className={`hover:bg-gray-50 ${isReadOnly ? 'bg-gray-50' : ''}`}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -1412,12 +1507,49 @@ function InvestmentGrid({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {item.type}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                  ₹{item.amount.toLocaleString()}
-                  {item.pnl !== undefined && (
-                    <span className={`ml-2 text-xs ${item.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ({item.pnl >= 0 ? '+' : ''}₹{item.pnl.toLocaleString()})
-                    </span>
+                <td className="px-6 py-4 text-sm font-semibold">
+                  <div>
+                    <div>₹{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    {(() => {
+                      const currency = item.originalCurrency || item.currency || 'INR';
+                      const originalAmount = item.originalAmount;
+                      if (currency !== 'INR' && originalAmount !== undefined) {
+                        const symbol = currency === 'USD' ? '$' : 'Rs';
+                        return (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {symbol} {originalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    {item.pnl !== undefined && (
+                      <div className={`text-xs mt-1 ${item.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ({item.pnl >= 0 ? '+' : ''}₹{item.pnl.toLocaleString()})
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm font-semibold text-blue-600">
+                  {currentValue !== null ? (
+                    (() => {
+                      const currency = (item.originalCurrency || item.currency || 'INR') as 'INR' | 'NPR' | 'USD';
+                      if (currency !== 'INR') {
+                        const originalValue = convertFromINR(currentValue, currency);
+                        const symbol = currency === 'USD' ? '$' : 'Rs';
+                        return (
+                          <div>
+                            <div>₹{currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {symbol} {originalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return `₹${currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    })()
+                  ) : (
+                    'N/A'
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -1427,6 +1559,27 @@ function InvestmentGrid({
                   {item.maturityDate
                     ? new Date(item.maturityDate).toLocaleDateString()
                     : 'N/A'}
+                </td>
+                <td className="px-6 py-4 text-sm font-semibold text-indigo-600">
+                  {item.maturityAmount !== undefined ? (
+                    (() => {
+                      const currency = (item.originalCurrency || item.currency || 'INR') as 'INR' | 'NPR' | 'USD';
+                      if (currency !== 'INR' && item.originalMaturityAmount !== undefined) {
+                        const symbol = currency === 'USD' ? '$' : 'Rs';
+                        return (
+                          <div>
+                            <div>₹{item.maturityAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {symbol} {item.originalMaturityAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return `₹${item.maturityAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    })()
+                  ) : (
+                    'N/A'
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span
@@ -1815,10 +1968,21 @@ function BankBalanceGrid({
   
   // Helper function to calculate interest for a receivable
   const calculateInterest = (balance: BankBalance) => {
-    if (!balance.tags?.includes('receivable') || !balance.interestRate || !balance.issueDate) {
+    if (!balance.tags?.includes('receivable')) {
       return null;
     }
+    
     const principal = balance.balance;
+    
+    // If no interest rate or issue date, return just the principal (Expected Total = Amount Given)
+    if (!balance.interestRate || !balance.issueDate) {
+      return {
+        interestAmount: 0,
+        totalWithInterest: principal,
+        daysDiff: 0,
+      };
+    }
+    
     const interestRate = balance.interestRate / 100;
     const issueDate = new Date(balance.issueDate);
     const currentDate = new Date();

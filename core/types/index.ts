@@ -58,12 +58,19 @@ export interface FileUpload {
 export interface Investment {
   id: string;
   name: string; // e.g., "PPF", "FD", "Mutual Fund"
-  amount: number;
+  amount: number; // Original amount in originalCurrency
+  currency?: string; // Original currency: "INR" | "NPR" | "USD"
+  originalAmount?: number; // Original amount in the selected currency (before conversion)
+  originalCurrency?: string; // Original currency if different from currency field
   type: "ppf" | "fd" | "mutual-fund" | "stocks" | "bonds" | "other";
   startDate: string;
   endDate?: string; // Optional
   maturityDate?: string; // Optional
+  maturityAmount?: number; // Maturity amount in INR (always converted to INR for calculations)
+  originalMaturityAmount?: number; // Original maturity amount in the selected currency (before conversion)
   interestRate?: number;
+  ruleLabel?: string; // e.g., "5x in 12 Years"
+  ruleFormula?: string; // JavaScript formula to calculate value based on date, e.g., "principal * Math.pow(5, (daysElapsed / (12 * 365)))"
   description?: string;
   status: "active" | "matured" | "closed";
   isPublished: boolean; // Draft (false) or Published (true)

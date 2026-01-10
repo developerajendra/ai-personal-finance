@@ -11,9 +11,11 @@ export interface ExchangeRates {
 
 // Exchange rates (1 unit of currency = X INR)
 // These are approximate rates - in production, you might want to fetch from an API
+// Note: 1 NPR = 0.625 INR means NPR is worth less than INR
+// So 1,000,000 NPR = 625,000 INR
 const EXCHANGE_RATES: ExchangeRates = {
   INR: 1, // Base currency
-  NPR: 0.625, // 1 NPR = 0.625 INR (approximately)
+  NPR: 0.625, // 1 NPR = 0.625 INR (approximately) - Verified: 1 NPR ≈ 0.6242-0.6250 INR
   USD: 83.0, // 1 USD = 83 INR (approximately, update as needed)
 };
 
