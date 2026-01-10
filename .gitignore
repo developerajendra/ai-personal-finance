@@ -45,3 +45,9 @@ next-env.d.ts
 
 # Gmail tokens (contains sensitive OAuth tokens)
 /data/gmail-tokens.json
+
+# PPF PDF files (contains sensitive financial data)
+/data/pfData/*.pdf
+
+# PPF PDF files (contains sensitive financial data)
+/data/pfData/*.pdf

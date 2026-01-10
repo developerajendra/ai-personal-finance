@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Investment, Loan, Property, PortfolioSummary, BankBalance } from '@/core/types';
+import { PPFAccount } from '@/core/services/ppfStorageService';
 import {
   PieChart,
   Pie,
@@ -113,8 +114,20 @@ export function usePortfolioData() {
     refetchOnReconnect: true,
   });
 
+  const { data: ppfAccounts = [], isLoading: isLoadingPPF } = useQuery<PPFAccount[]>({
+    queryKey: ['ppfAccounts'],
+    queryFn: async () => {
+      const response = await fetch('/api/portfolio/ppf-accounts');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+  });
+
   const isLoading =
-    isLoadingInvestments || isLoadingLoans || isLoadingProperties || isLoadingStocks || isLoadingMutualFunds || isLoadingBankBalances;
+    isLoadingInvestments || isLoadingLoans || isLoadingProperties || isLoadingStocks || isLoadingMutualFunds || isLoadingBankBalances || isLoadingPPF;
 
   const totalInvestments = investments.reduce(
     (sum, inv) => sum + inv.amount,
@@ -136,6 +149,10 @@ export function usePortfolioData() {
     (sum, mf) => sum + ((mf.last_price || 0) * (mf.quantity || 0)),
     0
   ) || 0;
+  const totalPPF = ppfAccounts.reduce(
+    (sum, account) => sum + (account.grandTotal || 0),
+    0
+  );
   const totalBankBalances = bankBalances
     .filter((bb: any) => !bb.tags?.includes('receivable')) // Exclude receivables
     .reduce((sum, bb) => sum + (bb.balance || 0), 0);
@@ -159,7 +176,7 @@ export function usePortfolioData() {
       return sum + (bb.balance || 0);
     }, 0);
   
-  const netWorth = totalInvestments + totalProperties + totalStocks + totalMutualFunds + totalBankBalances + totalReceivables - totalLoans;
+  const netWorth = totalInvestments + totalProperties + totalStocks + totalMutualFunds + totalPPF + totalBankBalances + totalReceivables - totalLoans;
 
   return {
     totalInvestments,
@@ -167,6 +184,7 @@ export function usePortfolioData() {
     totalProperties,
     totalStocks,
     totalMutualFunds,
+    totalPPF,
     totalBankBalances,
     totalReceivables,
     netWorth,
@@ -176,6 +194,7 @@ export function usePortfolioData() {
     properties,
     stocksData,
     mutualFundsData,
+    ppfAccounts,
     bankBalances,
   };
 }
@@ -187,6 +206,7 @@ function PortfolioAnalyticsContent() {
     totalProperties,
     totalStocks,
     totalMutualFunds,
+    totalPPF,
     totalBankBalances,
     totalReceivables,
     netWorth,
@@ -196,6 +216,7 @@ function PortfolioAnalyticsContent() {
     properties,
     stocksData,
     mutualFundsData,
+    ppfAccounts,
     bankBalances,
   } = usePortfolioData();
 
@@ -205,6 +226,7 @@ function PortfolioAnalyticsContent() {
   const propertiesCount = properties.length;
   const stocksCount = stocksData?.stocks?.length || 0;
   const mutualFundsCount = mutualFundsData?.mutualFunds?.length || 0;
+  const ppfCount = ppfAccounts.length;
   const bankBalancesCount = bankBalances.filter((bb: any) => !bb.tags?.includes('receivable')).length;
   const receivablesCount = bankBalances.filter((bb: any) => bb.tags?.includes('receivable')).length;
 
@@ -213,12 +235,15 @@ function PortfolioAnalyticsContent() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Add stocks and mutual funds to breakdown
+  // Add stocks, mutual funds, and PPF to breakdown
   if (totalStocks > 0) {
     investmentBreakdown['stocks'] = (investmentBreakdown['stocks'] || 0) + totalStocks;
   }
   if (totalMutualFunds > 0) {
     investmentBreakdown['mutual-fund'] = (investmentBreakdown['mutual-fund'] || 0) + totalMutualFunds;
+  }
+  if (totalPPF > 0) {
+    investmentBreakdown['provident-fund'] = (investmentBreakdown['provident-fund'] || 0) + totalPPF;
   }
 
   const loanBreakdown = loans.reduce((acc, loan) => {
@@ -240,7 +265,7 @@ function PortfolioAnalyticsContent() {
 
   const investmentChartData = Object.entries(investmentBreakdown).map(
     ([name, value]) => ({
-      name,
+      name: name === 'provident-fund' ? 'Provident Fund' : name === 'mutual-fund' ? 'Mutual Fund' : name.charAt(0).toUpperCase() + name.slice(1),
       value,
     })
   );
@@ -329,8 +354,8 @@ function PortfolioAnalyticsContent() {
         </div>
       </div>
 
-      {/* Second Row: Stocks, Mutual Funds, Bank Balances, Receivables */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Second Row: Stocks, Mutual Funds, PPF, Bank Balances, Receivables */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
@@ -356,6 +381,20 @@ function PortfolioAnalyticsContent() {
               </p>
             </div>
             <TrendingUp className="w-8 h-8 text-purple-600 flex-shrink-0 ml-2" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">
+                Provident Fund{ppfCount > 0 && ` (${ppfCount})`}
+              </p>
+              <p className="text-sm font-bold text-orange-600 mt-2 truncate">
+                ₹{totalPPF.toLocaleString()}
+              </p>
+            </div>
+            <Wallet className="w-8 h-8 text-orange-600 flex-shrink-0 ml-2" />
           </div>
         </div>
 

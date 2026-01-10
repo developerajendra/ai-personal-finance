@@ -77,6 +77,7 @@ const baseNavigation = [
       { name: 'Loans', href: '/portfolio/loans', icon: CreditCard },
       { name: 'Properties', href: '/portfolio/properties', icon: Home },
       { name: 'Bank Balances', href: '/portfolio/bank-balances', icon: Wallet },
+      { name: 'Provident Fund', href: '/portfolio/provident-fund', icon: Wallet },
     ],
   },
   {

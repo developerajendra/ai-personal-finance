@@ -109,6 +109,17 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     },
   });
 
+  // Fetch PPF accounts for published view
+  const { data: ppfAccountsData } = useQuery<any[]>({
+    queryKey: ["ppfAccounts"],
+    queryFn: async () => {
+      const response = await fetch("/api/portfolio/ppf-accounts");
+      if (!response.ok) return [];
+      const accounts = await response.json();
+      return Array.isArray(accounts) ? accounts : [];
+    },
+  });
+
   const { data: mutualFundsData } = useQuery<{ mutualFunds: any[] }>({
     queryKey: ["mutualFunds"],
     queryFn: async () => {
@@ -1181,6 +1192,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
             investments={filteredItems as Investment[]}
             stocks={viewMode === 'published' ? (stocksData?.stocks || []) : []}
             mutualFunds={viewMode === 'published' ? (mutualFundsData?.mutualFunds || []) : []}
+            ppfAccounts={viewMode === 'published' ? (ppfAccountsData || []) : []}
             onDelete={(id) => handleDelete(id, 'investment')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
@@ -1287,6 +1299,7 @@ function InvestmentGrid({
   investments,
   stocks,
   mutualFunds,
+  ppfAccounts,
   onDelete,
   onEdit,
   onPublishToggle,
@@ -1300,6 +1313,7 @@ function InvestmentGrid({
   investments: Investment[];
   stocks?: any[];
   mutualFunds?: any[];
+  ppfAccounts?: any[];
   onDelete: (id: string) => void;
   onEdit: (investment: Investment) => void;
   onPublishToggle: (id: string, isPublished: boolean) => void;
@@ -1333,7 +1347,11 @@ function InvestmentGrid({
   const mutualFundsPnl = mutualFunds?.reduce((sum, mf) => sum + (mf.pnl || 0), 0) || 0;
   const mutualFundsCount = mutualFunds?.length || 0;
 
-  // Build items array with summary rows for stocks and mutual funds
+  // Calculate totals for PPF accounts
+  const ppfTotal = ppfAccounts?.reduce((sum, account) => sum + (account.grandTotal || 0), 0) || 0;
+  const ppfCount = ppfAccounts?.length || 0;
+
+  // Build items array with summary rows for stocks, mutual funds, and PPF
   const allItems = [
     ...investments,
     // Add stocks summary row if there are stocks
@@ -1361,6 +1379,18 @@ function InvestmentGrid({
       isReadOnly: true,
       pnl: mutualFundsPnl,
       holdingsCount: mutualFundsCount,
+    }] : []),
+    // Add PPF summary row if there are PPF accounts
+    ...(ppfAccounts && ppfAccounts.length > 0 ? [{
+      id: 'ppf-total',
+      name: `Provident Fund (${ppfCount} accounts)`,
+      type: 'ppf' as const,
+      amount: ppfTotal,
+      startDate: new Date().toISOString(),
+      status: 'active' as const,
+      isPublished: true,
+      isReadOnly: true,
+      holdingsCount: ppfCount,
     }] : []),
   ];
 
@@ -1491,7 +1521,13 @@ function InvestmentGrid({
                         📧 Gmail
                       </span>
                     )}
-                    {isReadOnly && (
+                    {isReadOnly && (item.id === 'ppf-total' || item.type === 'ppf') && (
+                      <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded flex items-center gap-1">
+                        <Lock className="w-3 h-3" />
+                        Provident Fund
+                      </span>
+                    )}
+                    {isReadOnly && item.id !== 'ppf-total' && item.type !== 'ppf' && (
                       <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
                         <Lock className="w-3 h-3" />
                         Zerodha

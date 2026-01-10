@@ -138,5 +138,24 @@
     "issueDate": "2025-09-06T00:00:00.000Z",
     "dueDate": "2026-09-06T00:00:00.000Z",
     "interestRate": 12
+  },
+  {
+    "id": "bb-1768042326457",
+    "bankName": "Krishna Bhanja",
+    "accountNumber": "",
+    "accountType": "savings",
+    "balance": 87500,
+    "currency": "NPR",
+    "originalAmount": 140000,
+    "originalCurrency": "NPR",
+    "lastUpdated": "2026-01-10T00:00:00.000Z",
+    "description": "",
+    "status": "active",
+    "isPublished": true,
+    "createdAt": "2026-01-10T10:52:06.457Z",
+    "updatedAt": "2026-01-10T10:52:06.457Z",
+    "tags": [
+      "receivable"
+    ]
   }
 ]

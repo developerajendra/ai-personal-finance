@@ -9,6 +9,7 @@ export function FileUploadSection() {
   const [googleDriveLink, setGoogleDriveLink] = useState("");
   const [fetchingDrive, setFetchingDrive] = useState(false);
   const [uploadMethod, setUploadMethod] = useState<"file" | "drive">("file");
+  const [activeTab, setActiveTab] = useState<"general" | "ppf">("general");
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -184,6 +185,42 @@ export function FileUploadSection() {
     }, 1000);
   };
 
+  const handlePPFUpload = async () => {
+    if (files.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/modules/ppf-upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        const result = await response.json();
+        console.log("PPF Upload result:", result);
+      }
+
+      alert("PPF PDFs uploaded and processed successfully! Check the Provident Fund page to view details.");
+      setFiles([]);
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error("PPF Upload error:", error);
+      alert("Failed to upload PPF files: " + (error as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
       <h2 className="text-xl font-semibold mb-4">Upload Financial Documents</h2>
@@ -191,32 +228,122 @@ export function FileUploadSection() {
         Upload Excel files directly or fetch from Google Drive. AI will automatically extract, categorize, and organize your financial data.
       </p>
 
-      {/* Upload Method Tabs */}
+      {/* Main Tabs: General Upload vs PPF Upload */}
       <div className="flex gap-2 mb-6 border-b">
         <button
-          onClick={() => setUploadMethod("file")}
+          onClick={() => setActiveTab("general")}
           className={`px-4 py-2 font-medium ${
-            uploadMethod === "file"
+            activeTab === "general"
               ? "border-b-2 border-blue-600 text-blue-600"
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          Direct Upload
+          General Upload
         </button>
         <button
-          onClick={() => setUploadMethod("drive")}
+          onClick={() => setActiveTab("ppf")}
           className={`px-4 py-2 font-medium ${
-            uploadMethod === "drive"
+            activeTab === "ppf"
               ? "border-b-2 border-blue-600 text-blue-600"
               : "text-gray-600 hover:text-gray-900"
           }`}
         >
-          Google Drive Link
+          PPF Upload
         </button>
       </div>
 
-      {/* Direct File Upload */}
-      {uploadMethod === "file" && (
+      {activeTab === "ppf" && (
+        <div className="space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="font-semibold text-blue-900 mb-2">Upload PPF Details</h3>
+            <p className="text-sm text-blue-700">
+              Upload PDF files containing your PPF (Public Provident Fund) account details. 
+              The system will extract information and convert it to structured JSON format.
+            </p>
+          </div>
+
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <label className="cursor-pointer">
+              <span className="text-blue-600 hover:text-blue-700 font-medium">
+                Click to upload PPF PDFs
+              </span>
+              <input
+                type="file"
+                multiple
+                accept=".pdf"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </label>
+            <p className="text-sm text-gray-500 mt-2">
+              or drag and drop PDF files here
+            </p>
+          </div>
+
+          {files.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="font-medium">Selected PPF PDFs:</h3>
+              {files.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <File className="w-5 h-5 text-gray-400" />
+                    <span className="text-sm">{file.name}</span>
+                    <span className="text-xs text-gray-500">
+                      ({(file.size / 1024).toFixed(2)} KB)
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveFile(index)}
+                    className="p-1 hover:bg-gray-200 rounded"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={handlePPFUpload}
+                disabled={uploading}
+                className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploading ? "Processing PPF PDFs..." : "Process PPF PDFs"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "general" && (
+        <>
+          {/* Upload Method Tabs */}
+          <div className="flex gap-2 mb-6 border-b">
+            <button
+              onClick={() => setUploadMethod("file")}
+              className={`px-4 py-2 font-medium ${
+                uploadMethod === "file"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Direct Upload
+            </button>
+            <button
+              onClick={() => setUploadMethod("drive")}
+              className={`px-4 py-2 font-medium ${
+                uploadMethod === "drive"
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Google Drive Link
+            </button>
+          </div>
+
+          {/* Direct File Upload */}
+          {uploadMethod === "file" && (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
           <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <label className="cursor-pointer">
@@ -237,8 +364,8 @@ export function FileUploadSection() {
         </div>
       )}
 
-      {/* Google Drive Link Input */}
-      {uploadMethod === "drive" && (
+          {/* Google Drive Link Input */}
+          {uploadMethod === "drive" && (
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -277,37 +404,39 @@ export function FileUploadSection() {
         </div>
       )}
 
-      {files.length > 0 && (
-        <div className="mt-6 space-y-2">
-          <h3 className="font-medium">Selected Files:</h3>
-          {files.map((file, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-            >
-              <div className="flex items-center gap-3">
-                <File className="w-5 h-5 text-gray-400" />
-                <span className="text-sm">{file.name}</span>
-                <span className="text-xs text-gray-500">
-                  ({(file.size / 1024).toFixed(2)} KB)
-                </span>
-              </div>
+          {files.length > 0 && (
+            <div className="mt-6 space-y-2">
+              <h3 className="font-medium">Selected Files:</h3>
+              {files.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <File className="w-5 h-5 text-gray-400" />
+                    <span className="text-sm">{file.name}</span>
+                    <span className="text-xs text-gray-500">
+                      ({(file.size / 1024).toFixed(2)} KB)
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveFile(index)}
+                    className="p-1 hover:bg-gray-200 rounded"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
               <button
-                onClick={() => handleRemoveFile(index)}
-                className="p-1 hover:bg-gray-200 rounded"
+                onClick={handleUpload}
+                disabled={uploading}
+                className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <X className="w-4 h-4" />
+                {uploading ? "Uploading..." : "Process Files"}
               </button>
             </div>
-          ))}
-          <button
-            onClick={handleUpload}
-            disabled={uploading}
-            className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {uploading ? "Uploading..." : "Process Files"}
-          </button>
-        </div>
+          )}
+        </>
       )}
     </div>
   );
