@@ -244,7 +244,7 @@ export function ArchiveModule() {
             </select>
           </div>
 
-          {selectedYear === currentYear && (
+          {selectedYear === currentYear && snapshots.length === 0 && (
             <button
               onClick={async () => {
                 try {
