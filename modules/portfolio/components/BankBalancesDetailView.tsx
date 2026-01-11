@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { Wallet, Building2, TrendingUp, CreditCard, Calendar } from 'lucide-react';
 import { Loader } from '@/shared/components/Loader';
+import { formatIndianNumber } from '@/core/services/currencyService';
 
 const COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6'];
 
@@ -41,11 +42,14 @@ export function BankBalancesDetailView() {
     );
   }
 
-  const totalBalance = bankBalances.reduce((sum, balance) => sum + balance.balance, 0);
-  const activeAccounts = bankBalances.filter((balance) => balance.status === 'active').length;
-  const totalBanks = new Set(bankBalances.map((b) => b.bankName)).size;
+  // Filter out receivables - they should only appear in the receivables page
+  const bankBalancesOnly = bankBalances.filter((balance) => !balance.tags?.includes('receivable'));
 
-  const bankBreakdown = bankBalances.reduce((acc, balance) => {
+  const totalBalance = bankBalancesOnly.reduce((sum, balance) => sum + balance.balance, 0);
+  const activeAccounts = bankBalancesOnly.filter((balance) => balance.status === 'active').length;
+  const totalBanks = new Set(bankBalancesOnly.map((b) => b.bankName)).size;
+
+  const bankBreakdown = bankBalancesOnly.reduce((acc, balance) => {
     acc[balance.bankName] = (acc[balance.bankName] || 0) + balance.balance;
     return acc;
   }, {} as Record<string, number>);
@@ -55,7 +59,7 @@ export function BankBalancesDetailView() {
     value,
   }));
 
-  const accountTypeBreakdown = bankBalances.reduce((acc, balance) => {
+  const accountTypeBreakdown = bankBalancesOnly.reduce((acc, balance) => {
     const typeName = balance.accountType.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
     acc[typeName] = (acc[typeName] || 0) + balance.balance;
     return acc;
@@ -66,7 +70,7 @@ export function BankBalancesDetailView() {
     value,
   }));
 
-  const balanceComparison = bankBalances.map((balance) => ({
+  const balanceComparison = bankBalancesOnly.map((balance) => ({
     name: balance.bankName.length > 15 ? balance.bankName.substring(0, 15) + '...' : balance.bankName,
     balance: balance.balance,
     accountType: balance.accountType,
@@ -81,7 +85,7 @@ export function BankBalancesDetailView() {
             <div>
               <p className="text-sm text-gray-600">Total Balance</p>
               <p className="text-2xl font-bold text-indigo-600 mt-2">
-                ₹{totalBalance.toLocaleString()}
+                ₹{formatIndianNumber(totalBalance)}
               </p>
             </div>
             <Wallet className="w-8 h-8 text-indigo-600" />
@@ -93,7 +97,7 @@ export function BankBalancesDetailView() {
             <div>
               <p className="text-sm text-gray-600">Total Accounts</p>
               <p className="text-2xl font-bold text-blue-600 mt-2">
-                {bankBalances.length}
+                {bankBalancesOnly.length}
               </p>
             </div>
             <CreditCard className="w-8 h-8 text-blue-600" />
@@ -150,7 +154,7 @@ export function BankBalancesDetailView() {
                     />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `₹${value.toLocaleString()}`} />
+                <Tooltip formatter={(value: number) => `₹${formatIndianNumber(value)}`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -164,7 +168,7 @@ export function BankBalancesDetailView() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
                 <YAxis />
-                <Tooltip formatter={(value: number) => `₹${value.toLocaleString()}`} />
+                <Tooltip formatter={(value: number) => `₹${formatIndianNumber(value)}`} />
                 <Bar dataKey="value" fill="#6366F1" />
               </BarChart>
             </ResponsiveContainer>
@@ -205,7 +209,7 @@ export function BankBalancesDetailView() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {bankBalances.map((balance) => (
+              {bankBalancesOnly.map((balance) => (
                 <tr key={balance.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     <div className="flex items-center gap-2">
@@ -226,10 +230,10 @@ export function BankBalancesDetailView() {
                       const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : 'Rs';
                       return (
                         <>
-                          {symbol}{amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {symbol}{formatIndianNumber(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           {currency !== 'INR' && (
                             <span className="text-xs text-gray-500 ml-1">
-                              (₹{balance.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                              (₹{formatIndianNumber(balance.balance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                             </span>
                           )}
                         </>
@@ -259,7 +263,7 @@ export function BankBalancesDetailView() {
             </tbody>
           </table>
         </div>
-        {bankBalances.length === 0 && (
+        {bankBalancesOnly.length === 0 && (
           <div className="p-12 text-center text-gray-500">
             <Wallet className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <p>No bank balances data available. Add bank accounts in the Portfolio section.</p>

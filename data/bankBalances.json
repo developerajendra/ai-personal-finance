@@ -4,16 +4,18 @@
     "bankName": "Nepal Account Rajan",
     "accountNumber": "",
     "accountType": "savings",
-    "balance": 62500,
+    "balance": 11250,
     "currency": "NPR",
     "lastUpdated": "2022-01-01T00:00:00.000Z",
     "description": "Auto-extracted from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.627Z",
-    "updatedAt": "2026-01-09T13:26:46.411Z",
+    "updatedAt": "2026-01-10T11:08:18.201Z",
     "isPublished": true,
-    "originalAmount": 100000,
-    "originalCurrency": "NPR"
+    "originalAmount": 18000,
+    "originalCurrency": "NPR",
+    "assetType": "liquid",
+    "tags": []
   },
   {
     "id": "bb-ai-1767367354627-1",
@@ -153,9 +155,10 @@
     "status": "active",
     "isPublished": true,
     "createdAt": "2026-01-10T10:52:06.457Z",
-    "updatedAt": "2026-01-10T10:52:06.457Z",
+    "updatedAt": "2026-01-10T11:08:48.102Z",
     "tags": [
       "receivable"
-    ]
+    ],
+    "assetType": "fixed"
   }
 ]

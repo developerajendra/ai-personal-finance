@@ -63,6 +63,7 @@ export interface Investment {
   originalAmount?: number; // Original amount in the selected currency (before conversion)
   originalCurrency?: string; // Original currency if different from currency field
   type: "ppf" | "fd" | "mutual-fund" | "stocks" | "bonds" | "other";
+  assetType?: "fixed" | "liquid"; // Fixed Asset (Property, Gold) or Liquid Asset (others)
   startDate: string;
   endDate?: string; // Optional
   maturityDate?: string; // Optional
@@ -102,6 +103,7 @@ export interface Property {
   id: string;
   name: string; // e.g., "House", "Plot", "Commercial Property"
   type: "house" | "plot" | "apartment" | "commercial" | "land" | "other";
+  assetType?: "fixed" | "liquid"; // Fixed Asset (Property, Gold) or Liquid Asset (others)
   purchasePrice: number;
   currentValue?: number;
   purchaseDate: string;
@@ -118,6 +120,7 @@ export interface BankBalance {
   bankName: string; // e.g., "HDFC Bank", "SBI", "ICICI Bank"
   accountNumber?: string; // Optional for privacy
   accountType: "savings" | "current" | "salary" | "fd" | "rd" | "other";
+  assetType?: "fixed" | "liquid"; // Fixed Asset (Property, Gold) or Liquid Asset (others)
   balance: number; // Current balance in INR (always converted to INR for calculations)
   currency: string; // Original currency: "INR" | "NPR" | "USD"
   originalAmount?: number; // Original amount in the selected currency (before conversion)

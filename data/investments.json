@@ -139,30 +139,32 @@
   {
     "id": "inv-1768042184686",
     "name": "Small Finance 1",
-    "amount": 400000,
+    "amount": 450000,
     "currency": "INR",
-    "originalAmount": 400000,
+    "originalAmount": 450000,
     "originalCurrency": "INR",
     "type": "fd",
     "startDate": "2026-01-10",
     "status": "active",
     "isPublished": true,
     "createdAt": "2026-01-10T10:49:44.687Z",
-    "updatedAt": "2026-01-10T10:49:44.687Z"
+    "updatedAt": "2026-01-10T11:00:51.730Z",
+    "maturityDate": "2025-06-01",
+    "interestRate": 8.5
   },
   {
     "id": "inv-1768042218624",
     "name": "Small Finance 2",
-    "amount": 550000,
+    "amount": 500000,
     "currency": "INR",
-    "originalAmount": 550000,
+    "originalAmount": 500000,
     "originalCurrency": "INR",
     "type": "fd",
     "startDate": "2026-01-10",
     "status": "active",
     "isPublished": true,
     "createdAt": "2026-01-10T10:50:18.624Z",
-    "updatedAt": "2026-01-10T10:50:18.624Z"
+    "updatedAt": "2026-01-10T10:59:59.080Z"
   },
   {
     "id": "inv-1768042268137",

@@ -18,10 +18,12 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
       ? {
           ...property,
           purchaseDate: property.purchaseDate.split("T")[0],
+          assetType: property.assetType || 'fixed', // Properties default to fixed asset
         }
       : {
           name: "",
           type: "house",
+          assetType: "fixed", // Properties are always fixed assets
           purchasePrice: 0,
           purchaseDate: new Date().toISOString().split("T")[0],
           location: "",
@@ -35,6 +37,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
       id: property?.id || `prop-${Date.now()}`,
       name: formData.name || "",
       type: formData.type || "house",
+      assetType: formData.assetType || 'fixed', // Properties are always fixed assets
       purchasePrice: formData.purchasePrice || 0,
       currentValue: formData.currentValue,
       purchaseDate: formData.purchaseDate || new Date().toISOString(),
@@ -177,6 +180,26 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
             <option value="owned">Owned</option>
             <option value="rented-out">Rented Out</option>
             <option value="under-construction">Under Construction</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Asset Type *
+          </label>
+          <select
+            required
+            value={formData.assetType || 'fixed'}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                assetType: e.target.value as 'fixed' | 'liquid',
+              })
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="fixed">Fixed Asset</option>
+            <option value="liquid">Liquid Asset</option>
           </select>
         </div>
       </div>

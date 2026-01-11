@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Investment, Loan, Property, PortfolioSummary, BankBalance } from '@/core/types';
 import { PPFAccount } from '@/core/services/ppfStorageService';
+import { formatIndianNumber } from '@/core/services/currencyService';
 import {
   PieChart,
   Pie,
@@ -176,7 +177,121 @@ export function usePortfolioData() {
       return sum + (bb.balance || 0);
     }, 0);
   
-  const netWorth = totalInvestments + totalProperties + totalStocks + totalMutualFunds + totalPPF + totalBankBalances + totalReceivables - totalLoans;
+  // Calculate Fixed Assets and Liquid Assets
+  // Fixed Assets: Properties (default fixed), Investments with assetType='fixed', BankBalances with assetType='fixed'
+  const fixedAssetsFromInvestments = investments.reduce(
+    (sum, inv) => sum + (inv.assetType === 'fixed' ? inv.amount : 0),
+    0
+  );
+  const fixedAssetsFromProperties = properties.reduce(
+    (sum, prop) => {
+      const value = prop.currentValue || prop.purchasePrice || 0;
+      // Properties default to fixed if assetType is not set
+      return sum + ((prop.assetType === 'liquid' ? 0 : value));
+    },
+    0
+  );
+  const fixedAssetsFromBankBalances = bankBalances
+    .filter((bb: any) => !bb.tags?.includes('receivable') && bb.assetType === 'fixed')
+    .reduce((sum, bb) => sum + (bb.balance || 0), 0);
+  
+  const totalFixedAssets = fixedAssetsFromInvestments + fixedAssetsFromProperties + fixedAssetsFromBankBalances;
+
+  // Liquid Assets: Investments with assetType='liquid' or default, Stocks, Mutual Funds, PPF, BankBalances with assetType='liquid' or default, Receivables
+  const liquidAssetsFromInvestments = investments.reduce(
+    (sum, inv) => sum + (inv.assetType === 'fixed' ? 0 : inv.amount),
+    0
+  );
+  const liquidAssetsFromProperties = properties.reduce(
+    (sum, prop) => {
+      const value = prop.currentValue || prop.purchasePrice || 0;
+      return sum + (prop.assetType === 'liquid' ? value : 0);
+    },
+    0
+  );
+  const liquidAssetsFromBankBalances = bankBalances
+    .filter((bb: any) => {
+      if (bb.tags?.includes('receivable')) return true; // Receivables are always liquid
+      return bb.assetType !== 'fixed'; // Bank balances default to liquid
+    })
+    .reduce((sum, bb: any) => {
+      // For receivables, use expected total if available
+      if (bb.tags?.includes('receivable')) {
+        if (bb.interestRate && bb.issueDate) {
+          const principal = bb.balance || 0;
+          const interestRate = bb.interestRate / 100;
+          const issueDate = new Date(bb.issueDate);
+          const dueDate = bb.dueDate ? new Date(bb.dueDate) : new Date();
+          const daysDiff = Math.max(0, Math.floor((dueDate.getTime() - issueDate.getTime()) / (1000 * 60 * 60 * 24)));
+          const years = daysDiff / 365;
+          const interestAmount = principal * interestRate * years;
+          return sum + (principal + interestAmount);
+        }
+        return sum + (bb.balance || 0);
+      }
+      return sum + (bb.balance || 0);
+    }, 0);
+  
+  const totalLiquidAssets = liquidAssetsFromInvestments + liquidAssetsFromProperties + totalStocks + totalMutualFunds + totalPPF + liquidAssetsFromBankBalances;
+
+  // Verify all assets are accounted for
+  // Total Assets should equal: Investments + Properties + Stocks + Mutual Funds + PPF + Bank Balances + Receivables
+  const totalAllAssets = totalInvestments + totalProperties + totalStocks + totalMutualFunds + totalPPF + totalBankBalances + totalReceivables;
+  const totalAssetsFromCategories = totalFixedAssets + totalLiquidAssets;
+  
+  // Net Worth = Total Assets - Loans
+  // Note: Fixed Assets + Liquid Assets = Net Worth + Loans (not just Net Worth)
+  const netWorth = totalAssetsFromCategories - totalLoans;
+  
+  // Debug: Verify calculation integrity in development
+  if (process.env.NODE_ENV === 'development') {
+    const difference = Math.abs(totalAllAssets - totalAssetsFromCategories);
+    if (difference > 0.01) {
+      console.warn('⚠️ Asset calculation mismatch detected:', {
+        'Total All Assets (sum of all categories)': totalAllAssets,
+        'Total from Fixed + Liquid': totalAssetsFromCategories,
+        'Difference': difference,
+        breakdown: {
+          totalInvestments,
+          totalProperties,
+          totalStocks,
+          totalMutualFunds,
+          totalPPF,
+          totalBankBalances,
+          totalReceivables,
+          fixedAssetsFromInvestments,
+          fixedAssetsFromProperties,
+          fixedAssetsFromBankBalances,
+          liquidAssetsFromInvestments,
+          liquidAssetsFromProperties,
+          liquidAssetsFromBankBalances,
+        }
+      });
+    }
+    
+    // Verify Net Worth formula: Net Worth = Fixed + Liquid - Loans
+    const expectedNetWorth = totalFixedAssets + totalLiquidAssets - totalLoans;
+    const netWorthDifference = Math.abs(netWorth - expectedNetWorth);
+    if (netWorthDifference > 0.01) {
+      console.error('❌ Net Worth calculation error:', {
+        'Expected (Fixed + Liquid - Loans)': expectedNetWorth,
+        'Calculated Net Worth': netWorth,
+        'Difference': netWorth - expectedNetWorth,
+        'Fixed Assets': totalFixedAssets,
+        'Liquid Assets': totalLiquidAssets,
+        'Loans': totalLoans
+      });
+    } else {
+      console.log('✅ Net Worth calculation verified:', {
+        'Fixed Assets': totalFixedAssets,
+        'Liquid Assets': totalLiquidAssets,
+        'Total Assets': totalAssetsFromCategories,
+        'Loans': totalLoans,
+        'Net Worth': netWorth,
+        'Verification': `${totalFixedAssets} + ${totalLiquidAssets} - ${totalLoans} = ${netWorth}`
+      });
+    }
+  }
 
   return {
     totalInvestments,
@@ -187,6 +302,8 @@ export function usePortfolioData() {
     totalPPF,
     totalBankBalances,
     totalReceivables,
+    totalFixedAssets,
+    totalLiquidAssets,
     netWorth,
     isLoading,
     investments,
@@ -209,6 +326,8 @@ function PortfolioAnalyticsContent() {
     totalPPF,
     totalBankBalances,
     totalReceivables,
+    totalFixedAssets,
+    totalLiquidAssets,
     netWorth,
     isLoading,
     investments,
@@ -293,24 +412,50 @@ function PortfolioAnalyticsContent() {
 
   return (
     <div className="space-y-6">
-      {/* First Row: Net Worth, Total Investments, Total Loans, Total Properties */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Net Worth - First Card */}
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+      {/* First Row: Net Worth, Liquid Assets, Fixed Assets */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg shadow-lg p-6 border border-purple-300">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-600">Net Worth</p>
+              <p className="text-sm text-purple-100 font-medium">Net Worth</p>
               <p
-                className={`text-sm font-bold mt-2 truncate ${
-                  netWorth >= 0 ? 'text-green-600' : 'text-red-600'
+                className={`text-2xl font-bold mt-2 truncate ${
+                  netWorth >= 0 ? 'text-white' : 'text-red-200'
                 }`}>
-                ₹{netWorth.toLocaleString()}
+                ₹{formatIndianNumber(netWorth)}
               </p>
             </div>
-            <Wallet className="w-8 h-8 text-purple-600 flex-shrink-0 ml-2" />
+            <Wallet className="w-10 h-10 text-white flex-shrink-0 ml-2 opacity-80" />
           </div>
         </div>
 
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">Liquid Assets</p>
+              <p className="text-2xl font-bold text-green-600 mt-2 truncate">
+                ₹{formatIndianNumber(totalLiquidAssets)}
+              </p>
+            </div>
+            <TrendingUp className="w-10 h-10 text-green-600 flex-shrink-0 ml-2" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-gray-600">Fixed Assets</p>
+              <p className="text-2xl font-bold text-blue-600 mt-2 truncate">
+                ₹{formatIndianNumber(totalFixedAssets)}
+              </p>
+            </div>
+            <Home className="w-10 h-10 text-blue-600 flex-shrink-0 ml-2" />
+          </div>
+        </div>
+      </div>
+
+      {/* First Row: Total Investments, Total Loans, Total Properties */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
@@ -318,7 +463,7 @@ function PortfolioAnalyticsContent() {
                 Total Investments{investmentsCount > 0 && ` (${investmentsCount})`}
               </p>
               <p className="text-sm font-bold text-green-600 mt-2 truncate">
-                ₹{totalInvestments.toLocaleString()}
+                ₹{formatIndianNumber(totalInvestments)}
               </p>
             </div>
             <TrendingUp className="w-8 h-8 text-green-600 flex-shrink-0 ml-2" />
@@ -332,7 +477,7 @@ function PortfolioAnalyticsContent() {
                 Total Loans{loansCount > 0 && ` (${loansCount})`}
               </p>
               <p className="text-sm font-bold text-red-600 mt-2 truncate">
-                ₹{totalLoans.toLocaleString()}
+                ₹{formatIndianNumber(totalLoans)}
               </p>
             </div>
             <TrendingDown className="w-8 h-8 text-red-600 flex-shrink-0 ml-2" />
@@ -346,7 +491,7 @@ function PortfolioAnalyticsContent() {
                 Total Properties{propertiesCount > 0 && ` (${propertiesCount})`}
               </p>
               <p className="text-sm font-bold text-blue-600 mt-2 truncate">
-                ₹{totalProperties.toLocaleString()}
+                ₹{formatIndianNumber(totalProperties)}
               </p>
             </div>
             <Home className="w-8 h-8 text-blue-600 flex-shrink-0 ml-2" />
@@ -363,7 +508,7 @@ function PortfolioAnalyticsContent() {
                 Stocks{stocksCount > 0 && ` (${stocksCount})`}
               </p>
               <p className="text-sm font-bold text-emerald-600 mt-2 truncate">
-                ₹{totalStocks.toLocaleString()}
+                ₹{formatIndianNumber(totalStocks)}
               </p>
             </div>
             <TrendingUp className="w-8 h-8 text-emerald-600 flex-shrink-0 ml-2" />
@@ -377,7 +522,7 @@ function PortfolioAnalyticsContent() {
                 Mutual Funds{mutualFundsCount > 0 && ` (${mutualFundsCount})`}
               </p>
               <p className="text-sm font-bold text-purple-600 mt-2 truncate">
-                ₹{totalMutualFunds.toLocaleString()}
+                ₹{formatIndianNumber(totalMutualFunds)}
               </p>
             </div>
             <TrendingUp className="w-8 h-8 text-purple-600 flex-shrink-0 ml-2" />
@@ -390,11 +535,11 @@ function PortfolioAnalyticsContent() {
               <p className="text-sm text-gray-600">
                 Provident Fund{ppfCount > 0 && ` (${ppfCount})`}
               </p>
-              <p className="text-sm font-bold text-orange-600 mt-2 truncate">
-                ₹{totalPPF.toLocaleString()}
+              <p className="text-sm font-bold text-green-600 mt-2 truncate">
+                ₹{formatIndianNumber(totalPPF)}
               </p>
             </div>
-            <Wallet className="w-8 h-8 text-orange-600 flex-shrink-0 ml-2" />
+            <Wallet className="w-8 h-8 text-green-600 flex-shrink-0 ml-2" />
           </div>
         </div>
 
@@ -405,7 +550,7 @@ function PortfolioAnalyticsContent() {
                 Bank Balances{bankBalancesCount > 0 && ` (${bankBalancesCount})`}
               </p>
               <p className="text-sm font-bold text-indigo-600 mt-2 truncate">
-                ₹{totalBankBalances.toLocaleString()}
+                ₹{formatIndianNumber(totalBankBalances)}
               </p>
             </div>
             <Wallet className="w-8 h-8 text-indigo-600 flex-shrink-0 ml-2" />
@@ -419,7 +564,7 @@ function PortfolioAnalyticsContent() {
                 Receivables{receivablesCount > 0 && ` (${receivablesCount})`}
               </p>
               <p className="text-sm font-bold text-teal-600 mt-2 truncate">
-                ₹{totalReceivables.toLocaleString()}
+                ₹{formatIndianNumber(totalReceivables)}
               </p>
             </div>
             <FileText className="w-8 h-8 text-teal-600 flex-shrink-0 ml-2" />
@@ -495,7 +640,7 @@ function PortfolioAnalyticsContent() {
                     />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => `₹${value.toLocaleString()}`} />
+                <Tooltip formatter={(value: number) => `₹${formatIndianNumber(value)}`} />
               </PieChart>
             </ResponsiveContainer>
           </div>

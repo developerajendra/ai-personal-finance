@@ -26,6 +26,15 @@ export function InvestmentForm({
   // Determine initial maturity amount - use originalMaturityAmount if available, otherwise maturityAmount
   const initialMaturityAmount = investment?.originalMaturityAmount ?? investment?.maturityAmount ?? undefined;
 
+  // Determine default assetType: Gold → Fixed, others → Liquid
+  const getDefaultAssetType = (name: string, type: string): "fixed" | "liquid" => {
+    const nameLower = name.toLowerCase();
+    if (nameLower.includes('gold')) {
+      return 'fixed';
+    }
+    return 'liquid';
+  };
+
   const [formData, setFormData] = useState<Partial<Investment>>(
     investment
       ? {
@@ -44,6 +53,8 @@ export function InvestmentForm({
           // Ensure ruleLabel and ruleFormula are preserved
           ruleLabel: investment.ruleLabel,
           ruleFormula: investment.ruleFormula,
+          // Set assetType if not present (for backward compatibility)
+          assetType: investment.assetType || getDefaultAssetType(investment.name || '', investment.type || 'ppf'),
         }
       : {
           name: '',
@@ -52,6 +63,7 @@ export function InvestmentForm({
           originalAmount: 0,
           originalCurrency: 'INR',
           type: 'ppf',
+          assetType: 'liquid',
           startDate: new Date().toISOString().split('T')[0],
           status: 'active',
         }
@@ -281,6 +293,7 @@ export function InvestmentForm({
       originalAmount: originalAmount,
       originalCurrency: currency,
       type: formData.type || 'ppf',
+      assetType: formData.assetType || getDefaultAssetType(formData.name || '', formData.type || 'ppf'),
       startDate: formData.startDate || new Date().toISOString(),
       endDate: formData.endDate,
       maturityDate: formData.maturityDate,
@@ -329,7 +342,15 @@ export function InvestmentForm({
             type="text"
             required
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            onChange={(e) => {
+              const newName = e.target.value;
+              setFormData({
+                ...formData,
+                name: newName,
+                // Auto-update assetType if name contains "gold"
+                assetType: getDefaultAssetType(newName, formData.type || 'ppf'),
+              });
+            }}
             placeholder="e.g., PPF, FD, Mutual Fund"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -342,12 +363,15 @@ export function InvestmentForm({
           <select
             required
             value={formData.type}
-            onChange={(e) =>
+            onChange={(e) => {
+              const newType = e.target.value as Investment['type'];
               setFormData({
                 ...formData,
-                type: e.target.value as Investment['type'],
-              })
-            }
+                type: newType,
+                // Auto-update assetType if name contains "gold"
+                assetType: getDefaultAssetType(formData.name || '', newType),
+              });
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="ppf">PPF</option>
             <option value="fd">Fixed Deposit</option>
@@ -355,6 +379,25 @@ export function InvestmentForm({
             <option value="stocks">Stocks</option>
             <option value="bonds">Bonds</option>
             <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Asset Type *
+          </label>
+          <select
+            required
+            value={formData.assetType || 'liquid'}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                assetType: e.target.value as 'fixed' | 'liquid',
+              })
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="liquid">Liquid Asset</option>
+            <option value="fixed">Fixed Asset</option>
           </select>
         </div>
 

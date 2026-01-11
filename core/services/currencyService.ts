@@ -83,9 +83,62 @@ export function getCurrencySymbol(currency: Currency): string {
 }
 
 /**
- * Format amount with currency symbol
+ * Format number in Indian numbering system (e.g., 1,93,11,974.593)
+ * Indian numbering: first 3 digits from right, then groups of 2
+ */
+export function formatIndianNumber(num: number, options?: { minimumFractionDigits?: number; maximumFractionDigits?: number }): string {
+  const minFractionDigits = options?.minimumFractionDigits ?? 0;
+  const maxFractionDigits = options?.maximumFractionDigits ?? 3; // Default to 3 to preserve precision
+  
+  // Convert to string to preserve decimal precision
+  const numStr = num.toString();
+  const parts = numStr.split('.');
+  const integerPart = parts[0];
+  let decimalPart = parts[1] || '';
+  
+  // Limit decimal digits if maxFractionDigits is specified
+  if (decimalPart && maxFractionDigits !== undefined && decimalPart.length > maxFractionDigits) {
+    decimalPart = decimalPart.substring(0, maxFractionDigits);
+  }
+  
+  // Format integer part in Indian numbering system
+  // First 3 digits from right, then groups of 2
+  const reversed = integerPart.split('').reverse();
+  const formattedParts: string[] = [];
+  
+  for (let i = 0; i < reversed.length; i++) {
+    if (i === 3) {
+      // After first 3 digits, add comma
+      formattedParts.push(',');
+    } else if (i > 3 && (i - 3) % 2 === 0) {
+      // Then every 2 digits, add comma
+      formattedParts.push(',');
+    }
+    formattedParts.push(reversed[i]);
+  }
+  
+  const formatted = formattedParts.reverse().join('');
+  
+  // Add decimal part if needed
+  if (decimalPart) {
+    // Remove trailing zeros if not required
+    let finalDecimal = decimalPart;
+    if (minFractionDigits === 0) {
+      finalDecimal = finalDecimal.replace(/0+$/, '');
+      if (finalDecimal === '') {
+        return formatted;
+      }
+    }
+    return formatted + '.' + finalDecimal;
+  }
+  
+  return formatted;
+}
+
+/**
+ * Format amount with currency symbol using Indian numbering
  */
 export function formatCurrency(amount: number, currency: Currency): string {
   const symbol = getCurrencySymbol(currency);
-  return `${symbol}${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${symbol}${formatIndianNumber(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

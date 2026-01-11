@@ -34,6 +34,7 @@ export function BankBalanceForm({
     bankName: initialData?.bankName || '',
     accountNumber: initialData?.accountNumber || '',
     accountType: initialData?.accountType || 'savings',
+    assetType: initialData?.assetType || 'liquid', // Bank balances and receivables are always liquid
     balance: initialData?.balance || 0, // This will be in INR
     currency: initialCurrency,
     originalAmount: initialAmount,
@@ -151,6 +152,7 @@ export function BankBalanceForm({
         : new Date().toISOString(),
       description: formData.description,
       status: formData.status || 'active',
+      assetType: formData.assetType || 'liquid', // Bank balances and receivables default to liquid
       isPublished: initialData?.isPublished ?? true, // Preserve existing or default to true for new items
       createdAt: initialData?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -239,6 +241,25 @@ export function BankBalanceForm({
             <option value="fd">Fixed Deposit</option>
             <option value="rd">Recurring Deposit</option>
             <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Asset Type *
+          </label>
+          <select
+            required
+            value={formData.assetType || 'liquid'}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                assetType: e.target.value as 'fixed' | 'liquid',
+              })
+            }
+            className="w-full px-3 py-2 border rounded-lg">
+            <option value="liquid">Liquid Asset</option>
+            <option value="fixed">Fixed Asset</option>
           </select>
         </div>
 
