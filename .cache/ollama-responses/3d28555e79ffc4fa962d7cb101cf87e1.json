@@ -1,0 +1,17 @@
+{
+  "id": "1768142797204-3d28555e",
+  "queryHash": "3d28555e79ffc4fa962d7cb101cf87e1",
+  "message": "Analyze this email and determine if it contains information about a financial investment (like FD, PPF, Mutual Fund, Stocks, Bonds, etc.).\n\nEmail Subject: Winning the War in Your Mind?\nEmail Content: Unlocking Ur Coaching Skills By Chandan Lal Patary By Chandan Lal Patary Read this article on LinkedIn to join the conversation Read on LinkedIn https://www.linkedin.com/comm/pulse/winning-war-your-mind-chandan-lal-patary-i2umc?lipi=urn%3Ali%3Apage%3Aemail_email_series_follow_newsletter_02%3BMn877DK7SGWYxyEIi%2BMWKw%3D%3D&midToken=AQFMjYnuODQXdg&midSig=1GRm7RmT4vEI41&trk=eml-email_series_follow_newsletter_02-null-0-read_more_banner_cta_&trkEmail=eml-email_series_follow_newsletter_02-null-0-read_more_banner_cta_-null-10ivnq~mk7zc7ox~d9-null-null&eid=10ivnq-mk7zc7ox-d9 Winning the War in Your Mind by Craig Groeschel This book—especially in its audiobook form—is widely recognized for its deeply compassionate, practical, and spiritually grounded approach to reshaping thought patterns and reclaiming inner freedom. Why This Book Is So Powerful—and Why It Truly Helps People Winning the War in Your Mind resonates so deeply because it gives language to a struggle most people experience silently\n\nReturn ONLY a JSON object with:\n{\n  \"isInvestmentEmail\": true or false,\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain investment information. Return ONLY valid JSON with \"isInvestmentEmail\" (boolean) and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isInvestmentEmail\":false,\"confidence\":0,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142797205,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 2159
+  },
+  "usage": {
+    "hitCount": 1,
+    "lastAccessed": 1768142899470
+  }
+}

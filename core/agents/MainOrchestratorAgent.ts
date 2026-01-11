@@ -1,5 +1,6 @@
 import { BaseAgent, AgentMessage } from './base/BaseAgent';
 import { PortfolioManagementAgent } from './PortfolioManagementAgent';
+import { LoanManagementAgent } from './LoanManagementAgent';
 
 export interface AgentReport {
   agentName: string;
@@ -10,12 +11,14 @@ export interface AgentReport {
 
 export class MainOrchestratorAgent {
   private portfolioAgent: PortfolioManagementAgent;
+  private loanAgent: LoanManagementAgent;
   private reports: AgentReport[] = [];
   private alerts: AgentMessage[] = [];
   private messageProcessorInterval?: NodeJS.Timeout;
 
   constructor() {
     this.portfolioAgent = new PortfolioManagementAgent();
+    this.loanAgent = new LoanManagementAgent();
     this.setupMessageHandlers();
   }
 
@@ -24,6 +27,9 @@ export class MainOrchestratorAgent {
     
     // Start portfolio agent
     await this.portfolioAgent.start();
+    
+    // Start loan agent
+    await this.loanAgent.start();
     
     // Start message processor
     this.startMessageProcessor();
@@ -36,6 +42,9 @@ export class MainOrchestratorAgent {
     
     // Stop portfolio agent
     await this.portfolioAgent.stop();
+    
+    // Stop loan agent
+    await this.loanAgent.stop();
     
     // Stop message processor
     if (this.messageProcessorInterval) {
@@ -58,9 +67,15 @@ export class MainOrchestratorAgent {
   private processMessages(): void {
     // Collect messages from all agents
     const portfolioMessages = this.portfolioAgent.getMessages();
+    const loanMessages = this.loanAgent.getMessages();
 
     // Process portfolio agent messages
     for (const message of portfolioMessages) {
+      this.handleMessage(message);
+    }
+
+    // Process loan agent messages
+    for (const message of loanMessages) {
       this.handleMessage(message);
     }
   }
@@ -138,10 +153,16 @@ export class MainOrchestratorAgent {
     return this.portfolioAgent;
   }
 
+  // Get loan agent instance
+  getLoanAgent(): LoanManagementAgent {
+    return this.loanAgent;
+  }
+
   // Get agent statuses
   getAgentStatuses(): Array<{ name: string; enabled: boolean; running: boolean }> {
     return [
       this.portfolioAgent.getStatus(),
+      this.loanAgent.getStatus(),
     ];
   }
 }

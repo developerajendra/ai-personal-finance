@@ -1,0 +1,18 @@
+[
+  {
+    "id": "pattern-1",
+    "title": "Quarterly Loan Summary Update - Property Loan",
+    "type": "quarterly-summary",
+    "enabled": true,
+    "createdAt": "2026-01-11T15:00:00.000Z",
+    "updatedAt": "2026-01-11T15:00:00.000Z"
+  },
+  {
+    "id": "pattern-2",
+    "title": "Important Update: Change in Your Loan Interest Rate",
+    "type": "interest-rate-change",
+    "enabled": true,
+    "createdAt": "2026-01-11T15:00:00.000Z",
+    "updatedAt": "2026-01-11T15:00:00.000Z"
+  }
+]

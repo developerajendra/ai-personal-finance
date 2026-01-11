@@ -4,8 +4,8 @@
     "name": "House Loan",
     "type": "home-loan",
     "principalAmount": 2000000,
-    "outstandingAmount": 1999999.97,
-    "interestRate": 8.5,
+    "outstandingAmount": 2151207,
+    "interestRate": 6.75,
     "startDate": "2026-01-02",
     "emiAmount": 2054013,
     "emiDate": 1,
@@ -13,7 +13,7 @@
     "description": "Auto-extracted and categorized from Excel",
     "status": "active",
     "createdAt": "2026-01-02T15:22:34.623Z",
-    "updatedAt": "2026-01-08T13:33:48.397Z",
+    "updatedAt": "2026-01-11T16:32:54.521Z",
     "isPublished": true
   }
 ]

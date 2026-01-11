@@ -1,0 +1,17 @@
+{
+  "id": "1768142829094-c2974db0",
+  "queryHash": "c2974db06fce6ee7834258b0536fcb00",
+  "message": "Analyze this email and determine if it contains information about a financial investment (like FD, PPF, Mutual Fund, Stocks, Bonds, etc.).\n\nEmail Subject: Rahul Jain reacted to this post: We are looking for highly…\nEmail Content: Rahul Jain liked this Danny G. LIKE PRAISE EMPATHY 98, 1 Comment Commerce Cloud Architect Read more: https://www.linkedin.com/comm/feed/update/urn:li:activity:7413963698710519808?origin=NETWORK_CONVERSATIONS&lipi=urn%3Ali%3Apage%3Aemail_email_network_conversations_01%3BJR13zSH4RAOmC%2Fv1Ec45EA%3D%3D&midToken=AQFMjYnuODQXdg&midSig=0k76tkbJg5Es41&trk=eml-email_network_conversations_01-network~post~cta~text-0-read~more&trkEmail=eml-email_network_conversations_01-network~post~cta~text-0-read~more-null-10ivnq~mk7pct0y~fn-null-null&eid=10ivnq-mk7pct0y-fn&otpToken=MTQwNDFkZTQxNTJlYzhjMGJlMmYwMmVjNGUxZWU2Yjc4ZWNmZDE0MTliYTY4NTZkNzljNjAxNjY0ZTVmNWJmNWZjOWM5MTk5MTVjM2Y5ODA2NDZlY2Y4NDcxMTAxZjc3M2FlOTJiNGI5YzA2ZDAwNmNlLDEsMQ%3D%3D Garima Malhotra shared a post: Thrilled to share an exciting milestone! I’ve successfully earned Certification #AdobeJourneyOptimizer from Adobe. LIKE PRAISE 14, 1 Comment Read more: https://www.linkedin.com/comm/feed/update/urn:li:activity:7414227111869333505?origin=NET\n\nReturn ONLY a JSON object with:\n{\n  \"isInvestmentEmail\": true or false,\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain investment information. Return ONLY valid JSON with \"isInvestmentEmail\" (boolean) and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isInvestmentEmail\":false,\"confidence\":0,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142829094,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 4285
+  },
+  "usage": {
+    "hitCount": 1,
+    "lastAccessed": 1768142910769
+  }
+}

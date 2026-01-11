@@ -1,0 +1,17 @@
+{
+  "id": "1768142758236-57e0b2f4",
+  "queryHash": "57e0b2f4742ee5c2cade1f1af192002b",
+  "message": "Analyze this email and determine if it contains information about a financial investment (like FD, PPF, Mutual Fund, Stocks, Bonds, etc.).\n\nEmail Subject: Notice of Extra-Ordinary General Meeting of Adani Ports and Special Economic Zone Limited\nEmail Content: Adani Ports and Special Economic Zone Limited CIN: L63090GJ1998PLC034182 Regd. Office: Adani Corporate House, Shantigram, Near Vaishnav Devi Circle, S. G. Highway, Khodiyar, Ahmedabad, Gujarat, 382421 Website: www.adaniports.com Email: investor.apsezl@adani.com Tel.: +91 79 2555 4444 Notice of Extra-Ordinary General Meeting of Adani Ports and Special Economic Zone Limited Date: January 10, 2026 Name of Shareholder: Rajendra Prasad Neupane Folio No. / DP Id &amp; Client Id: XXXXXXXXXXXX8865 Dear Shareholder, We are pleased to inform you that the Extra-Ordinary General Meeting (“EGM”) of the Company is scheduled to be held on: Day and Date : Monday, February 2, 2026 Time : 11:00 a.m. Via : Video Conferencing (“VC”) or other audio visual means (“OAVM”) The EGM is being convened in due compliance with the applicable provisions of the Companies Act, 2013 (“the Act”), the Rules made thereunder read with the MCA’s General Circular Nos. 14/2020 dated April 8, 2020, 17/2020 dated April 13, 2020\n\nReturn ONLY a JSON object with:\n{\n  \"isInvestmentEmail\": true or false,\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain investment information. Return ONLY valid JSON with \"isInvestmentEmail\" (boolean) and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isInvestmentEmail\":true,\"confidence\":0.8,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142758236,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 2295
+  },
+  "usage": {
+    "hitCount": 1,
+    "lastAccessed": 1768142876120
+  }
+}

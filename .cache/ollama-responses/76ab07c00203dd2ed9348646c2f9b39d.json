@@ -1,0 +1,17 @@
+{
+  "id": "1768142858902-76ab07c0",
+  "queryHash": "76ab07c00203dd2ed9348646c2f9b39d",
+  "message": "Analyze this email and determine if it contains information about a financial investment (like FD, PPF, Mutual Fund, Stocks, Bonds, etc.).\n\nEmail Subject: View Anisha Babbar’s post and your next steps\nEmail Content: Now, take these next steps for more success We’ll send you LinkedIn updates, updates from your network, recruiter messages and promotional messages. You can change your preferences anytime. Explore related trending posts Based on your recent activity Anisha Babbar shared a post: HI Connections! TO THE NEW is Hiring: Content Marketer (Contractual role for client location) We are looking for #ContentMarketers -Good knowledge… LIKE PRAISE EMPATHY 42, 3 Comments Read more: https://www.linkedin.com/comm/feed/update/share:7406982967295877120?lipi=urn%3Ali%3Apage%3Aemail_email_next_best_action_digest_01%3BXX%2F%2BzSvOSd2jckF0USYUag%3D%3D&midToken=AQFMjYnuODQXdg&midSig=2-kOyFDAqlFY41&trk=eml-email_next_best_action_digest_01-network~post~cta~text-0-read~more&trkEmail=eml-email_next_best_action_digest_01-network~post~cta~text-0-read~more-null-10ivnq~mk9ddbdl~ln-null-null&eid=10ivnq-mk9ddbdl-ln&otpToken=MTQwNDFkZTQxNTJlYzhjMGJlMmYwMmVjNGUxZmU2Yjc4NmNlZDg0OTlmYWM4NTZkNzljNjAxNjY0ZTVmNWJmNWZjZDBiM2\n\nReturn ONLY a JSON object with:\n{\n  \"isInvestmentEmail\": true or false,\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain investment information. Return ONLY valid JSON with \"isInvestmentEmail\" (boolean) and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isInvestmentEmail\":false,\"confidence\":0,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142858902,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 2576
+  },
+  "usage": {
+    "hitCount": 0,
+    "lastAccessed": 1768142858902
+  }
+}

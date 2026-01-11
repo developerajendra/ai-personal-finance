@@ -1,0 +1,17 @@
+{
+  "id": "1768142879681-b6e5e007",
+  "queryHash": "b6e5e0072ae1554c6e4ac668a6c9341d",
+  "message": "Analyze this email and determine if it contains loan-related information.\n\nEmail Subject: New Year Sale: Get 35% off Lumosity Premium\nEmail Content: ( https://links.notifications.lumosity.com/ls/click?upn=u001.86X-2FBN-2BW8452X5Yl0zWC6o5f2Me08hdgR8aEbhSOcZ-2B9kvWf36CU1JvzN8UJmUQq9AHqsHnyC9M39-2FqPlmBvqo28d9ho8KitZfo2-2FJN-2BoZ9Azx2FU-2BtexDMZ4jbLkBb7rjKwR2mCNGly6u5rFgUdQ7Rt8cOkTynrMGh-2FHeIocKtOYTO4vlHol83VJJY8khVew1s-2BpJQ8iH9EGL0y6L2492C-2BvrwRCQaRciftrTN1zmeOMdajhzWMxfT6Z5sJw9I2Qyv-2BmuwwT7G49d0PC3ekYBDKYYpPZ-2FKVGfblUC-2BFum0BVyblBxA9qV9e-2Bd2qm4-2FBpOtLk1EsFX72Ra4zRNMhq0RXkqcCX83HEdHlu6zzKN1ERtzNa32eg7KyyBtJ-2FJZ4nOnnW49xCPBQLiHHYbTa6g-3D-3Dr7mf_Udr-2BeqDiZlnwS924wFIdmrT6LWpsDRwOjZqHxwmTTnmfB1EdwF8ZOE6QAbAs1hVfdm4z72HgXwG3IHE4D2MOBpq216v9ELREm1IcwzF-2F-2Fb-2BBaaxR7k1tXAu2-2BpDS5MP7ck6uhJTJfwDQmB4HJNukO-2BUuhUvhADHqCHaSoXDcYCvjv6RjL5hJr1zQf-2BMHAMAHTnQtsC4AoK95v-2Ff6J9u-2BW7WQzC0-2Bici-2BHr1FTTktIVaFbK6Q4jwnRzfU49uq-2BgxQ7XhhxS7-2FmNve1n9lBXdNnCcsozTEyuEiUZVvHkroosFdSbg0GzP85dSBkdaGSXVr4oVUR3b3O7PD-2F4kGAwdtKdsZhGZYVM7F4BCyfj9JaAExNgHqeRD2UwS2tMbkBnawBYKkcl5kEEeFhOP96rVfJ5lZrzXEgERoNFsZJ-2FI4LPCJadKnTNpSvzictP4IHiIRXOPPbm6nUVrc\n\nDetermine if this is:\n1. A quarterly loan summary (contains outstanding balance, principal paid, interest paid, EMI details)\n2. An interest rate change notification (contains old rate, new rate, effective date)\n3. Other loan-related email\n4. Not a loan email\n\nReturn ONLY a JSON object with:\n{\n  \"isLoanEmail\": true or false,\n  \"emailType\": \"quarterly-summary\" | \"interest-rate-change\" | \"other\",\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain loan information. Return ONLY valid JSON with \"isLoanEmail\" (boolean), \"emailType\" (string), and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isLoanEmail\":false,\"emailType\":\"\",\"confidence\":0,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142879681,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 4302
+  },
+  "usage": {
+    "hitCount": 0,
+    "lastAccessed": 1768142879681
+  }
+}

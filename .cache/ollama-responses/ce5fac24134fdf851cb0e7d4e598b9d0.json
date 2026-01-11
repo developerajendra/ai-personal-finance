@@ -1,0 +1,17 @@
+{
+  "id": "1768142861430-ce5fac24",
+  "queryHash": "ce5fac24134fdf851cb0e7d4e598b9d0",
+  "message": "Analyze this email and determine if it contains loan-related information.\n\nEmail Subject: Notice of Extra-Ordinary General Meeting of Adani Ports and Special Economic Zone Limited\nEmail Content: Adani Ports and Special Economic Zone Limited CIN: L63090GJ1998PLC034182 Regd. Office: Adani Corporate House, Shantigram, Near Vaishnav Devi Circle, S. G. Highway, Khodiyar, Ahmedabad, Gujarat, 382421 Website: www.adaniports.com Email: investor.apsezl@adani.com Tel.: +91 79 2555 4444 Notice of Extra-Ordinary General Meeting of Adani Ports and Special Economic Zone Limited Date: January 10, 2026 Name of Shareholder: Rajendra Prasad Neupane Folio No. / DP Id &amp; Client Id: XXXXXXXXXXXX8865 Dear Shareholder, We are pleased to inform you that the Extra-Ordinary General Meeting (“EGM”) of the Company is scheduled to be held on: Day and Date : Monday, February 2, 2026 Time : 11:00 a.m. Via : Video Conferencing (“VC”) or other audio visual means (“OAVM”) The EGM is being convened in due compliance with the applicable provisions of the Companies Act, 2013 (“the Act”), the Rules made thereunder read with the MCA’s General Circular Nos. 14/2020 dated April 8, 2020, 17/2020 dated April 13, 2020\n\nDetermine if this is:\n1. A quarterly loan summary (contains outstanding balance, principal paid, interest paid, EMI details)\n2. An interest rate change notification (contains old rate, new rate, effective date)\n3. Other loan-related email\n4. Not a loan email\n\nReturn ONLY a JSON object with:\n{\n  \"isLoanEmail\": true or false,\n  \"emailType\": \"quarterly-summary\" | \"interest-rate-change\" | \"other\",\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain loan information. Return ONLY valid JSON with \"isLoanEmail\" (boolean), \"emailType\" (string), and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isLoanEmail\":false,\"emailType\":\"other\",\"confidence\":0.2,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142861430,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 4622
+  },
+  "usage": {
+    "hitCount": 0,
+    "lastAccessed": 1768142861430
+  }
+}

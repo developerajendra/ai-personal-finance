@@ -1,0 +1,23 @@
+{
+  "loans": {
+    "loan-ai-1767367354623-0": {
+      "loanId": "loan-ai-1767367354623-0",
+      "firstEmailDate": "16 Oct 2025 17:32:31 +0530",
+      "firstEmailTitle": "Quarterly Loan Summary Update - Property Loan No.XX4325119 As Of 30/09/2025",
+      "firstEmailId": "199ece6861395535",
+      "lastEmailDate": "16 Oct 2025 17:32:31 +0530",
+      "lastEmailTitle": "Quarterly Loan Summary Update - Property Loan No.XX4325119 As Of 30/09/2025",
+      "lastEmailId": "199ece6861395535",
+      "totalEmailsProcessed": 2,
+      "emails": [
+        {
+          "emailId": "199ece6861395535",
+          "emailTitle": "Quarterly Loan Summary Update - Property Loan No.XX4325119 As Of 30/09/2025",
+          "emailDate": "16 Oct 2025 17:32:31 +0530",
+          "processedAt": "2026-01-11T15:39:10.315Z",
+          "snapshotDate": "2025-09-30"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "1768142844634-8dc3db58",
+  "queryHash": "8dc3db58e9539cd5d68c79963bece212",
+  "message": "Analyze this email and determine if it contains loan-related information.\n\nEmail Subject: 7 profile views\nEmail Content: 7 profile viewers Viewers you might be interested in 2 work at Programming.com 1 work at ZONK STUDIOS 1 work at Dream Game Studios 1 work at TO THE NEW 1 work at CitiusTech 3 found you through LinkedIn Profile 1 works at a company with open roles you may be interested in 1 has a connection who may be hiring for roles that match your job function https://www.linkedin.com/comm/me/profile-views?lipi=urn%3Ali%3Apage%3Aemail_b2_professional_identity_digest_02%3BmPOU3vL4Q9eFhtLK4MqT4g%3D%3D&midToken=AQFMjYnuODQXdg&midSig=3NOdtOvfotFY41&trk=eml-b2_professional_identity_digest_02-email~professional~identity~digest-0-profile~views&trkEmail=eml-b2_professional_identity_digest_02-email~professional~identity~digest-0-profile~views-null-10ivnq~mk992zi3~8o-null-null&eid=10ivnq-mk992zi3-8o&otpToken=MTQwNDFkZTQxNTJlYzhjMGJlMmYwMmVjNGUxZmU3YjI4OGNlZDg0Nzk4YTk4NTZkNzljNjAxNjY0ZTVmNWJmNWZjYmY5NGU2NDhmN2Q4ZDA2NTNiZTc0MjUxZDRkMDVjYmNiMTM4OWRjNDdiNjRmNGRlLDEsMQ%3D%3D\n\nDetermine if this is:\n1. A quarterly loan summary (contains outstanding balance, principal paid, interest paid, EMI details)\n2. An interest rate change notification (contains old rate, new rate, effective date)\n3. Other loan-related email\n4. Not a loan email\n\nReturn ONLY a JSON object with:\n{\n  \"isLoanEmail\": true or false,\n  \"emailType\": \"quarterly-summary\" | \"interest-rate-change\" | \"other\",\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain loan information. Return ONLY valid JSON with \"isLoanEmail\" (boolean), \"emailType\" (string), and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isLoanEmail\":false,\"emailType\":\"other\",\"confidence\":0,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142844634,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 3565
+  },
+  "usage": {
+    "hitCount": 0,
+    "lastAccessed": 1768142844634
+  }
+}

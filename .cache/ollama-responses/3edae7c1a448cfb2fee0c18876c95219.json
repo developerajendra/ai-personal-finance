@@ -1,0 +1,17 @@
+{
+  "id": "1768142753048-3edae7c1",
+  "queryHash": "3edae7c1a448cfb2fee0c18876c95219",
+  "message": "Analyze this email and determine if it contains information about a financial investment (like FD, PPF, Mutual Fund, Stocks, Bonds, etc.).\n\nEmail Subject: Sunday QnA\nEmail Content: Invitation to Today's Session 🧑‍🏫Sunday Master Class Bonus Session- QA , ⏰ Time - Sun, 5 PM IST Link for the session- https://www.youtube.com/watch?v=wUQ8_4RQ18A https://www.youtube.com/watch?v=wUQ8_4RQ18A 🎥Session video will be available on the same link for 24 hours In case you are not on the group, please join: https://click.connect.in.artofliving.org/?qs=625ff2eb71eb95e5992872becc1893826fc2b5aa491fbf4d506f71fd5ed617f2c8a1283cfaf7be65f96c23153e451ed984bd4a77e62d11688fd3203397441a17 https://click.connect.in.artofliving.org/?qs=625ff2eb71eb95e5f6926129b8d66771f162dbe56c15e879530d60774792a4413540f3d04b31d3963cd0a0ae5bb7374b45088ecf91e7618271916c6c626440ed https://click.connect.in.artofliving.org/?qs=625ff2eb71eb95e57a08acde9a3423aeb36edf7656f73fbf55b173a1a7156794339a4e6a13f2dcd42a38e4074b5c4c7ce38814ad663e4a143de76c5db62b76a0 https://click.connect.in.artofliving.org/?qs=625ff2eb71eb95e58f2c978e8ad1918430d45b708b59c595b3df01b24319782f6f4cc3cc00ea4ba64be615d1cdb05d047a601caef62f373952\n\nReturn ONLY a JSON object with:\n{\n  \"isInvestmentEmail\": true or false,\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain investment information. Return ONLY valid JSON with \"isInvestmentEmail\" (boolean) and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isInvestmentEmail\":false,\"confidence\":0,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142753048,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 2965
+  },
+  "usage": {
+    "hitCount": 1,
+    "lastAccessed": 1768142872718
+  }
+}

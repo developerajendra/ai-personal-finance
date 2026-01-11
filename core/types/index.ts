@@ -99,6 +99,22 @@ export interface Loan {
   updatedAt: string;
 }
 
+export interface LoanMonthlySnapshot {
+  id: string;
+  loanId: string;
+  year: number;
+  month: number;
+  outstandingAmount: number;
+  principalPaid: number; // Principal paid in this month
+  interestPaid: number; // Interest paid in this month
+  emiAmount: number;
+  interestRate: number;
+  remainingTenureMonths: number;
+  snapshotDate: string; // ISO date when snapshot was taken (end of month)
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Property {
   id: string;
   name: string; // e.g., "House", "Plot", "Commercial Property"

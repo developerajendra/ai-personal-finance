@@ -78,6 +78,7 @@ const baseNavigation = [
       { name: 'Stocks', href: '/portfolio/stocks', icon: TrendingUp },
       { name: 'Mutual Funds', href: '/portfolio/mutual-funds', icon: PieChart },
       { name: 'Loans', href: '/portfolio/loans', icon: CreditCard },
+      { name: 'Loan Analytics', href: '/portfolio/loans/analytics', icon: BarChart3 },
       { name: 'Properties', href: '/portfolio/properties', icon: Home },
       { name: 'Bank Balances', href: '/portfolio/bank-balances', icon: Wallet },
       { name: 'Provident Fund', href: '/portfolio/provident-fund', icon: Wallet },

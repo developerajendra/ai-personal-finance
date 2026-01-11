@@ -1,0 +1,17 @@
+{
+  "id": "1768142774074-ae515d8e",
+  "queryHash": "ae515d8e2badb27aa6a72196b8143871",
+  "message": "Analyze this email and determine if it contains information about a financial investment (like FD, PPF, Mutual Fund, Stocks, Bonds, etc.).\n\nEmail Subject: Unbelievable Prices For Almaty\nEmail Content: Document Your Next International Getaway Just Got Better Almaty DelightSnowy Landscapes, Vibrant Bazaars, And City Charm At Great Value.Packages Starting From ₹83,948* per person *T&Cs Apply Travel More With Special Bank Deals Use Code: ICICIEMT Use Code: ICICIEMI\n\nReturn ONLY a JSON object with:\n{\n  \"isInvestmentEmail\": true or false,\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain investment information. Return ONLY valid JSON with \"isInvestmentEmail\" (boolean) and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isInvestmentEmail\":false,\"confidence\":0,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142774074,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 1771
+  },
+  "usage": {
+    "hitCount": 1,
+    "lastAccessed": 1768142878662
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "1768142809366-58a9979e",
+  "queryHash": "58a9979ecf0a05b5b5606e640165c187",
+  "message": "Analyze this email and determine if it contains information about a financial investment (like FD, PPF, Mutual Fund, Stocks, Bonds, etc.).\n\nEmail Subject: Adobe is hiring a Engineering Manager - 2 (Front End)\nEmail Content: Top job picks for you: https://www.linkedin.com/comm/jobs/collections/recommended?origin=JYMBII_EMAIL&lgCta=eml-jymbii-bottom-see-all-jobs&lgTemp=jobs_jymbii_digest&lipi=urn%3Ali%3Apage%3Aemail_jobs_jymbii_digest%3BI7XPWm%2FmR5%2B1FjXL1sVMxw%3D%3D&midToken=AQFMjYnuODQXdg&midSig=1VWPM-ZQZZEs41&trk=eml-jobs_jymbii_digest-null-0-null&trkEmail=eml-jobs_jymbii_digest-null-0-null-null-10ivnq~mk7tn4zf~v6-null-null&eid=10ivnq-mk7tn4zf-v6&otpToken=MTQwNDFkZTQxNTJlYzhjMGJlMmYwMmVjNGUxZWU1YjQ4Y2NlZDg0Nzk5YWI4NTZkNzljNjAxNjY0ZTVmNWJmNWZjYTFiM2U2NGRjYmNiZTk1MWZmMzhhYTlmMjZlOWFmNDUwMzk1Yjg2NDc1MWM5YTU0LDEsMQ%3D%3D Engineering Manager - 2 (Front End) Adobe 201301 4 connections View job: https://www.linkedin.com/comm/jobs/view/4330691945/?trackingId=7pCYYaZYRJCSUl%2FmQjXyNw%3D%3D&refId=t7rS%2FMKbRl%2BG4x%2BDERuttA%3D%3D&lipi=urn%3Ali%3Apage%3Aemail_jobs_jymbii_digest%3BI7XPWm%2FmR5%2B1FjXL1sVMxw%3D%3D&midToken=AQFMjYnuODQXdg&midSig=1VWPM-ZQZZEs41&trk=eml-jobs_jymbii_digest-jymbii-0-view_job&trkEmail=e\n\nReturn ONLY a JSON object with:\n{\n  \"isInvestmentEmail\": true or false,\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain investment information. Return ONLY valid JSON with \"isInvestmentEmail\" (boolean) and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isInvestmentEmail\":false,\"confidence\":0,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142809366,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 2901
+  },
+  "usage": {
+    "hitCount": 1,
+    "lastAccessed": 1768142905595
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "1768142874661-875e3e9d",
+  "queryHash": "875e3e9df7468d3aef01b9f363342f74",
+  "message": "Analyze this email and determine if it contains loan-related information.\n\nEmail Subject: Winning the War in Your Mind?\nEmail Content: Unlocking Ur Coaching Skills By Chandan Lal Patary By Chandan Lal Patary Read this article on LinkedIn to join the conversation Read on LinkedIn https://www.linkedin.com/comm/pulse/winning-war-your-mind-chandan-lal-patary-i2umc?lipi=urn%3Ali%3Apage%3Aemail_email_series_follow_newsletter_02%3BMn877DK7SGWYxyEIi%2BMWKw%3D%3D&midToken=AQFMjYnuODQXdg&midSig=1GRm7RmT4vEI41&trk=eml-email_series_follow_newsletter_02-null-0-read_more_banner_cta_&trkEmail=eml-email_series_follow_newsletter_02-null-0-read_more_banner_cta_-null-10ivnq~mk7zc7ox~d9-null-null&eid=10ivnq-mk7zc7ox-d9 Winning the War in Your Mind by Craig Groeschel This book—especially in its audiobook form—is widely recognized for its deeply compassionate, practical, and spiritually grounded approach to reshaping thought patterns and reclaiming inner freedom. Why This Book Is So Powerful—and Why It Truly Helps People Winning the War in Your Mind resonates so deeply because it gives language to a struggle most people experience silently\n\nDetermine if this is:\n1. A quarterly loan summary (contains outstanding balance, principal paid, interest paid, EMI details)\n2. An interest rate change notification (contains old rate, new rate, effective date)\n3. Other loan-related email\n4. Not a loan email\n\nReturn ONLY a JSON object with:\n{\n  \"isLoanEmail\": true or false,\n  \"emailType\": \"quarterly-summary\" | \"interest-rate-change\" | \"other\",\n  \"confidence\": number between 0 and 1\n}",
+  "systemPrompt": "You are a financial email analyzer. Analyze emails and determine if they contain loan information. Return ONLY valid JSON with \"isLoanEmail\" (boolean), \"emailType\" (string), and \"confidence\" (number 0-1) fields.",
+  "response": "{\"isLoanEmail\":false,\"emailType\":\"\",\"confidence\":0,\"investments\":[],\"loans\":[],\"properties\":[],\"bankBalances\":[]}",
+  "metadata": {
+    "timestamp": 1768142874661,
+    "model": "llama3",
+    "queryType": "json",
+    "responseTime": 2353
+  },
+  "usage": {
+    "hitCount": 0,
+    "lastAccessed": 1768142874661
+  }
+}
