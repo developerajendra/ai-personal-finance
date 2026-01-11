@@ -182,3 +182,53 @@ export interface PortfolioCategory {
   updatedAt: string;
 }
 
+export interface FinancialSnapshot {
+  id: string;
+  year: number;
+  month?: number; // Optional: only for current/upcoming years, null for past years
+  period: "yearly" | "monthly"; // Type of snapshot
+  snapshotDate: string; // ISO date when snapshot was taken (end of month for monthly)
+  
+  // Portfolio data
+  totalInvestments: number;
+  totalLoans: number;
+  totalProperties: number;
+  totalBankBalances: number;
+  totalReceivables: number;
+  totalStocks: number;
+  totalMutualFunds: number;
+  totalPPF: number;
+  totalFixedAssets: number;
+  totalLiquidAssets: number;
+  netWorth: number;
+  
+  // Transaction data
+  totalIncome: number;
+  totalExpenses: number;
+  netBalance: number;
+  
+  // Breakdowns
+  investmentBreakdown: Record<string, number>;
+  loanBreakdown: Record<string, number>;
+  propertyBreakdown: Record<string, number>;
+  categoryBreakdown: Record<string, number>;
+  
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ArchiveGrowthMetrics {
+  monthlyGrowth: {
+    netWorth: number; // % change from previous month
+    totalInvestments: number;
+    totalIncome: number;
+    totalExpenses: number;
+  };
+  yearlyGrowth: {
+    netWorth: number; // % change from same month last year
+    totalInvestments: number;
+    totalIncome: number;
+    totalExpenses: number;
+  };
+}
+

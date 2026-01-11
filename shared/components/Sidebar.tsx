@@ -25,6 +25,7 @@ import {
   Mail,
   LucideIcon,
   X,
+  Archive,
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { PortfolioCategory } from '@/core/types';
@@ -44,6 +45,7 @@ const iconMap: Record<string, LucideIcon> = {
   Upload,
   Sparkles,
   Mail,
+  Archive,
   // Add more icons as needed
 };
 
@@ -63,6 +65,7 @@ const baseNavigation = [
     submenu: [
       { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
       { name: 'Analytics', href: '/dashboard/chart', icon: BarChart3 },
+      { name: 'Archive', href: '/dashboard/archive', icon: Archive },
     ],
   },
   {
