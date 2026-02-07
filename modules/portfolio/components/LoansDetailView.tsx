@@ -166,89 +166,12 @@ export function LoansDetailView() {
         )}
       </div>
 
-      {/* Loan Details Table */}
-      <div className="bg-white rounded-lg shadow border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold">Loan Details</h3>
+      {loans.length === 0 && (
+        <div className="bg-white rounded-lg shadow border border-gray-200 p-12 text-center text-gray-500">
+          <CreditCard className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+          <p>No loans data available. Add loans in the Portfolio section.</p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Loan Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Principal
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Outstanding
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  EMI Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Interest Rate
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tenure
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loans.map((loan) => (
-                <tr key={loan.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {loan.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {loan.type.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ₹{loan.principalAmount.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-semibold">
-                    ₹{loan.outstandingAmount.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ₹{loan.emiAmount.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {loan.interestRate}%
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {loan.tenureMonths} months
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        loan.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : loan.status === 'closed'
-                            ? 'bg-gray-100 text-gray-800'
-                            : 'bg-red-100 text-red-800'
-                      }`}>
-                      {loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {loans.length === 0 && (
-          <div className="p-12 text-center text-gray-500">
-            <CreditCard className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p>No loans data available. Add loans in the Portfolio section.</p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

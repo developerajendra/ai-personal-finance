@@ -64,7 +64,7 @@ const baseNavigation = [
     defaultHref: '/dashboard',
     submenu: [
       { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-      { name: 'Analytics', href: '/dashboard/chart', icon: BarChart3 },
+
       { name: 'Archive', href: '/dashboard/archive', icon: Archive },
     ],
   },
@@ -78,10 +78,13 @@ const baseNavigation = [
       { name: 'Stocks', href: '/portfolio/stocks', icon: TrendingUp },
       { name: 'Mutual Funds', href: '/portfolio/mutual-funds', icon: PieChart },
       { name: 'Loans', href: '/portfolio/loans', icon: CreditCard },
-      { name: 'Loan Analytics', href: '/portfolio/loans/analytics', icon: BarChart3 },
       { name: 'Properties', href: '/portfolio/properties', icon: Home },
       { name: 'Bank Balances', href: '/portfolio/bank-balances', icon: Wallet },
-      { name: 'Provident Fund', href: '/portfolio/provident-fund', icon: Wallet },
+      {
+        name: 'Provident Fund',
+        href: '/portfolio/provident-fund',
+        icon: Wallet,
+      },
     ],
   },
   {
@@ -113,8 +116,12 @@ export function Sidebar() {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [gmailStatus, setGmailStatus] = useState<{ isConnected: boolean } | null>(null);
-  const [portfolioCategories, setPortfolioCategories] = useState<PortfolioCategory[]>([]);
+  const [gmailStatus, setGmailStatus] = useState<{
+    isConnected: boolean;
+  } | null>(null);
+  const [portfolioCategories, setPortfolioCategories] = useState<
+    PortfolioCategory[]
+  >([]);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Fetch portfolio categories
@@ -141,12 +148,22 @@ export function Sidebar() {
     window.addEventListener('portfolioCategoriesUpdated', handleCategoryUpdate);
 
     return () => {
-      window.removeEventListener('portfolioCategoriesUpdated', handleCategoryUpdate);
+      window.removeEventListener(
+        'portfolioCategoriesUpdated',
+        handleCategoryUpdate,
+      );
     };
   }, []);
 
-  const handleDeleteCategory = async (categoryId: string, categoryName: string) => {
-    if (!confirm(`Are you sure you want to delete the category "${categoryName}"? This action cannot be undone.`)) {
+  const handleDeleteCategory = async (
+    categoryId: string,
+    categoryName: string,
+  ) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete the category "${categoryName}"? This action cannot be undone.`,
+      )
+    ) {
       return;
     }
 
@@ -175,10 +192,10 @@ export function Sidebar() {
     return baseNavigation.map((menu) => {
       if (menu.name === 'Portfolio') {
         // Sort dynamic categories alphabetically by name
-        const sortedCategories = [...portfolioCategories].sort((a, b) => 
-          a.name.localeCompare(b.name)
+        const sortedCategories = [...portfolioCategories].sort((a, b) =>
+          a.name.localeCompare(b.name),
         );
-        
+
         // Add dynamic categories to Portfolio submenu with full category data
         const dynamicSubmenu = sortedCategories.map((cat) => ({
           name: cat.name,
@@ -188,7 +205,7 @@ export function Sidebar() {
           isDynamic: true, // Flag to identify dynamic categories
           slug: cat.slug, // Store slug to check if deletable
         }));
-        
+
         return {
           ...menu,
           submenu: [...(menu.submenu || []), ...dynamicSubmenu],
@@ -226,7 +243,7 @@ export function Sidebar() {
 
   const isActive = (href: string) => pathname === href;
 
-  const isMenuActive = (menu: typeof navigation[0]) => {
+  const isMenuActive = (menu: (typeof navigation)[0]) => {
     if (pathname === menu.href || pathname === menu.defaultHref) return true;
     return menu.submenu?.some((item) => pathname === item.href) || false;
   };
@@ -250,19 +267,27 @@ export function Sidebar() {
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
         setShowUserMenu(false);
       }
     };
 
     if (showUserMenu) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showUserMenu]);
 
   const handleLogout = async () => {
-    if (!confirm('Are you sure you want to logout? You will need to login again to access your data.')) {
+    if (
+      !confirm(
+        'Are you sure you want to logout? You will need to login again to access your data.',
+      )
+    ) {
       return;
     }
 
@@ -282,7 +307,10 @@ export function Sidebar() {
     }
   };
 
-  const handleMenuClick = (menu: typeof navigation[0], e: React.MouseEvent) => {
+  const handleMenuClick = (
+    menu: (typeof navigation)[0],
+    e: React.MouseEvent,
+  ) => {
     if (isCollapsed) {
       e.preventDefault();
       toggleMenu(menu.name);
@@ -299,7 +327,7 @@ export function Sidebar() {
     <div
       className={cn(
         'bg-gray-900 text-white flex flex-col transition-all duration-300 ease-in-out relative',
-        isCollapsed ? 'w-20' : 'w-64'
+        isCollapsed ? 'w-20' : 'w-64',
       )}>
       {/* User Profile Section */}
       <div className="p-4 border-b border-gray-800 relative">
@@ -324,9 +352,11 @@ export function Sidebar() {
                     </p>
                     <p className="text-sm font-semibold truncate">User</p>
                   </div>
-                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
+                  />
                 </button>
-                
+
                 {/* User Dropdown Menu */}
                 {showUserMenu && (
                   <div className="absolute left-0 top-full mt-2 w-56 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 z-[100]">
@@ -341,11 +371,18 @@ export function Sidebar() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white">User</p>
+                          <p className="text-sm font-semibold text-white">
+                            User
+                          </p>
                           <div className="flex items-center gap-2 mt-1">
-                            <Mail className={`w-3 h-3 ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`} />
-                            <p className={`text-xs ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`}>
-                              {gmailStatus?.isConnected ? 'Gmail Connected' : 'Not Connected'}
+                            <Mail
+                              className={`w-3 h-3 ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`}
+                            />
+                            <p
+                              className={`text-xs ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`}>
+                              {gmailStatus?.isConnected
+                                ? 'Gmail Connected'
+                                : 'Not Connected'}
                             </p>
                           </div>
                         </div>
@@ -371,7 +408,9 @@ export function Sidebar() {
               </button>
             </>
           ) : (
-            <div className="flex items-center justify-center w-full relative" ref={userMenuRef}>
+            <div
+              className="flex items-center justify-center w-full relative"
+              ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="relative">
@@ -382,7 +421,7 @@ export function Sidebar() {
                   <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></div>
                 )}
               </button>
-              
+
               {/* User Dropdown Menu (Collapsed) */}
               {showUserMenu && (
                 <div className="absolute left-full ml-2 top-0 w-56 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 z-[100]">
@@ -399,9 +438,14 @@ export function Sidebar() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-white">User</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <Mail className={`w-3 h-3 ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`} />
-                          <p className={`text-xs ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`}>
-                            {gmailStatus?.isConnected ? 'Gmail Connected' : 'Not Connected'}
+                          <Mail
+                            className={`w-3 h-3 ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`}
+                          />
+                          <p
+                            className={`text-xs ${gmailStatus?.isConnected ? 'text-green-400' : 'text-gray-500'}`}>
+                            {gmailStatus?.isConnected
+                              ? 'Gmail Connected'
+                              : 'Not Connected'}
                           </p>
                         </div>
                       </div>
@@ -418,7 +462,7 @@ export function Sidebar() {
                   </button>
                 </div>
               )}
-              
+
               <button
                 onClick={() => setIsCollapsed(false)}
                 className="absolute -right-3 top-6 p-1.5 rounded-full bg-gray-800 border-2 border-gray-700 hover:bg-gray-700 transition-colors z-10"
@@ -448,7 +492,7 @@ export function Sidebar() {
                     'w-full flex items-center justify-center p-3 rounded-xl transition-all duration-200 mb-1',
                     menuActive
                       ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white',
                   )}>
                   <menu.icon className="w-5 h-5" />
                 </Link>
@@ -456,38 +500,42 @@ export function Sidebar() {
                   <div className="absolute left-full ml-2 top-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 min-w-[200px] z-50">
                     {menu.submenu?.map((item: any) => {
                       const itemActive = isActive(item.href);
-                    const isDynamic = item.isDynamic;
-                    const isDeletable = isDynamic && item.slug !== 'receivables'; // Don't allow deleting receivables
-                    return (
-                      <div
-                        key={item.name}
-                        className="flex items-center gap-2 group/item">
-                        <Link
-                          href={item.href}
-                          onClick={() => setHoveredItem(null)}
-                          className={cn(
-                            'flex-1 flex items-center gap-3 px-4 py-2 text-sm',
-                            itemActive
-                              ? 'text-purple-300 bg-purple-600/20'
-                              : 'text-gray-300 hover:bg-gray-700'
-                          )}>
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.name}</span>
-                        </Link>
-                        {isDeletable && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleDeleteCategory(item.categoryId, item.name);
-                              setHoveredItem(null);
-                            }}
-                            className="opacity-0 group-hover/item:opacity-100 p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all mr-2"
-                            title="Delete category">
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    );
+                      const isDynamic = item.isDynamic;
+                      const isDeletable =
+                        isDynamic && item.slug !== 'receivables'; // Don't allow deleting receivables
+                      return (
+                        <div
+                          key={item.name}
+                          className="flex items-center gap-2 group/item">
+                          <Link
+                            href={item.href}
+                            onClick={() => setHoveredItem(null)}
+                            className={cn(
+                              'flex-1 flex items-center gap-3 px-4 py-2 text-sm',
+                              itemActive
+                                ? 'text-purple-300 bg-purple-600/20'
+                                : 'text-gray-300 hover:bg-gray-700',
+                            )}>
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.name}</span>
+                          </Link>
+                          {isDeletable && (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleDeleteCategory(
+                                  item.categoryId,
+                                  item.name,
+                                );
+                                setHoveredItem(null);
+                              }}
+                              className="opacity-0 group-hover/item:opacity-100 p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all mr-2"
+                              title="Delete category">
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      );
                     })}
                   </div>
                 )}
@@ -505,7 +553,7 @@ export function Sidebar() {
                     'flex-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
                     menuActive
                       ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white',
                   )}>
                   <menu.icon className="w-5 h-5 flex-shrink-0" />
                   <span className="font-medium">{menu.name}</span>
@@ -517,7 +565,7 @@ export function Sidebar() {
                       'p-2 rounded-lg transition-all duration-200',
                       menuActive
                         ? 'text-white hover:bg-purple-700'
-                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                        : 'text-gray-400 hover:bg-gray-800 hover:text-white',
                     )}>
                     {menuOpen ? (
                       <ChevronDown className="w-4 h-4" />
@@ -532,49 +580,50 @@ export function Sidebar() {
                 <div className="ml-6 mt-1 space-y-0.5 border-l-2 border-gray-700 pl-3">
                   {menu.submenu.map((item: any) => {
                     const itemActive = isActive(item.href);
-                      const isDynamic = item.isDynamic;
-                      const isDeletable = isDynamic && item.slug !== 'receivables'; // Don't allow deleting receivables
-                      return (
-                        <div
-                          key={item.name}
+                    const isDynamic = item.isDynamic;
+                    const isDeletable =
+                      isDynamic && item.slug !== 'receivables'; // Don't allow deleting receivables
+                    return (
+                      <div
+                        key={item.name}
+                        className={cn(
+                          'flex items-center gap-2 group/item',
+                          itemActive
+                            ? 'bg-purple-600/20 rounded-lg'
+                            : 'hover:bg-gray-800 rounded-lg',
+                        )}>
+                        <Link
+                          href={item.href}
                           className={cn(
-                            'flex items-center gap-2 group/item',
+                            'flex-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative',
                             itemActive
-                              ? 'bg-purple-600/20 rounded-lg'
-                              : 'hover:bg-gray-800 rounded-lg'
+                              ? 'text-purple-300 font-medium'
+                              : 'text-gray-400 hover:text-white',
                           )}>
-                          <Link
-                            href={item.href}
+                          <div
                             className={cn(
-                              'flex-1 flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm relative',
+                              'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full transition-all',
                               itemActive
-                                ? 'text-purple-300 font-medium'
-                                : 'text-gray-400 hover:text-white'
-                            )}>
-                            <div
-                              className={cn(
-                                'absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full transition-all',
-                                itemActive
-                                  ? 'bg-purple-400 -ml-4 w-1.5 h-1.5'
-                                  : 'bg-gray-600 -ml-4 group-hover/item:bg-gray-500'
-                              )}
-                            />
-                            <item.icon className="w-4 h-4 flex-shrink-0" />
-                            <span>{item.name}</span>
-                          </Link>
-                          {isDeletable && (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleDeleteCategory(item.categoryId, item.name);
-                              }}
-                              className="opacity-0 group-hover/item:opacity-100 p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all mr-2"
-                              title="Delete category">
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      );
+                                ? 'bg-purple-400 -ml-4 w-1.5 h-1.5'
+                                : 'bg-gray-600 -ml-4 group-hover/item:bg-gray-500',
+                            )}
+                          />
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          <span>{item.name}</span>
+                        </Link>
+                        {isDeletable && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleDeleteCategory(item.categoryId, item.name);
+                            }}
+                            className="opacity-0 group-hover/item:opacity-100 p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all mr-2"
+                            title="Delete category">
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    );
                   })}
                 </div>
               )}
@@ -592,7 +641,7 @@ export function Sidebar() {
               'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
               pathname === '/chatbot'
                 ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                : 'text-gray-300 hover:bg-gray-800 hover:text-white',
             )}>
             <MessageSquare className="w-5 h-5" />
             <span className="font-medium">AI Assistant</span>
@@ -607,7 +656,7 @@ export function Sidebar() {
                 'flex items-center justify-center p-3 rounded-xl transition-all duration-200',
                 pathname === '/chatbot'
                   ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  : 'text-gray-300 hover:bg-gray-800 hover:text-white',
               )}>
               <MessageSquare className="w-5 h-5" />
             </Link>

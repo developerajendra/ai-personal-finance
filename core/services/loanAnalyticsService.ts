@@ -235,8 +235,10 @@ export function getPreviousLoanSnapshot(
   return loanSnapshots[currentIndex - 1] || null;
 }
 
-// Generate missing monthly snapshots based on previous data
-// This is used when quarterly summary is 2 months old and we need to generate next 2 months
+// Generate missing monthly snapshots using proper amortization formula
+// Monthly Interest = Outstanding * (Rate / 12 / 100)
+// Monthly Principal = EMI - Monthly Interest
+// Each month builds on the previous month's values
 export function generateMissingMonthlySnapshots(
   loanId: string,
   lastSnapshot: LoanMonthlySnapshot,
@@ -255,65 +257,49 @@ export function generateMissingMonthlySnapshots(
     return generated; // No months to generate
   }
 
-  // Calculate average monthly reduction in outstanding amount
-  const previousSnapshots = getLoanSnapshots(loanId)
-    .filter((s) => {
-      const sDate = new Date(s.year, s.month - 1);
-      return sDate < lastDate;
-    })
-    .sort((a, b) => {
-      if (a.year !== b.year) return b.year - a.year;
-      return b.month - a.month;
-    })
-    .slice(0, 3); // Get last 3 snapshots for trend
+  // Use the last snapshot as starting point and iterate month by month
+  let prevOutstanding = lastSnapshot.outstandingAmount;
+  let prevPrincipalPaid = lastSnapshot.principalPaid;
+  let prevInterestPaid = lastSnapshot.interestPaid;
+  const emiAmount = lastSnapshot.emiAmount;
+  const annualRate = lastSnapshot.interestRate;
+  const monthlyRate = annualRate / 12 / 100;
 
-  let avgMonthlyReduction = 0;
-  if (previousSnapshots.length >= 2) {
-    const reductions = [];
-    for (let i = 0; i < previousSnapshots.length - 1; i++) {
-      const diff = previousSnapshots[i].outstandingAmount - previousSnapshots[i + 1].outstandingAmount;
-      reductions.push(diff);
-    }
-    avgMonthlyReduction = reductions.reduce((a, b) => a + b, 0) / reductions.length;
-  } else if (lastSnapshot.emiAmount > 0) {
-    // Estimate based on EMI (rough approximation: 60% principal, 40% interest)
-    avgMonthlyReduction = lastSnapshot.emiAmount * 0.6;
-  }
-
-  // Generate snapshots for missing months
   for (let i = 1; i <= monthsDiff; i++) {
     const monthDate = new Date(lastDate);
     monthDate.setMonth(monthDate.getMonth() + i);
-    
+
     const month = monthDate.getMonth() + 1;
     const year = monthDate.getFullYear();
 
     // Check if snapshot already exists
     if (getLoanSnapshot(loanId, year, month)) {
+      // Update running totals from the existing snapshot to maintain chain
+      const existing = getLoanSnapshot(loanId, year, month)!;
+      prevOutstanding = existing.outstandingAmount;
+      prevPrincipalPaid = existing.principalPaid;
+      prevInterestPaid = existing.interestPaid;
       continue;
     }
 
-    // Calculate estimated outstanding amount
-    const estimatedOutstanding = Math.max(
-      0,
-      lastSnapshot.outstandingAmount - (avgMonthlyReduction * i)
-    );
+    // Standard amortization calculation
+    const monthlyInterest = Math.round(prevOutstanding * monthlyRate * 100) / 100;
+    const monthlyPrincipal = Math.round((emiAmount - monthlyInterest) * 100) / 100;
 
-    // Estimate cumulative principal and interest paid (till date)
-    // Add incremental amounts to the last snapshot's cumulative values
-    const estimatedPrincipalPaid = lastSnapshot.principalPaid + (avgMonthlyReduction * i);
-    const estimatedInterestPaid = lastSnapshot.interestPaid + ((lastSnapshot.emiAmount - avgMonthlyReduction) * i);
+    const newOutstanding = Math.max(0, Math.round((prevOutstanding - monthlyPrincipal) * 100) / 100);
+    const newPrincipalPaid = Math.round((prevPrincipalPaid + monthlyPrincipal) * 100) / 100;
+    const newInterestPaid = Math.round((prevInterestPaid + monthlyInterest) * 100) / 100;
 
     const generatedSnapshot: LoanMonthlySnapshot = {
       id: `loan-snapshot-${loanId}-${year}-${month}-${Date.now()}`,
       loanId,
       year,
       month,
-      outstandingAmount: estimatedOutstanding,
-      principalPaid: estimatedPrincipalPaid,
-      interestPaid: estimatedInterestPaid,
-      emiAmount: lastSnapshot.emiAmount,
-      interestRate: lastSnapshot.interestRate,
+      outstandingAmount: newOutstanding,
+      principalPaid: newPrincipalPaid,
+      interestPaid: newInterestPaid,
+      emiAmount,
+      interestRate: annualRate,
       remainingTenureMonths: Math.max(
         0,
         lastSnapshot.remainingTenureMonths - i
@@ -325,6 +311,11 @@ export function generateMissingMonthlySnapshots(
 
     generated.push(generatedSnapshot);
     saveLoanMonthlySnapshot(generatedSnapshot);
+
+    // Update running totals for the next iteration
+    prevOutstanding = newOutstanding;
+    prevPrincipalPaid = newPrincipalPaid;
+    prevInterestPaid = newInterestPaid;
   }
 
   return generated;

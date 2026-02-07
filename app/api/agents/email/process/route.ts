@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     const loanAgent = orchestrator.getLoanAgent();
 
     // Try to load tokens from cookies if agents are not authenticated
-    const loadTokens = async (agent: typeof portfolioAgent) => {
+    const loadTokens = async (agent: { isGmailAuthenticated: () => boolean; setTokens: (access: string, refresh: string) => void }) => {
       if (!agent.isGmailAuthenticated()) {
         try {
           const cookieStore = await cookies();

@@ -303,16 +303,34 @@ export async function POST(request: Request) {
       snapshotDate = lastDay.toISOString();
     }
 
-    const snapshot: FinancialSnapshot = {
+    const defaults: FinancialSnapshot = {
       id: `${snapshotYear}-${finalMonth || "year"}-${Date.now()}`,
       year: snapshotYear,
       month: finalMonth,
       period: finalMonth ? "monthly" : "yearly",
       snapshotDate,
-      ...snapshotData,
+      totalInvestments: 0,
+      totalLoans: 0,
+      totalProperties: 0,
+      totalBankBalances: 0,
+      totalReceivables: 0,
+      totalStocks: 0,
+      totalMutualFunds: 0,
+      totalPPF: 0,
+      totalFixedAssets: 0,
+      totalLiquidAssets: 0,
+      netWorth: 0,
+      totalIncome: 0,
+      totalExpenses: 0,
+      netBalance: 0,
+      investmentBreakdown: {},
+      loanBreakdown: {},
+      propertyBreakdown: {},
+      categoryBreakdown: {},
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     };
+    const snapshot: FinancialSnapshot = { ...defaults, ...snapshotData };
 
     const saved = saveSnapshot(snapshot);
 
