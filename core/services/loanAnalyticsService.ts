@@ -101,6 +101,24 @@ export function getLoanSnapshots(loanId: string): LoanMonthlySnapshot[] {
     });
 }
 
+// Get latest snapshot for a loan (most recent year-month)
+export function getLatestLoanSnapshot(
+  loanId: string
+): LoanMonthlySnapshot | null {
+  const snapshots = getLoanSnapshots(loanId);
+  return snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
+}
+
+// Get effective outstanding amount: latest snapshot when available, else loan.outstandingAmount.
+// Used to align Total Loans with /portfolio/loans analytics display.
+export function getEffectiveOutstandingAmount(loan: {
+  id: string;
+  outstandingAmount: number;
+}): number {
+  const latest = getLatestLoanSnapshot(loan.id);
+  return latest ? latest.outstandingAmount : loan.outstandingAmount;
+}
+
 // Create or update a loan snapshot
 // IMPORTANT: This function only updates the specific quarter (year-month) being saved
 // It does NOT recalculate or modify other quarters' data

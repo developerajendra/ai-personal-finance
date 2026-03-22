@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Investment, Loan, Property, PortfolioSummary, BankBalance } from '@/core/types';
 import { PPFAccount } from '@/core/services/ppfStorageService';
 import { formatIndianNumber } from '@/core/services/currencyService';
+import { getCurrentInvestmentValue } from '@/core/utils/investmentValueCalculator';
 import {
   PieChart,
   Pie,
@@ -132,7 +133,7 @@ export function usePortfolioData() {
 
   const activeInvestments = investments.filter((inv) => inv.status !== 'closed');
   const totalInvestments = activeInvestments.reduce(
-    (sum, inv) => sum + inv.amount,
+    (sum, inv) => sum + getCurrentInvestmentValue(inv),
     0
   );
   const totalLoans = loans.reduce(
@@ -181,7 +182,7 @@ export function usePortfolioData() {
   // Calculate Fixed Assets and Liquid Assets
   // Fixed Assets: Properties (default fixed), Investments with assetType='fixed', BankBalances with assetType='fixed'
   const fixedAssetsFromInvestments = activeInvestments.reduce(
-    (sum, inv) => sum + (inv.assetType === 'fixed' ? inv.amount : 0),
+    (sum, inv) => sum + (inv.assetType === 'fixed' ? getCurrentInvestmentValue(inv) : 0),
     0
   );
   const fixedAssetsFromProperties = properties.reduce(
@@ -200,7 +201,7 @@ export function usePortfolioData() {
 
   // Liquid Assets: Investments with assetType='liquid' or default, Stocks, Mutual Funds, PPF, BankBalances with assetType='liquid' or default, Receivables
   const liquidAssetsFromInvestments = activeInvestments.reduce(
-    (sum, inv) => sum + (inv.assetType === 'fixed' ? 0 : inv.amount),
+    (sum, inv) => sum + (inv.assetType === 'fixed' ? 0 : getCurrentInvestmentValue(inv)),
     0
   );
   const liquidAssetsFromProperties = properties.reduce(
