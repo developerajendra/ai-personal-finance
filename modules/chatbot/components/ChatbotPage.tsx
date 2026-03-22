@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { ChatMessage } from "@/core/types";
 import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import ReactMarkdown from "react-markdown";
@@ -8,11 +9,16 @@ import remarkGfm from "remark-gfm";
 import { ChatChart } from "./ChatChart";
 import { Mic, MicOff, X } from "lucide-react";
 import { VoiceModeView } from "./VoiceModeView";
+import { scrapeCurrentPage } from "../utils/scrapePageData";
+import { capturePageScreenshot } from "../utils/captureScreenshot";
 
 export function ChatbotPage() {
+  const pathname = usePathname();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [operationPrefix, setOperationPrefix] = useState<string>(""); // Track selected operation
+  const [selectedAgent, setSelectedAgent] = useState<"ask" | "audit-finance">("ask"); // Agent selector
+  const [agentStatus, setAgentStatus] = useState<"idle" | "connecting" | "connected" | "failed">("idle"); // MCP connection status
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
@@ -143,6 +149,28 @@ export function ChatbotPage() {
     setMessages((prev) => [...prev, message]);
   };
 
+  // Check MCP connection when switching to audit-finance agent
+  const handleAgentChange = async (agent: "ask" | "audit-finance") => {
+    setSelectedAgent(agent);
+
+    if (agent === "audit-finance") {
+      setAgentStatus("connecting");
+      try {
+        const res = await fetch("/api/modules/chatbot/audit-health");
+        const data = await res.json();
+        if (data.connected) {
+          setAgentStatus("connected");
+        } else {
+          setAgentStatus("failed");
+        }
+      } catch {
+        setAgentStatus("failed");
+      }
+    } else {
+      setAgentStatus("idle");
+    }
+  };
+
   const speakText = (text: string, onEnd?: () => void) => {
     if (!isVoiceEnabled || !synthRef.current) {
       if (onEnd) onEnd();
@@ -226,11 +254,25 @@ export function ChatbotPage() {
     isLoadingRef.current = true;
 
     try {
+      // If in audit mode, capture screenshot + DOM scrape (fallback)
+      let auditPayload: Record<string, any> = {};
+      if (selectedAgent === "audit-finance") {
+        const [screenshot, pageData] = await Promise.all([
+          capturePageScreenshot(),
+          Promise.resolve(scrapeCurrentPage()),
+        ]);
+        if (screenshot) auditPayload.screenshot = screenshot;
+        auditPayload.pageData = pageData;
+      }
+
       const response = await fetch("/api/modules/chatbot/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: transcript,
+          agent: selectedAgent,
+          currentPage: pathname,
+          ...auditPayload,
           context: {
             transactions,
             summary,
@@ -317,11 +359,25 @@ export function ChatbotPage() {
     setIsLoading(true);
 
     try {
+      // If in audit mode, capture screenshot + DOM scrape (fallback)
+      let auditPayload: Record<string, any> = {};
+      if (selectedAgent === "audit-finance") {
+        const [screenshot, pageData] = await Promise.all([
+          capturePageScreenshot(),
+          Promise.resolve(scrapeCurrentPage()),
+        ]);
+        if (screenshot) auditPayload.screenshot = screenshot;
+        auditPayload.pageData = pageData;
+      }
+
       const response = await fetch("/api/modules/chatbot/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: messageToSend,
+          agent: selectedAgent,
+          currentPage: pathname,
+          ...auditPayload,
           context: {
             transactions,
             summary,
@@ -408,10 +464,71 @@ export function ChatbotPage() {
   return (
     <div className="h-full flex flex-col">
       <div className="p-6 border-b">
-        <h1 className="text-2xl font-bold">AI Financial Assistant</h1>
-        <p className="text-gray-600 mt-1">
-          Ask questions about your financial data and get AI-powered insights
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">AI Financial Assistant</h1>
+            <p className="text-gray-600 mt-1">
+              Ask questions about your financial data and get AI-powered insights
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="agent-select" className="text-sm font-medium text-gray-600">
+              Agent:
+            </label>
+            <div className="relative">
+              <select
+                id="agent-select"
+                value={selectedAgent}
+                onChange={(e) => handleAgentChange(e.target.value as "ask" | "audit-finance")}
+                disabled={isLoading || agentStatus === "connecting"}
+                className={`px-3 py-2 pr-8 text-sm font-medium border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                  selectedAgent === "audit-finance"
+                    ? agentStatus === "connected"
+                      ? "bg-green-50 border-green-400 text-green-800"
+                      : agentStatus === "failed"
+                        ? "bg-red-50 border-red-400 text-red-800"
+                        : "bg-amber-50 border-amber-300 text-amber-800"
+                    : "bg-white border-gray-300 text-gray-700"
+                } disabled:opacity-50`}
+              >
+                <option value="ask">Ask (Default)</option>
+                <option value="audit-finance">Audit Finance</option>
+              </select>
+              {selectedAgent === "audit-finance" && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {agentStatus === "connecting" && (
+                    <span className="inline-block w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                  )}
+                  {agentStatus === "connected" && (
+                    <span className="inline-block w-2.5 h-2.5 bg-green-500 rounded-full" />
+                  )}
+                  {agentStatus === "failed" && (
+                    <span className="inline-block w-2.5 h-2.5 bg-red-500 rounded-full" />
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        {selectedAgent === "audit-finance" && (
+          <div className={`mt-3 px-3 py-2 rounded-lg text-sm ${
+            agentStatus === "connected"
+              ? "bg-green-50 border border-green-200 text-green-800"
+              : agentStatus === "failed"
+                ? "bg-red-50 border border-red-200 text-red-800"
+                : "bg-amber-50 border border-amber-200 text-amber-800"
+          }`}>
+            {agentStatus === "connecting" && (
+              <><strong>Connecting...</strong> Verifying MCP connection to Finance Audit Agent</>
+            )}
+            {agentStatus === "connected" && (
+              <><strong>Connected</strong> — Finance Audit Agent is ready. Paste a calculator URL to audit.</>
+            )}
+            {agentStatus === "failed" && (
+              <><strong>Connection Failed</strong> — Could not reach the audit agent. Make sure <code className="bg-red-100 px-1 rounded">finance-audit-agent</code> is built (<code className="bg-red-100 px-1 rounded">npm run build</code>).</>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -680,7 +797,7 @@ export function ChatbotPage() {
                   setOperationPrefix("");
                 }
               }}
-              placeholder={operationPrefix ? "Enter details..." : "Ask about your finances or click mic to speak..."}
+              placeholder={operationPrefix ? "Enter details..." : selectedAgent === "audit-finance" ? "Ask to audit your data or paste a calculator URL..." : "Ask about your finances or click mic to speak..."}
               className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${operationPrefix ? 'pl-32' : ''}`}
               disabled={isLoading || isListening}
             />

@@ -27,6 +27,14 @@ export async function sendChatMessage(
   const systemPrompt = `You are a comprehensive financial assistant with access to the user's complete financial portfolio. 
 Use ALL available data to answer questions accurately and provide comprehensive insights.
 
+FINANCE CALCULATOR AUDIT CAPABILITY:
+- You can audit any online finance calculator (EMI, SIP, CAGR, FD, PPF, tax, loan, etc.)
+- When the user asks to audit, review, check, or verify a calculator, they should provide a URL
+- If they mention auditing a calculator without a URL, ask them to share the calculator page URL
+- The audit agent will: open the page, observe inputs/outputs, test behavior, and detect issues
+- Never claim 100% certainty about audit results - they are probabilistic assessments
+- Example: "Can you audit this EMI calculator? https://emicalculator.net"
+
 Financial Data Context:
 ${financialContext}
 

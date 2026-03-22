@@ -2,23 +2,23 @@
   "stocks": [
     {
       "tradingsymbol": "ADANIPORTS",
-      "exchange": "BSE",
-      "instrument_token": "136427780",
+      "exchange": "NSE",
+      "instrument_token": "3861249",
       "quantity": 6,
       "average_price": 870.45,
-      "last_price": 1550.2,
-      "pnl": 4078.5,
-      "pnl_percentage": 78.0917916020449
+      "last_price": 1365.4,
+      "pnl": 2969.7000000000007,
+      "pnl_percentage": 56.86139353208112
     },
     {
       "tradingsymbol": "ASIANPAINT",
-      "exchange": "BSE",
-      "instrument_token": "128209924",
+      "exchange": "NSE",
+      "instrument_token": "60417",
       "quantity": 4,
       "average_price": 2908.425,
-      "last_price": 2402.7,
-      "pnl": -2022.9000000000015,
-      "pnl_percentage": -17.38827716031874
+      "last_price": 2195.4,
+      "pnl": -2852.1000000000004,
+      "pnl_percentage": -24.51584620542046
     },
     {
       "tradingsymbol": "AXISBANK",
@@ -26,29 +26,29 @@
       "instrument_token": "136247044",
       "quantity": 124,
       "average_price": 1062.710483,
-      "last_price": 1341.55,
-      "pnl": 34576.100107999984,
-      "pnl_percentage": 26.23852135276244
+      "last_price": 1204.25,
+      "pnl": 17550.900108,
+      "pnl_percentage": 13.318727843959739
     },
     {
       "tradingsymbol": "BAJAJ-AUTO",
-      "exchange": "NSE",
-      "instrument_token": "4267265",
+      "exchange": "BSE",
+      "instrument_token": "136442116",
       "quantity": 3,
       "average_price": 9627.3,
-      "last_price": 9518.5,
-      "pnl": -326.3999999999978,
-      "pnl_percentage": -1.1301195558463877
+      "last_price": 9048.3,
+      "pnl": -1737,
+      "pnl_percentage": -6.014147268704622
     },
     {
       "tradingsymbol": "BERGEPAINT",
-      "exchange": "BSE",
-      "instrument_token": "130426884",
+      "exchange": "NSE",
+      "instrument_token": "103425",
       "quantity": 68,
       "average_price": 584.083088,
-      "last_price": 472.45,
-      "pnl": -7591.0499839999975,
-      "pnl_percentage": -19.112535578157328
+      "last_price": 416.7,
+      "pnl": -11382.049983999997,
+      "pnl_percentage": -28.657410467601142
     },
     {
       "tradingsymbol": "BHARATFORG",
@@ -56,19 +56,19 @@
       "instrument_token": "128126212",
       "quantity": 10,
       "average_price": 740.6,
-      "last_price": 1550.1,
-      "pnl": 8095,
-      "pnl_percentage": 109.30326762084796
+      "last_price": 1711.85,
+      "pnl": 9712.5,
+      "pnl_percentage": 131.1436672967864
     },
     {
       "tradingsymbol": "DMART",
-      "exchange": "BSE",
-      "instrument_token": "138336260",
+      "exchange": "NSE",
+      "instrument_token": "5097729",
       "quantity": 17,
       "average_price": 4382.755882,
-      "last_price": 3890.9,
-      "pnl": -8361.549994,
-      "pnl_percentage": -11.222525170066042
+      "last_price": 3770.8,
+      "pnl": -10403.249993999998,
+      "pnl_percentage": -13.962810123952046
     },
     {
       "tradingsymbol": "ETERNAL",
@@ -76,9 +76,9 @@
       "instrument_token": "139089924",
       "quantity": 237,
       "average_price": 256.761392,
-      "last_price": 283.45,
-      "pnl": 6325.200095999993,
-      "pnl_percentage": 10.394322834953305
+      "last_price": 232.3,
+      "pnl": -5797.349903999995,
+      "pnl_percentage": -9.526896473594434
     },
     {
       "tradingsymbol": "HDFCBANK",
@@ -86,29 +86,29 @@
       "instrument_token": "341249",
       "quantity": 238,
       "average_price": 714.713865,
-      "last_price": 941.1,
-      "pnl": 53879.900129999995,
-      "pnl_percentage": 31.675072513109836
+      "last_price": 780.45,
+      "pnl": 15645.200129999983,
+      "pnl_percentage": 9.19754578988053
     },
     {
       "tradingsymbol": "HINDUNILVR",
-      "exchange": "NSE",
-      "instrument_token": "356865",
+      "exchange": "BSE",
+      "instrument_token": "128178180",
       "quantity": 17,
       "average_price": 2431.270588,
-      "last_price": 2424.2,
-      "pnl": -120.19999600000301,
-      "pnl_percentage": -0.2908186375839207
+      "last_price": 2083.9,
+      "pnl": -5905.299995999994,
+      "pnl_percentage": -14.287615278797578
     },
     {
       "tradingsymbol": "ITC",
-      "exchange": "BSE",
-      "instrument_token": "128224004",
+      "exchange": "NSE",
+      "instrument_token": "424961",
       "quantity": 24,
       "average_price": 415.333473,
-      "last_price": 326.05,
-      "pnl": -2142.803351999999,
-      "pnl_percentage": -21.49681612587001
+      "last_price": 299.95,
+      "pnl": -2769.2033520000005,
+      "pnl_percentage": -27.78092316195281
     },
     {
       "tradingsymbol": "ITCHOTELS",
@@ -116,9 +116,19 @@
       "instrument_token": "7488257",
       "quantity": 2,
       "average_price": 648.73643,
-      "last_price": 180.8,
-      "pnl": -935.8728600000001,
-      "pnl_percentage": -72.13043824284694
+      "last_price": 149.01,
+      "pnl": -999.4528600000001,
+      "pnl_percentage": -77.03073342127557
+    },
+    {
+      "tradingsymbol": "KWIL",
+      "exchange": "BSE",
+      "instrument_token": "139423236",
+      "quantity": 17,
+      "average_price": 46.437267,
+      "last_price": 23.56,
+      "pnl": -388.913539,
+      "pnl_percentage": -49.26488675571713
     },
     {
       "tradingsymbol": "LICI",
@@ -126,9 +136,9 @@
       "instrument_token": "139142660",
       "quantity": 21,
       "average_price": 901.845238,
-      "last_price": 901.5,
-      "pnl": -7.249997999999323,
-      "pnl_percentage": -0.0382812910079332
+      "last_price": 777.25,
+      "pnl": -2616.4999979999993,
+      "pnl_percentage": -13.815589720949436
     },
     {
       "tradingsymbol": "MAITHANALL",
@@ -136,9 +146,9 @@
       "instrument_token": "6281729",
       "quantity": 2,
       "average_price": 1100,
-      "last_price": 1018.7,
-      "pnl": -162.5999999999999,
-      "pnl_percentage": -7.390909090909087
+      "last_price": 935.3,
+      "pnl": -329.4000000000001,
+      "pnl_percentage": -14.972727272727276
     },
     {
       "tradingsymbol": "MFSL",
@@ -146,9 +156,9 @@
       "instrument_token": "548353",
       "quantity": 80,
       "average_price": 1124.715,
-      "last_price": 1704.6,
-      "pnl": 46390.8,
-      "pnl_percentage": 51.55839479334765
+      "last_price": 1639.3,
+      "pnl": 41166.8,
+      "pnl_percentage": 45.75247951703321
     },
     {
       "tradingsymbol": "MMTC",
@@ -156,9 +166,9 @@
       "instrument_token": "4596993",
       "quantity": 5,
       "average_price": 78.958,
-      "last_price": 64.12,
-      "pnl": -74.18999999999994,
-      "pnl_percentage": -18.79226930773321
+      "last_price": 60.04,
+      "pnl": -94.58999999999997,
+      "pnl_percentage": -23.959573444109523
     },
     {
       "tradingsymbol": "MUTHOOTMF",
@@ -166,9 +176,9 @@
       "instrument_token": "5332737",
       "quantity": 53,
       "average_price": 287.522641,
-      "last_price": 180.72,
-      "pnl": -5660.539973000001,
-      "pnl_percentage": -37.14581941392227
+      "last_price": 150.85,
+      "pnl": -7243.649973000001,
+      "pnl_percentage": -47.534566503929696
     },
     {
       "tradingsymbol": "POWERGRID",
@@ -176,19 +186,19 @@
       "instrument_token": "3834113",
       "quantity": 112,
       "average_price": 235.0875,
-      "last_price": 292.75,
-      "pnl": 6458.200000000001,
-      "pnl_percentage": 24.528101238900412
+      "last_price": 297.6,
+      "pnl": 7001.400000000005,
+      "pnl_percentage": 26.591162864890755
     },
     {
       "tradingsymbol": "SBIN",
-      "exchange": "NSE",
-      "instrument_token": "779521",
+      "exchange": "BSE",
+      "instrument_token": "128028676",
       "quantity": 32,
       "average_price": 642.05,
-      "last_price": 1066.4,
-      "pnl": 13579.200000000004,
-      "pnl_percentage": 66.09298341250684
+      "last_price": 1058.4,
+      "pnl": 13323.200000000004,
+      "pnl_percentage": 64.84697453469359
     },
     {
       "tradingsymbol": "TATAINVEST",
@@ -196,9 +206,9 @@
       "instrument_token": "128333060",
       "quantity": 80,
       "average_price": 604.718125,
-      "last_price": 623,
-      "pnl": 1462.550000000003,
-      "pnl_percentage": 3.023206059848138
+      "last_price": 602.6,
+      "pnl": -169.4499999999971,
+      "pnl_percentage": -0.35026649813083804
     },
     {
       "tradingsymbol": "TMCV",
@@ -206,9 +216,9 @@
       "instrument_token": "194504193",
       "quantity": 238,
       "average_price": 289.659465,
-      "last_price": 458.25,
-      "pnl": 40124.54733,
-      "pnl_percentage": 58.20301263071104
+      "last_price": 419.65,
+      "pnl": 30937.74733,
+      "pnl_percentage": 44.87701964097738
     },
     {
       "tradingsymbol": "TMPV",
@@ -216,10 +226,10 @@
       "instrument_token": "128145924",
       "quantity": 238,
       "average_price": 640.226458,
-      "last_price": 369.9,
-      "pnl": -64337.697004,
-      "pnl_percentage": -42.22356864857966
+      "last_price": 314.15,
+      "pnl": -77606.197004,
+      "pnl_percentage": -50.9314249552617
     }
   ],
-  "lastUpdated": "2026-02-07T14:54:06.337Z"
+  "lastUpdated": "2026-03-22T07:16:42.137Z"
 }

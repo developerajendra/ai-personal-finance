@@ -3,17 +3,64 @@ import { sendChatMessage } from "@/core/services/geminiService";
 import { ChatContext } from "@/core/services/geminiService";
 import { loadAllPortfolioData, loadStocks, loadMutualFunds } from "@/core/services/jsonStorageService";
 import { initializeStorage } from "@/core/services/jsonStorageService";
+import { detectAuditIntent, callAuditAgent, extractAuditUrl, auditScrapedPageData, auditWithScreenshot } from "@/core/services/mcpAuditService";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { message, context } = body;
+    const { message, agent, context, currentPage, pageData, screenshot } = body;
 
     if (!message) {
       return NextResponse.json(
         { error: "Message is required" },
         { status: 400 }
       );
+    }
+
+    // Route to finance audit agent when selected via dropdown OR auto-detected
+    const isAuditAgent = agent === "audit-finance";
+    const auditRequest = isAuditAgent
+      ? extractAuditUrl(message) // In audit mode, always try to extract URL
+      : detectAuditIntent(message); // In ask mode, auto-detect audit intent
+
+    if (auditRequest) {
+      console.log(`[Chatbot] Routing to audit agent for: ${auditRequest.url}`);
+      try {
+        const auditResult = await callAuditAgent(auditRequest);
+
+        // Use AI to rephrase the audit result in a conversational tone
+        const { getModelForUseCase } = await import("@/core/services/aiModelService");
+        const { generateChatContent: generateChatContentGemini } = await import("@/core/services/geminiJsonService");
+        const { generateChatContent: generateChatContentOllama } = await import("@/core/services/ollamaService");
+
+        const { provider } = getModelForUseCase('chat');
+        const rephrasePrompt = `You are a helpful financial assistant. The user asked to audit a finance calculator. Here are the raw audit results from our Finance Audit Agent:
+
+${auditResult}
+
+Please rephrase these findings in a friendly, conversational tone. Important rules:
+- Never claim 100% certainty - use phrases like "it appears", "I noticed", "there might be"
+- Highlight the most important issues first
+- Keep it concise but informative
+- Use markdown formatting for readability
+- End with a brief recommendation
+
+User's original message: "${message}"`;
+
+        let conversationalResponse: string;
+        if (provider === 'gemini') {
+          conversationalResponse = await generateChatContentGemini(rephrasePrompt);
+        } else {
+          conversationalResponse = await generateChatContentOllama(rephrasePrompt);
+        }
+
+        return NextResponse.json({ response: conversationalResponse });
+      } catch (auditError: any) {
+        console.error("[Chatbot] Audit failed:", auditError);
+        return NextResponse.json({
+          response: `I tried to audit the calculator at ${auditRequest.url}, but encountered an error: ${auditError.message || 'Unknown error'}. This might happen if the page requires special access, uses complex dynamic loading, or if the audit agent service is not available. You can try again or provide a different URL.`
+        });
+      }
     }
 
     // Initialize storage and load all portfolio data from JSON files
@@ -53,6 +100,50 @@ export async function POST(request: NextRequest) {
     };
 
     console.log(`[Chatbot] Loaded context: ${chatContext.transactions.length} transactions, ${chatContext.investments?.length || 0} investments, ${chatContext.loans?.length || 0} loans, ${chatContext.properties?.length || 0} properties, ${chatContext.bankBalances?.length || 0} bank balances, ${chatContext.stocks?.length || 0} stocks, ${chatContext.mutualFunds?.length || 0} mutual funds`);
+
+    // If audit-finance mode is selected but no external URL was provided,
+    // use the vision-first approach: analyze a screenshot of the page
+    if (isAuditAgent) {
+      const pagePath = currentPage || '/dashboard';
+
+      // Priority 1: Vision-first audit via screenshot (preferred)
+      if (screenshot && typeof screenshot === 'string' && screenshot.length > 100) {
+        console.log(`[Chatbot] Audit Finance mode: vision-first analysis from ${pagePath} (${(screenshot.length / 1024).toFixed(0)} KB screenshot)`);
+        try {
+          const auditResponse = await auditWithScreenshot(message, screenshot, pagePath);
+          return NextResponse.json({ response: auditResponse });
+        } catch (auditError: any) {
+          console.error("[Chatbot] Visual audit failed:", auditError);
+          // Fall through to DOM scraping fallback
+          console.log("[Chatbot] Falling back to DOM scraping approach...");
+        }
+      }
+
+      // Priority 2: Fallback to DOM-scraped data (legacy)
+      const hasTableData = pageData?.tables?.length > 0 && pageData.tables.some(
+        (t: any) => t.rows?.length > 0
+      );
+      const hasSummaryCards = pageData?.summaryCards?.length > 0;
+
+      if (pageData && (hasTableData || hasSummaryCards)) {
+        console.log(`[Chatbot] Audit Finance mode: fallback to scraped data from ${pagePath} (${pageData.tables?.length || 0} tables, ${pageData.summaryCards?.length || 0} summary cards)`);
+        try {
+          const auditResponse = await auditScrapedPageData(message, pageData, pagePath);
+          return NextResponse.json({ response: auditResponse });
+        } catch (auditError: any) {
+          console.error("[Chatbot] Page data audit failed:", auditError);
+          return NextResponse.json({
+            response: `I encountered an error while auditing the data on \`${pagePath}\`: ${auditError.message || 'Unknown error'}. Please try again.`
+          });
+        }
+      }
+
+      // No screenshot and no scraped data — cannot audit
+      console.log(`[Chatbot] Audit Finance mode: no data available on ${pagePath}`);
+      return NextResponse.json({
+        response: `No financial data found on the current page (\`${pagePath}\`). Please navigate to a page with financial data (e.g., Portfolio, Investments, Loans, Stocks) and try again.`
+      });
+    }
 
     const responseText = await sendChatMessage(message, chatContext);
 

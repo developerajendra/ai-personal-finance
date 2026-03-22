@@ -151,6 +151,7 @@ export interface BankBalance {
   issueDate?: string; // Date when the receivable was issued/given (ISO date string)
   dueDate?: string; // Expected date when receivable should be received (ISO date string)
   interestRate?: number; // Annual interest rate as percentage (e.g., 12 for 12%)
+  paidDate?: string; // Date when the receivable was marked as paid (ISO date string)
   tags?: string[]; // Tags to identify receivables (e.g., ['receivable'])
 }
 

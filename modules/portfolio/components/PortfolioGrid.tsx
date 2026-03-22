@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/core/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck } from 'lucide-react';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
 import { PropertyForm } from './PropertyForm';
@@ -10,6 +10,7 @@ import { BankBalanceForm } from './BankBalanceForm';
 import { Loader } from '@/shared/components/Loader';
 import { useQuery } from '@tanstack/react-query';
 import { convertFromINR } from '@/core/services/currencyService';
+import { useChatbot } from '@/modules/chatbot/hooks/useChatbot';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
 type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance' | 'receivables';
@@ -52,6 +53,9 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const categoryFormRef = useRef<HTMLFormElement | null>(null);
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const contentContainerRef = useRef<HTMLDivElement>(null);
+  const { sendAuditData } = useChatbot();
+  const [isAuditing, setIsAuditing] = useState(false);
 
   // Helper function to generate slug from name
   const generateSlug = (name: string): string => {
@@ -128,6 +132,33 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
       return response.json();
     },
   });
+
+  // Audit: capture current tab's table HTML and send to chatbot
+  const tabLabels: Record<ItemType, string> = {
+    investment: 'Investments',
+    loan: 'Loans',
+    property: 'Properties',
+    'bank-balance': 'Bank Balances',
+    receivables: 'Receivables',
+  };
+
+  const handleAuditTable = () => {
+    if (!contentContainerRef.current) return;
+    const tableEl = contentContainerRef.current.querySelector('table');
+    if (!tableEl) return;
+    setIsAuditing(true);
+
+    const tableHtml = tableEl.outerHTML;
+    const label = tabLabels[activeTab];
+
+    sendAuditData({
+      tableHtml,
+      source: `${label} Table`,
+      message: `Audit this ${label} table. Validate all the calculations and data consistency. Check if the numbers are correct and flag any discrepancies.`,
+    });
+
+    setTimeout(() => setIsAuditing(false), 1500);
+  };
 
   // Helper function to handle tab switching with auto-publish logic
   const handleTabSwitch = (newTab: ItemType) => {
@@ -505,6 +536,102 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
       setTimeout(() => setToast(null), 3000);
     } finally {
       setIsPublishing(null);
+    }
+  };
+
+  const handleMarkAsPaid = async (id: string) => {
+    try {
+      const now = new Date().toISOString();
+      const existingItem = items.find((item) => item.id === id) as BankBalance | undefined;
+      if (!existingItem) return;
+
+      const updatedData = {
+        ...existingItem,
+        status: 'closed' as const,
+        paidDate: now,
+        lastUpdated: now,
+        updatedAt: now,
+      };
+
+      const response = await fetch(`/api/portfolio/bank-balances/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+      });
+
+      if (!response.ok) throw new Error('Failed to mark as paid');
+
+      // Update local state
+      setItems(items.map((item) => (item.id === id ? updatedData : item)));
+      setToast({
+        message: 'Receivable marked as paid successfully!',
+        type: 'success',
+      });
+      setTimeout(() => setToast(null), 3000);
+    } catch (error) {
+      console.error('Error marking as paid:', error);
+      setToast({
+        message: 'Failed to mark as paid. Please try again.',
+        type: 'error',
+      });
+      setTimeout(() => setToast(null), 3000);
+    }
+  };
+
+  const handleDuplicate = async (item: PortfolioItem) => {
+    try {
+      const now = new Date().toISOString();
+      const { id, ...rest } = item as any;
+      const duplicatedItem = {
+        ...rest,
+        id: `bb-${Date.now()}`,
+        bankName: `${rest.bankName} (Copy)`,
+        status: 'active',
+        paidDate: undefined,
+        isPublished: true,
+        createdAt: now,
+        updatedAt: now,
+        lastUpdated: now,
+      };
+
+      let endpoint;
+      if (activeTab === 'bank-balance' || activeTab === 'receivables') {
+        endpoint = `/api/portfolio/bank-balances`;
+      } else if (activeTab === 'property') {
+        endpoint = `/api/portfolio/properties`;
+      } else {
+        endpoint = `/api/portfolio/${activeTab}s`;
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(duplicatedItem),
+      });
+
+      if (!response.ok) throw new Error('Failed to duplicate item');
+
+      // Refresh the list
+      const isPublished = viewMode === 'published';
+      const refreshResponse = await fetch(`${endpoint}?isPublished=${isPublished}`, { cache: 'no-store' });
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json();
+        const itemsArray = Array.isArray(data) ? data : data.data || [];
+        setItems(itemsArray);
+      }
+
+      setToast({
+        message: 'Item duplicated successfully!',
+        type: 'success',
+      });
+      setTimeout(() => setToast(null), 3000);
+    } catch (error) {
+      console.error('Error duplicating item:', error);
+      setToast({
+        message: 'Failed to duplicate item. Please try again.',
+        type: 'error',
+      });
+      setTimeout(() => setToast(null), 3000);
     }
   };
 
@@ -1181,7 +1308,26 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         </div>
       )}
 
-      <div className="overflow-x-auto relative">
+      {/* Audit button for entire content area */}
+      {items.length > 0 && (
+        <div className="flex justify-end px-6 py-2 border-b border-gray-200 bg-white">
+          <button
+            onClick={handleAuditTable}
+            disabled={isAuditing || isLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Send table data to AI chatbot for audit validation"
+          >
+            {isAuditing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <ShieldCheck className="w-3.5 h-3.5" />
+            )}
+            {isAuditing ? 'Sending to Audit...' : `Audit ${tabLabels[activeTab]} Table`}
+          </button>
+        </div>
+      )}
+
+      <div ref={contentContainerRef} className="overflow-x-auto relative">
         {isLoading && (
           <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
             <Loader text="Loading portfolio items..." />
@@ -1238,6 +1384,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
             onDelete={(id) => handleDelete(id, 'bank-balance')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
+            onMarkAsPaid={handleMarkAsPaid}
+            onDuplicate={handleDuplicate}
             viewMode={viewMode}
             openMenuId={openMenuId}
             setOpenMenuId={setOpenMenuId}
@@ -1252,6 +1400,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
             onDelete={(id) => handleDelete(id, 'receivables')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
+            onMarkAsPaid={handleMarkAsPaid}
+            onDuplicate={handleDuplicate}
             viewMode={viewMode}
             openMenuId={openMenuId}
             setOpenMenuId={setOpenMenuId}
@@ -1981,6 +2131,8 @@ function BankBalanceGrid({
   onDelete,
   onEdit,
   onPublishToggle,
+  onMarkAsPaid,
+  onDuplicate,
   viewMode,
   openMenuId,
   setOpenMenuId,
@@ -1992,6 +2144,8 @@ function BankBalanceGrid({
   onDelete: (id: string) => void;
   onEdit: (bankBalance: BankBalance) => void;
   onPublishToggle: (id: string, isPublished: boolean) => void;
+  onMarkAsPaid: (id: string) => Promise<void> | void;
+  onDuplicate: (item: BankBalance) => void;
   viewMode: ViewMode;
   openMenuId: string | null;
   setOpenMenuId: (id: string | null) => void;
@@ -1999,6 +2153,9 @@ function BankBalanceGrid({
   isDeleting: string | null;
   isPublishing: string | null;
 }) {
+  const [confirmPaidId, setConfirmPaidId] = useState<string | null>(null);
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+  const confirmPaidBalance = confirmPaidId ? bankBalances.find(b => b.id === confirmPaidId) : null;
   // Check if any balance is a receivable
   const hasReceivables = bankBalances.some(b => b.tags?.includes('receivable'));
   
@@ -2135,16 +2292,30 @@ function BankBalanceGrid({
                   </>
                 )}
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {new Date(balance.lastUpdated).toLocaleDateString()}
+                  {isReceivable && balance.status === 'closed' && balance.paidDate ? (
+                    <div>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
+                        <CheckCircle className="w-3 h-3" />
+                        Paid
+                      </span>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(balance.paidDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ) : (
+                    new Date(balance.lastUpdated).toLocaleDateString()
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <div className="flex gap-2 items-center">
-                    <button
-                      onClick={() => onEdit(balance)}
-                      className="text-blue-600 hover:text-blue-700"
-                      title="Edit">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
+                    {!(isReceivable && balance.status === 'closed') && (
+                      <button
+                        onClick={() => onEdit(balance)}
+                        className="text-blue-600 hover:text-blue-700"
+                        title="Edit">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => onDelete(balance.id)}
                       disabled={isDeleting === balance.id}
@@ -2164,7 +2335,7 @@ function BankBalanceGrid({
                         <MoreVertical className="w-4 h-4" />
                       </button>
                       {openMenuId === balance.id && (
-                        <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                        <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                           <button
                             onClick={() => onPublishToggle(balance.id, balance.isPublished || false)}
                             disabled={isPublishing === balance.id}
@@ -2186,6 +2357,26 @@ function BankBalanceGrid({
                               </>
                             )}
                           </button>
+                          <button
+                            onClick={() => {
+                              onDuplicate(balance);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-t border-gray-100">
+                            <Copy className="w-4 h-4" />
+                            Duplicate
+                          </button>
+                          {isReceivable && balance.status !== 'closed' && (
+                            <button
+                              onClick={() => {
+                                setConfirmPaidId(balance.id);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-green-50 flex items-center gap-2 border-t border-gray-100">
+                              <CheckCircle className="w-4 h-4" />
+                              Mark as Paid
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -2196,6 +2387,76 @@ function BankBalanceGrid({
           })
         )}
       </tbody>
+
+      {/* Mark as Paid Confirmation Modal */}
+      {confirmPaidId && confirmPaidBalance && (
+        <tfoot>
+          <tr>
+            <td colSpan={colSpan}>
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div
+                  className="absolute inset-0 bg-black/50"
+                  onClick={() => { setConfirmPaidId(null); setIsMarkingPaid(false); }}
+                />
+                <div className="relative bg-white rounded-lg shadow-xl border border-gray-200 p-6 w-full max-w-md mx-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Mark as Paid
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Are you sure you want to mark the receivable from{' '}
+                    <span className="font-semibold text-gray-900">{confirmPaidBalance.bankName}</span>{' '}
+                    as paid? This will close the activity and disable editing.
+                  </p>
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-gray-500">Amount:</span>
+                      <span className="font-medium">
+                        {confirmPaidBalance.originalCurrency || confirmPaidBalance.currency}{' '}
+                        {(confirmPaidBalance.originalAmount || confirmPaidBalance.balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    {confirmPaidBalance.interestRate && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Interest Rate:</span>
+                        <span className="font-medium">{confirmPaidBalance.interestRate}%</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => { setConfirmPaidId(null); setIsMarkingPaid(false); }}
+                      disabled={isMarkingPaid}
+                      className="px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50">
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setIsMarkingPaid(true);
+                        await onMarkAsPaid(confirmPaidId);
+                        setIsMarkingPaid(false);
+                        setConfirmPaidId(null);
+                      }}
+                      disabled={isMarkingPaid}
+                      className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                      {isMarkingPaid ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4" />
+                          Yes, Mark as Paid
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tfoot>
+      )}
     </table>
   );
 }

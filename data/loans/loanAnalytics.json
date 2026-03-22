@@ -88,5 +88,20 @@
     "snapshotDate": "2026-02-27T18:30:00.000Z",
     "createdAt": "2026-02-07T15:11:08.301Z",
     "updatedAt": "2026-02-07T15:11:08.301Z"
+  },
+  {
+    "id": "loan-snapshot-loan-ai-1767367354623-0-2026-3-1774163956306",
+    "loanId": "loan-ai-1767367354623-0",
+    "year": 2026,
+    "month": 3,
+    "outstandingAmount": 2048714.2,
+    "principalPaid": 262671.8,
+    "interestPaid": 1171811.2,
+    "emiAmount": 28597,
+    "interestRate": 6.75,
+    "remainingTenureMonths": 95,
+    "snapshotDate": "2026-03-30T18:30:00.000Z",
+    "createdAt": "2026-03-22T07:19:16.306Z",
+    "updatedAt": "2026-03-22T07:19:16.306Z"
   }
 ]
