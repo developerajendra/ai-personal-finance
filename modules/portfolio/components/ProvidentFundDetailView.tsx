@@ -1,6 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PPFAccount } from '@/core/services/ppfStorageService';
 import {
   PieChart,
@@ -15,12 +16,18 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Wallet, TrendingUp, DollarSign, FileText, Building2 } from 'lucide-react';
+import { Wallet, TrendingUp, DollarSign, FileText, Building2, Edit2 } from 'lucide-react';
 import { Loader } from '@/shared/components/Loader';
+import { ProvidentFundEditForm } from './ProvidentFundEditForm';
+import { format } from 'date-fns';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
 export function ProvidentFundDetailView() {
+  const queryClient = useQueryClient();
+  const [editingAccount, setEditingAccount] = useState<PPFAccount | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
   const { data: accounts = [], isLoading } = useQuery<PPFAccount[]>({
     queryKey: ['ppfAccounts'],
     queryFn: async () => {
@@ -31,6 +38,37 @@ export function ProvidentFundDetailView() {
     refetchOnWindowFocus: false,
     refetchOnMount: true,
   });
+
+  const handleSave = async (account: PPFAccount) => {
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/portfolio/ppf-accounts/${account.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(account),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update');
+      }
+      await queryClient.invalidateQueries({ queryKey: ['ppfAccounts'] });
+      setEditingAccount(null);
+    } catch (err) {
+      console.error('Error saving PPF account:', err);
+      alert(err instanceof Error ? err.message : 'Failed to save changes');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return '—';
+    try {
+      return format(new Date(dateStr), 'dd MMM yyyy');
+    } catch {
+      return dateStr;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -320,6 +358,12 @@ export function ProvidentFundDetailView() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Grand Total
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Last Updated
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -354,12 +398,46 @@ export function ProvidentFundDetailView() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                     ₹{(account.grandTotal || 0).toLocaleString('en-IN')}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(account.lastUpdated || account.extractedAt)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <button
+                      onClick={() => setEditingAccount(account)}
+                      className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                      title="Edit PPF account"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Edit
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Edit PPF Account Modal */}
+      {editingAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => !isSaving && setEditingAccount(null)}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl border border-gray-200 p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Edit PPF Account
+            </h3>
+            <ProvidentFundEditForm
+              account={editingAccount}
+              onSave={handleSave}
+              onCancel={() => !isSaving && setEditingAccount(null)}
+              isSaving={isSaving}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

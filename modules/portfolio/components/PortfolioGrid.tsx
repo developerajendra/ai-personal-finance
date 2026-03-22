@@ -2,19 +2,19 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/core/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck, Clock, XOctagon, Undo2 } from 'lucide-react';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
 import { PropertyForm } from './PropertyForm';
 import { BankBalanceForm } from './BankBalanceForm';
 import { Loader } from '@/shared/components/Loader';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { convertFromINR } from '@/core/services/currencyService';
 import { useChatbot } from '@/modules/chatbot/hooks/useChatbot';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
 type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance' | 'receivables';
-type ViewMode = 'draft' | 'published';
+type ViewMode = 'draft' | 'published' | 'matured'; // matured only applies to investments
 
 interface PortfolioGridProps {
   defaultTab?: ItemType;
@@ -26,6 +26,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [draftCount, setDraftCount] = useState<number>(0);
   const [publishedCount, setPublishedCount] = useState<number>(0);
+  const [maturedCount, setMaturedCount] = useState<number>(0);
   const [tabCounts, setTabCounts] = useState<Record<ItemType, number>>({
     investment: 0,
     loan: 0,
@@ -38,11 +39,13 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<ItemType>('investment');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; undoId?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState<string | null>(null);
+  const [isUndoingClose, setIsUndoingClose] = useState<string | null>(null);
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
   const [isSyncingGmail, setIsSyncingGmail] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -55,6 +58,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const contentContainerRef = useRef<HTMLDivElement>(null);
   const { sendAuditData } = useChatbot();
+  const queryClient = useQueryClient();
   const [isAuditing, setIsAuditing] = useState(false);
 
   // Helper function to generate slug from name
@@ -163,10 +167,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
   // Helper function to handle tab switching with auto-publish logic
   const handleTabSwitch = (newTab: ItemType) => {
     setActiveTab(newTab);
-    // Check if the new tab has any drafts, if not, switch to published
-    const tabData = tabCounts[newTab];
-    // We'll check the actual draft count after it's fetched, but for now reset to draft
-    setViewMode('draft');
+    // Reset view: matured only applies to investments; use draft for other tabs
+    setViewMode(newTab !== 'investment' && viewMode === 'matured' ? 'published' : 'draft');
   };
 
   // Update active tab when defaultTab prop changes
@@ -195,10 +197,15 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                 endpoint = `/api/portfolio/${tab}s`;
               }
 
-              const [draftResponse, publishedResponse] = await Promise.all([
+              const fetchPromises: Promise<Response>[] = [
                 fetch(`${endpoint}?isPublished=false`, { cache: 'no-store' }),
                 fetch(`${endpoint}?isPublished=true`, { cache: 'no-store' }),
-              ]);
+              ];
+              if (tab === 'investment') {
+                fetchPromises.push(fetch(`${endpoint}?isPublished=true&view=matured`, { cache: 'no-store' }));
+              }
+              const responses = await Promise.all(fetchPromises);
+              const [draftResponse, publishedResponse, maturedResponse] = responses;
 
               let draftCount = 0;
               let publishedCount = 0;
@@ -217,6 +224,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                 }
               }
 
+              let maturedCount = 0;
               if (publishedResponse.ok) {
                 const publishedData = await publishedResponse.json();
                 const publishedArray = Array.isArray(publishedData) ? publishedData : publishedData.data || [];
@@ -229,12 +237,18 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                 } else {
                   publishedCount = publishedArray.length;
                 }
+                // For investments: matured count from view=matured (includes matured + closed)
+                if (tab === 'investment' && maturedResponse?.ok) {
+                  const maturedData = await maturedResponse.json();
+                  const maturedArray = Array.isArray(maturedData) ? maturedData : maturedData.data || [];
+                  maturedCount = maturedArray.length;
+                }
               }
 
-              return { tab, count: draftCount + publishedCount, draftCount, publishedCount };
+              return { tab, count: draftCount + publishedCount, draftCount, publishedCount, maturedCount };
             } catch (error) {
               console.error(`Error fetching counts for ${tab}:`, error);
-              return { tab, count: 0, draftCount: 0, publishedCount: 0 };
+              return { tab, count: 0, draftCount: 0, publishedCount: 0, maturedCount: 0 };
             }
           })
         );
@@ -253,11 +267,14 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
 
         setTabCounts(newTabCounts);
 
-        // Also update draft and published counts for current tab
+        // Also update draft, published, and matured counts for current tab
         const currentTabData = counts.find((c) => c.tab === activeTab);
         if (currentTabData) {
           setDraftCount(currentTabData.draftCount);
           setPublishedCount(currentTabData.publishedCount);
+          if ('maturedCount' in currentTabData) {
+            setMaturedCount((currentTabData as { maturedCount?: number }).maturedCount ?? 0);
+          }
           
           // If draft count is 0 and we're in draft mode, automatically switch to published
           if (currentTabData.draftCount === 0 && viewMode === 'draft') {
@@ -289,9 +306,12 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         endpoint = `/api/portfolio/${activeTab}s`;
       }
       
-      // Add isPublished filter
-      const isPublished = viewMode === 'published';
+      // Add isPublished filter; for investments+matured use view=matured
+      const isPublished = viewMode === 'published' || viewMode === 'matured';
       endpoint += `?isPublished=${isPublished}`;
+      if (activeTab === 'investment' && viewMode === 'matured') {
+        endpoint += '&view=matured';
+      }
       
       console.log(
         `[PortfolioGrid] 🔄 Fetching ${activeTab}s (${viewMode}) from: ${endpoint}`
@@ -451,6 +471,90 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
       console.error('Error saving item:', error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const refreshInvestmentCounts = async () => {
+    const endpoint = '/api/portfolio/investments';
+    const [draftRes, publishedRes, maturedRes] = await Promise.all([
+      fetch(`${endpoint}?isPublished=false`, { cache: 'no-store' }),
+      fetch(`${endpoint}?isPublished=true`, { cache: 'no-store' }),
+      fetch(`${endpoint}?isPublished=true&view=matured`, { cache: 'no-store' }),
+    ]);
+    let draftCount = 0;
+    let publishedCount = 0;
+    let maturedCount = 0;
+    if (draftRes.ok) {
+      const d = await draftRes.json();
+      draftCount = Array.isArray(d) ? d.length : (d.data || []).length;
+    }
+    if (publishedRes.ok) {
+      const p = await publishedRes.json();
+      publishedCount = Array.isArray(p) ? p.length : (p.data || []).length;
+    }
+    if (maturedRes.ok) {
+      const m = await maturedRes.json();
+      maturedCount = Array.isArray(m) ? m.length : (m.data || []).length;
+    }
+    setDraftCount(draftCount);
+    setPublishedCount(publishedCount);
+    setMaturedCount(maturedCount);
+    setTabCounts((prev) => ({ ...prev, investment: draftCount + publishedCount }));
+  };
+
+  const handleCloseInvestment = async (id: string) => {
+    setIsClosing(id);
+    try {
+      setOpenMenuId(null);
+      const item = items.find((i) => i.id === id) as Investment | undefined;
+      if (!item) return;
+      const response = await fetch(`/api/portfolio/investments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...item, status: 'closed' }),
+      });
+      if (!response.ok) throw new Error('Failed to close investment');
+      setToast({
+        message: 'Investment closed. Excluded from net worth.',
+        type: 'success',
+        undoId: id,
+      });
+      setTimeout(() => setToast(null), 5000);
+      queryClient.invalidateQueries({ queryKey: ['investments'] });
+      await fetchItems();
+      await refreshInvestmentCounts();
+    } catch (error) {
+      console.error('Error closing investment:', error);
+      setToast({ message: 'Failed to close investment.', type: 'error' });
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setIsClosing(null);
+    }
+  };
+
+  const handleUndoCloseInvestment = async (id: string) => {
+    setIsUndoingClose(id);
+    try {
+      setToast(null);
+      const item = items.find((i) => i.id === id) as Investment | undefined;
+      if (!item) return;
+      const response = await fetch(`/api/portfolio/investments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...item, status: 'matured' }),
+      });
+      if (!response.ok) throw new Error('Failed to undo close');
+      setToast({ message: 'Close undone. Investment restored.', type: 'success' });
+      setTimeout(() => setToast(null), 3000);
+      queryClient.invalidateQueries({ queryKey: ['investments'] });
+      await fetchItems();
+      await refreshInvestmentCounts();
+    } catch (error) {
+      console.error('Error undoing close:', error);
+      setToast({ message: 'Failed to undo close.', type: 'error' });
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setIsUndoingClose(null);
     }
   };
 
@@ -1204,8 +1308,26 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               {isLoadingCounts ? '...' : publishedCount}
             </span>
           </button>
+          {activeTab === 'investment' && (
+            <button
+              onClick={() => setViewMode('matured')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 ${
+                viewMode === 'matured'
+                  ? 'bg-indigo-100 text-indigo-800 border-2 border-indigo-300'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              title="Investments past maturity date">
+              <Clock className="w-4 h-4" />
+              Matured
+              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                viewMode === 'matured' ? 'bg-indigo-200 text-indigo-900' : 'bg-gray-200 text-gray-700'
+              }`}>
+                {isLoadingCounts ? '...' : maturedCount}
+              </span>
+            </button>
+          )}
           </div>
-          {viewMode === 'published' && (
+          {(viewMode === 'published' || viewMode === 'matured') && (
             <div className="flex-1 max-w-xs">
               <input
                 type="text"
@@ -1342,12 +1464,16 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
             onDelete={(id) => handleDelete(id, 'investment')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
+            onClose={(id) => handleCloseInvestment(id)}
+            onUndoClose={(id) => handleUndoCloseInvestment(id)}
             viewMode={viewMode}
             openMenuId={openMenuId}
             setOpenMenuId={setOpenMenuId}
             menuRefs={menuRefs}
             isDeleting={isDeleting}
             isPublishing={isPublishing}
+            isClosing={isClosing}
+            isUndoingClose={isUndoingClose}
           />
         )}
         {activeTab === 'loan' && (
@@ -1428,17 +1554,30 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
 
       {/* Toast Notification */}
       {toast && (
-        <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 ${
+        <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 ${
           toast.type === 'success' 
             ? 'bg-green-500 text-white' 
             : 'bg-red-500 text-white'
         }`}>
           {toast.type === 'success' ? (
-            <CheckCircle className="w-5 h-5" />
+            <CheckCircle className="w-5 h-5 flex-shrink-0" />
           ) : (
-            <XCircle className="w-5 h-5" />
+            <XCircle className="w-5 h-5 flex-shrink-0" />
           )}
           <span className="font-medium">{toast.message}</span>
+          {toast.undoId && (
+            <button
+              onClick={() => handleUndoCloseInvestment(toast.undoId!)}
+              disabled={isUndoingClose === toast.undoId}
+              className="ml-2 px-3 py-1 rounded bg-white/20 hover:bg-white/30 font-semibold text-sm flex items-center gap-1 disabled:opacity-50">
+              {isUndoingClose === toast.undoId ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Undo2 className="w-3.5 h-3.5" />
+              )}
+              Undo
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -1453,12 +1592,16 @@ function InvestmentGrid({
   onDelete,
   onEdit,
   onPublishToggle,
+  onClose,
+  onUndoClose,
   viewMode,
   openMenuId,
   setOpenMenuId,
   menuRefs,
   isDeleting,
   isPublishing,
+  isClosing,
+  isUndoingClose,
 }: {
   investments: Investment[];
   stocks?: any[];
@@ -1467,12 +1610,16 @@ function InvestmentGrid({
   onDelete: (id: string) => void;
   onEdit: (investment: Investment) => void;
   onPublishToggle: (id: string, isPublished: boolean) => void;
+  onClose?: (id: string) => void;
+  onUndoClose?: (id: string) => void;
   viewMode: ViewMode;
   openMenuId: string | null;
   setOpenMenuId: (id: string | null) => void;
   menuRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   isDeleting: string | null;
   isPublishing: string | null;
+  isClosing?: string | null;
+  isUndoingClose?: string | null;
 }) {
   // State to trigger recalculation of current values periodically
   const [updateTrigger, setUpdateTrigger] = useState(0);
@@ -1770,18 +1917,43 @@ function InvestmentGrid({
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span
                     className={`px-2 py-1 rounded text-xs ${
-                      item.status === 'active'
-                        ? 'bg-green-100 text-green-800'
-                        : item.status === 'matured'
+                      item.status === 'closed'
+                        ? 'bg-gray-100 text-gray-800'
+                        : item.status === 'matured' || (item.maturityDate && new Date(item.maturityDate) <= new Date())
                         ? 'bg-blue-100 text-blue-800'
-                        : 'bg-gray-100 text-gray-800'
+                        : 'bg-green-100 text-green-800'
                     }`}>
-                    {item.status}
+                    {item.status === 'closed'
+                      ? 'closed'
+                      : item.status === 'matured' || (item.maturityDate && new Date(item.maturityDate) <= new Date())
+                      ? 'matured'
+                      : 'active'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {isReadOnly ? (
                     <span className="text-xs text-gray-500 italic">Read-only (from Zerodha)</span>
+                  ) : item.status === 'closed' ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 italic flex items-center gap-1">
+                        <XOctagon className="w-3.5 h-3.5" />
+                        Closed (excluded from net worth)
+                      </span>
+                      {onUndoClose && (
+                        <button
+                          onClick={() => onUndoClose(item.id)}
+                          disabled={isUndoingClose === item.id}
+                          className="text-amber-600 hover:text-amber-700 text-xs font-medium flex items-center gap-1 disabled:opacity-50"
+                          title="Undo close - restore to net worth">
+                          {isUndoingClose === item.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Undo2 className="w-3.5 h-3.5" />
+                          )}
+                          Undo
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <div className="flex gap-2 items-center">
                       <button
@@ -1809,7 +1981,7 @@ function InvestmentGrid({
                           <MoreVertical className="w-4 h-4" />
                         </button>
                         {openMenuId === item.id && (
-                          <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                          <div className="absolute right-0 mt-1 w-44 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                             <button
                               onClick={() => onPublishToggle(item.id, item.isPublished || false)}
                               disabled={isPublishing === item.id}
@@ -1831,6 +2003,25 @@ function InvestmentGrid({
                                 </>
                               )}
                             </button>
+                            {onClose && item.status !== 'closed' && (item.status === 'matured' || (item.maturityDate && new Date(item.maturityDate) <= new Date())) && (
+                              <button
+                                onClick={() => onClose(item.id)}
+                                disabled={isClosing === item.id}
+                                className="w-full text-left px-4 py-2 text-sm text-amber-700 hover:bg-amber-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border-t border-gray-100"
+                                title="Close investment - excludes from net worth and totals">
+                                {isClosing === item.id ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Closing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <XOctagon className="w-4 h-4" />
+                                    Close Investment
+                                  </>
+                                )}
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

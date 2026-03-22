@@ -214,21 +214,22 @@ function formatFinancialContext(context: ChatContext): string {
     formatted += '\n';
   }
 
-  // INVESTMENTS
-  if (investments && investments.length > 0) {
-    const totalInvestments = investments.reduce((sum, inv) => sum + (inv.amount || 0), 0);
-    const investmentsByType = investments.reduce((acc, inv) => {
+  // INVESTMENTS (exclude closed from totals)
+  const activeInvestments = investments?.filter((inv) => inv.status !== "closed") ?? [];
+  if (activeInvestments.length > 0) {
+    const totalInvestments = activeInvestments.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    const investmentsByType = activeInvestments.reduce((acc, inv) => {
       acc[inv.type] = (acc[inv.type] || 0) + (inv.amount || 0);
       return acc;
     }, {} as Record<string, number>);
 
     formatted += 'INVESTMENTS (Total: Rs ' + totalInvestments.toLocaleString() + '):\n';
-    formatted += '- Count: ' + investments.length + ' investments\n';
+    formatted += '- Count: ' + activeInvestments.length + ' investments\n';
     Object.entries(investmentsByType).forEach(([type, amount]) => {
-      formatted += '  - ' + type + ': Rs ' + amount.toLocaleString() + ' (' + investments.filter(i => i.type === type).length + ' items)\n';
+      formatted += '  - ' + type + ': Rs ' + amount.toLocaleString() + ' (' + activeInvestments.filter(i => i.type === type).length + ' items)\n';
     });
     formatted += '\nTop Investments:\n';
-    investments.slice(0, 10).forEach((inv) => {
+    activeInvestments.slice(0, 10).forEach((inv) => {
       formatted += '  - ' + inv.name + ': Rs ' + (inv.amount?.toLocaleString() || 0) + ' (' + inv.type + ', ' + (inv.status || 'active') + ')';
       if (inv.interestRate) formatted += ' @ ' + inv.interestRate + '%';
       if (inv.maturityDate) formatted += ', Matures: ' + inv.maturityDate;

@@ -10,7 +10,7 @@ import { PPFAccount, loadPPFAccounts } from "@/core/services/ppfStorageService";
 async function calculateCurrentSnapshot(): Promise<Partial<FinancialSnapshot>> {
   // Load all portfolio data
   const investments = loadFromJson<Investment>("investments").filter(
-    (inv) => inv.isPublished
+    (inv) => inv.isPublished && inv.status !== "closed"
   );
   const loans = loadFromJson<Loan>("loans").filter((loan) => loan.isPublished);
   const properties = loadFromJson<Property>("properties").filter(

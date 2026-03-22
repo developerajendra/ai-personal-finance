@@ -21,6 +21,7 @@ export interface PPFAccount {
   grandTotal: number;
   extractedFrom?: string; // PDF filename
   extractedAt: string;
+  lastUpdated?: string; // Last time the account was edited
   rawData?: any; // Store raw extracted data
 }
 
@@ -91,13 +92,19 @@ export function savePPFAccounts(accounts: PPFAccount[]): void {
 export function savePPFAccount(account: PPFAccount): void {
   const accounts = loadPPFAccounts();
   const existingIndex = accounts.findIndex((acc) => acc.id === account.id);
-  
+
+  const now = new Date().toISOString();
+  const accountToSave: PPFAccount = {
+    ...account,
+    lastUpdated: existingIndex >= 0 ? now : account.lastUpdated,
+  };
+
   if (existingIndex >= 0) {
-    accounts[existingIndex] = account;
+    accounts[existingIndex] = accountToSave;
   } else {
-    accounts.push(account);
+    accounts.push(accountToSave);
   }
-  
+
   savePPFAccounts(accounts);
 }
 

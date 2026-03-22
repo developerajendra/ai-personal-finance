@@ -66,8 +66,10 @@ export default function PortfolioPage() {
     },
   });
 
-  // Calculate totals
-  const totalInvestments = investments.reduce((sum, inv) => sum + inv.amount, 0);
+  // Calculate totals (exclude closed investments from net worth)
+  const totalInvestments = investments
+    .filter((inv) => inv.status !== 'closed')
+    .reduce((sum, inv) => sum + inv.amount, 0);
   const totalLoans = loans.reduce((sum, loan) => sum + loan.outstandingAmount, 0);
   const totalProperties = properties.reduce((sum, prop) => sum + (prop.currentValue || prop.purchasePrice), 0);
   const totalBankBalances = bankBalances.reduce((sum, bb) => sum + (bb.balance || 0), 0);
@@ -105,7 +107,7 @@ export default function PortfolioPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-gray-900">Investments</h3>
                     <p className="text-xs text-gray-600 truncate">₹{totalInvestments.toLocaleString()}</p>
-                    <p className="text-xs text-blue-600 font-medium">{investments.length} items</p>
+                    <p className="text-xs text-blue-600 font-medium">{investments.filter((inv) => inv.status !== 'closed').length} items</p>
                   </div>
                 </div>
                 <ArrowRight className="w-3 h-3 text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0" />

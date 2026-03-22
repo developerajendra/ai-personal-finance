@@ -41,7 +41,9 @@ export function AIAnalysisSummary() {
     ...properties.filter((prop) => prop.id.startsWith("prop-ai-")),
   ];
 
-  const totalInvestments = investments.reduce((sum, inv) => sum + inv.amount, 0);
+  const totalInvestments = investments
+    .filter((inv) => inv.status !== 'closed')
+    .reduce((sum, inv) => sum + inv.amount, 0);
   const totalLoans = loans.reduce((sum, loan) => sum + loan.outstandingAmount, 0);
   const totalProperties = properties.reduce(
     (sum, prop) => sum + (prop.currentValue || prop.purchasePrice),

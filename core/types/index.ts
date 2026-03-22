@@ -73,7 +73,7 @@ export interface Investment {
   ruleLabel?: string; // e.g., "5x in 12 Years"
   ruleFormula?: string; // JavaScript formula to calculate value based on date, e.g., "principal * Math.pow(5, (daysElapsed / (12 * 365)))"
   description?: string;
-  status: "active" | "matured" | "closed";
+  status: "active" | "matured" | "closed"; // closed = excluded from net worth & totals
   isPublished: boolean; // Draft (false) or Published (true)
   tags?: string[]; // Optional tags (e.g., "added from gmail", "auto-imported")
   createdAt: string;

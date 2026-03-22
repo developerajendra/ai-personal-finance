@@ -130,7 +130,8 @@ export function usePortfolioData() {
   const isLoading =
     isLoadingInvestments || isLoadingLoans || isLoadingProperties || isLoadingStocks || isLoadingMutualFunds || isLoadingBankBalances || isLoadingPPF;
 
-  const totalInvestments = investments.reduce(
+  const activeInvestments = investments.filter((inv) => inv.status !== 'closed');
+  const totalInvestments = activeInvestments.reduce(
     (sum, inv) => sum + inv.amount,
     0
   );
@@ -179,7 +180,7 @@ export function usePortfolioData() {
   
   // Calculate Fixed Assets and Liquid Assets
   // Fixed Assets: Properties (default fixed), Investments with assetType='fixed', BankBalances with assetType='fixed'
-  const fixedAssetsFromInvestments = investments.reduce(
+  const fixedAssetsFromInvestments = activeInvestments.reduce(
     (sum, inv) => sum + (inv.assetType === 'fixed' ? inv.amount : 0),
     0
   );
@@ -198,7 +199,7 @@ export function usePortfolioData() {
   const totalFixedAssets = fixedAssetsFromInvestments + fixedAssetsFromProperties + fixedAssetsFromBankBalances;
 
   // Liquid Assets: Investments with assetType='liquid' or default, Stocks, Mutual Funds, PPF, BankBalances with assetType='liquid' or default, Receivables
-  const liquidAssetsFromInvestments = investments.reduce(
+  const liquidAssetsFromInvestments = activeInvestments.reduce(
     (sum, inv) => sum + (inv.assetType === 'fixed' ? 0 : inv.amount),
     0
   );

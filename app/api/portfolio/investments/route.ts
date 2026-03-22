@@ -28,6 +28,26 @@ export async function GET(request: NextRequest) {
       filteredData = investments.filter(i => (i.isPublished ?? false) === isPublished);
     }
 
+    // view=matured: published investments where maturity date passed OR closed (closed only in matured tab)
+    // excludeClosed: when true (default for published tab), exclude closed from results
+    if (searchParams.get("view") === "matured") {
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      filteredData = filteredData.filter((i) => {
+        if (!(i.isPublished ?? false)) return false;
+        if (i.status === "closed") return true; // Include closed in matured tab
+        if (i.status === "matured") return true;
+        if (i.maturityDate) {
+          const maturity = new Date(i.maturityDate);
+          return maturity.getTime() <= today.getTime();
+        }
+        return false;
+      });
+    } else if (searchParams.get("isPublished") === "true") {
+      // Published tab (no view=matured): exclude closed (closed only appear in matured tab)
+      filteredData = filteredData.filter((i) => i.status !== "closed");
+    }
+
     // If pagination requested, return paginated results
     if (searchParams.has("page") || searchParams.has("pageSize")) {
       const paginated = paginate<Investment>(filteredData, { page, pageSize });
