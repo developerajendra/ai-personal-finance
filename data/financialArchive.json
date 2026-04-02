@@ -251,35 +251,35 @@
     "updatedAt": "2026-03-22T08:03:12.173Z"
   },
   {
-    "id": "2026-4-1774163837270",
+    "id": "2026-4-1775136555550",
     "year": 2026,
     "month": 4,
     "period": "monthly",
     "snapshotDate": "2026-04-30T18:29:59.999Z",
-    "totalInvestments": 8360191.7925,
-    "totalLoans": 2151207,
+    "totalInvestments": 9139351.308429392,
+    "totalLoans": 2048714.2,
     "totalProperties": 11500000,
-    "totalBankBalances": 517750,
-    "totalReceivables": 828750,
-    "totalStocks": 1034813.94,
-    "totalMutualFunds": 5500716.4117282,
-    "totalPPF": 3065303,
+    "totalBankBalances": 495749.95999999996,
+    "totalReceivables": 766250.0187500002,
+    "totalStocks": 1007064.1399999999,
+    "totalMutualFunds": 5556135.3704975,
+    "totalPPF": 3133219,
     "totalFixedAssets": 11500000,
-    "totalLiquidAssets": 19307525.144228198,
-    "netWorth": 28656318.144228198,
+    "totalLiquidAssets": 20097769.797676895,
+    "netWorth": 29549055.597676896,
     "totalIncome": 136873205.648,
     "totalExpenses": 0,
     "netBalance": 136873205.648,
     "investmentBreakdown": {
-      "fd": 2137499.9625,
-      "other": 4084191.83,
+      "fd": 2582180.3039003243,
+      "other": 4418671.004529068,
       "ppf": 1588500,
-      "mutual-fund": 6050716.4117282,
-      "stocks": 1034813.94,
-      "provident-fund": 3065303
+      "mutual-fund": 6106135.3704975,
+      "stocks": 1007064.1399999999,
+      "provident-fund": 3133219
     },
     "loanBreakdown": {
-      "home-loan": 2151207
+      "home-loan": 2048714.2
     },
     "propertyBreakdown": {
       "house": 11500000
@@ -289,7 +289,7 @@
       "loan": 5340433.8,
       "investment": 11753567.8
     },
-    "createdAt": "2026-03-22T07:17:17.264Z",
-    "updatedAt": "2026-03-22T07:17:17.264Z"
+    "createdAt": "2026-04-02T13:29:15.547Z",
+    "updatedAt": "2026-04-02T13:29:15.550Z"
   }
 ]
