@@ -15,12 +15,15 @@ const FILES = {
   portfolioCategories: path.join(DATA_DIR, "portfolioCategories.json"),
 };
 
-// Ensure data directory exists
+// Ensure data directory exists (only checks once per process)
+let dataDirInitialized = false;
 function ensureDataDir() {
+  if (dataDirInitialized) return;
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     console.log(`📁 Created data directory: ${DATA_DIR}`);
   }
+  dataDirInitialized = true;
 }
 
 // Initialize JSON files if they don't exist
@@ -43,7 +46,6 @@ function initializeFile(filePath: string) {
 export function initializeStorage() {
   ensureDataDir();
   Object.values(FILES).forEach(initializeFile);
-  console.log("✅ JSON storage initialized");
 }
 
 // Load data from JSON file
@@ -71,20 +73,7 @@ export function saveToJson<T>(fileKey: keyof typeof FILES, data: T[]): void {
 
     const jsonString = JSON.stringify(data, null, 2);
     fs.writeFileSync(filePath, jsonString, "utf-8");
-    console.log(`💾 Saved ${data.length} items to ${fileKey} (${filePath})`);
-
-    // Verify the save worked
-    try {
-      const verify = fs.readFileSync(filePath, "utf-8");
-      const parsed = JSON.parse(verify);
-      if (parsed.length !== data.length) {
-        console.error(`⚠️ Warning: Saved ${data.length} items but file contains ${parsed.length} items`);
-      } else {
-        console.log(`✅ Verified: File contains ${parsed.length} items`);
-      }
-    } catch (verifyError) {
-      console.error(`⚠️ Could not verify save:`, verifyError);
-    }
+    console.log(`💾 Saved ${data.length} items to ${fileKey}`);
   } catch (error) {
     console.error(`❌ Error saving ${fileKey}:`, error);
     throw error;

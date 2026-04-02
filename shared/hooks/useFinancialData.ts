@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { Transaction, FinancialSummary } from "@/core/types";
 
 export function useFinancialData() {
@@ -11,9 +12,6 @@ export function useFinancialData() {
       if (!response.ok) throw new Error("Failed to fetch transactions");
       return response.json();
     },
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    refetchOnReconnect: true,
   });
 
   const { data: summary, isLoading: isLoadingSummary } = useQuery<FinancialSummary>({
@@ -23,13 +21,11 @@ export function useFinancialData() {
       if (!response.ok) throw new Error("Failed to fetch summary");
       return response.json();
     },
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    refetchOnReconnect: true,
   });
 
-  const categories = Array.from(
-    new Set(transactions.map((t) => t.category))
+  const categories = useMemo(
+    () => Array.from(new Set(transactions.map((t) => t.category))),
+    [transactions]
   );
 
   return {
@@ -44,4 +40,3 @@ export function useFinancialData() {
     isLoading: isLoadingTransactions || isLoadingSummary,
   };
 }
-

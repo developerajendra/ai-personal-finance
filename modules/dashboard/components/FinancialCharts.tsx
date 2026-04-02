@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Transaction, FinancialSummary } from "@/core/types";
 import {
   PieChart,
@@ -26,32 +27,36 @@ export function FinancialCharts({
   transactions,
   summary,
 }: FinancialChartsProps) {
-  const categoryData = Object.entries(summary.categoryBreakdown).map(
-    ([name, value]) => ({
-      name,
-      value,
-    })
+  const categoryData = useMemo(
+    () =>
+      Object.entries(summary.categoryBreakdown).map(([name, value]) => ({
+        name,
+        value,
+      })),
+    [summary.categoryBreakdown]
   );
 
-  const monthlyData = transactions.reduce((acc, tx) => {
-    const month = new Date(tx.date).toLocaleDateString("en-US", {
-      month: "short",
-    });
-    if (!acc[month]) {
-      acc[month] = { income: 0, expenses: 0 };
-    }
-    if (tx.type === "credit") {
-      acc[month].income += tx.amount;
-    } else {
-      acc[month].expenses += tx.amount;
-    }
-    return acc;
-  }, {} as Record<string, { income: number; expenses: number }>);
+  const monthlyChartData = useMemo(() => {
+    const monthlyData = transactions.reduce((acc, tx) => {
+      const month = new Date(tx.date).toLocaleDateString("en-US", {
+        month: "short",
+      });
+      if (!acc[month]) {
+        acc[month] = { income: 0, expenses: 0 };
+      }
+      if (tx.type === "credit") {
+        acc[month].income += tx.amount;
+      } else {
+        acc[month].expenses += tx.amount;
+      }
+      return acc;
+    }, {} as Record<string, { income: number; expenses: number }>);
 
-  const monthlyChartData = Object.entries(monthlyData).map(([month, data]) => ({
-    month,
-    ...data,
-  }));
+    return Object.entries(monthlyData).map(([month, data]) => ({
+      month,
+      ...data,
+    }));
+  }, [transactions]);
 
   return (
     <div className="bg-white rounded-lg shadow p-6 border border-gray-200 space-y-6">
@@ -112,4 +117,3 @@ export function FinancialCharts({
     </div>
   );
 }
-

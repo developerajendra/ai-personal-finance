@@ -39,6 +39,56 @@ function ensureCacheDir(): void {
   }
 }
 
+// In-memory index for fuzzy matching — avoids reading all cache files on every lookup
+interface CacheIndexEntry {
+  queryHash: string;
+  normalizedMessage: string;
+  normalizedSystemPrompt: string;
+  timestamp: number;
+}
+let cacheIndex: Map<string, CacheIndexEntry> | null = null;
+
+function getOrBuildIndex(): Map<string, CacheIndexEntry> {
+  if (cacheIndex !== null) return cacheIndex;
+  cacheIndex = new Map();
+  if (!fs.existsSync(CACHE_DIR)) return cacheIndex;
+  try {
+    const files = fs.readdirSync(CACHE_DIR).filter((f) => f.endsWith(".json"));
+    for (const file of files) {
+      try {
+        const data: CachedResponse = JSON.parse(
+          fs.readFileSync(path.join(CACHE_DIR, file), "utf-8")
+        );
+        cacheIndex.set(data.queryHash, {
+          queryHash: data.queryHash,
+          normalizedMessage: normalizeText(data.message),
+          normalizedSystemPrompt: data.systemPrompt ? normalizeText(data.systemPrompt) : "",
+          timestamp: data.metadata.timestamp,
+        });
+      } catch {
+        // skip corrupted entries
+      }
+    }
+  } catch {
+    // skip if dir unreadable
+  }
+  return cacheIndex;
+}
+
+function addToIndex(cached: CachedResponse): void {
+  const index = getOrBuildIndex();
+  index.set(cached.queryHash, {
+    queryHash: cached.queryHash,
+    normalizedMessage: normalizeText(cached.message),
+    normalizedSystemPrompt: cached.systemPrompt ? normalizeText(cached.systemPrompt) : "",
+    timestamp: cached.metadata.timestamp,
+  });
+}
+
+function removeFromIndex(queryHash: string): void {
+  cacheIndex?.delete(queryHash);
+}
+
 /**
  * Normalize text for comparison (lowercase, remove extra spaces, punctuation)
  */
@@ -169,6 +219,7 @@ export async function saveToCache(
     };
 
     fs.writeFileSync(cachePath, JSON.stringify(cachedResponse, null, 2), "utf-8");
+    addToIndex(cachedResponse);
     console.log(`[Ollama Cache] ✅ Cached response: ${cacheKey.substring(0, 12)}...`);
   } catch (error) {
     console.error("[Ollama Cache] Error saving to cache:", error);
@@ -177,7 +228,8 @@ export async function saveToCache(
 }
 
 /**
- * Find similar cached responses using fuzzy matching
+ * Find similar cached responses using fuzzy matching.
+ * Uses an in-memory index to avoid reading all cache files on every call.
  */
 async function findSimilarCachedResponses(
   message: string,
@@ -185,57 +237,51 @@ async function findSimilarCachedResponses(
   ttl: number = DEFAULT_TTL,
   threshold: number = FUZZY_MATCH_THRESHOLD
 ): Promise<Array<{ cached: CachedResponse; similarity: number }>> {
-  ensureCacheDir();
   const similar: Array<{ cached: CachedResponse; similarity: number }> = [];
   const normalizedQuery = normalizeText(message);
+  const normalizedSystemPrompt = systemPrompt ? normalizeText(systemPrompt) : "";
   const now = Date.now();
 
-  // Only do fuzzy matching for queries above minimum length
   if (normalizedQuery.length < MIN_QUERY_LENGTH) {
     return similar;
   }
 
   try {
-    const files = fs.readdirSync(CACHE_DIR).filter((f) => f.endsWith(".json"));
+    const index = getOrBuildIndex();
 
-    for (const file of files) {
-      try {
-        const filePath = path.join(CACHE_DIR, file);
-        const cachedData = fs.readFileSync(filePath, "utf-8");
-        const cached: CachedResponse = JSON.parse(cachedData);
+    for (const entry of index.values()) {
+      // Skip expired entries
+      if (now - entry.timestamp > ttl) continue;
 
-        // Check if cache is expired
-        const age = now - cached.metadata.timestamp;
-        if (age > ttl) {
-          continue; // Skip expired entries
-        }
+      // System prompt must match
+      const systemPromptMatch =
+        (!systemPrompt && !entry.normalizedSystemPrompt) ||
+        (systemPrompt && entry.normalizedSystemPrompt === normalizedSystemPrompt);
+      if (!systemPromptMatch) continue;
 
-        // Only match if system prompts are similar (or both undefined)
-        const systemPromptMatch =
-          (!systemPrompt && !cached.systemPrompt) ||
-          (systemPrompt &&
-            cached.systemPrompt &&
-            normalizeText(systemPrompt) === normalizeText(cached.systemPrompt));
+      // Length-ratio pre-filter: if lengths are too different, similarity can't reach threshold
+      const lenA = normalizedQuery.length;
+      const lenB = entry.normalizedMessage.length;
+      const maxLen = Math.max(lenA, lenB);
+      if (maxLen > 0 && Math.abs(lenA - lenB) / maxLen > 1 - threshold) continue;
 
-        if (!systemPromptMatch) {
-          continue;
-        }
+      // Run Levenshtein only for entries that pass the pre-filter
+      const distance = levenshteinDistance(normalizedQuery, entry.normalizedMessage);
+      const similarity = maxLen === 0 ? 1.0 : 1 - distance / maxLen;
 
-        // Calculate similarity with cached message
-        const similarity = calculateSimilarity(message, cached.message);
-
-        if (similarity >= threshold) {
+      if (similarity >= threshold) {
+        // Load the full cache file only for matching entries
+        try {
+          const filePath = path.join(CACHE_DIR, `${entry.queryHash}.json`);
+          const cached: CachedResponse = JSON.parse(fs.readFileSync(filePath, "utf-8"));
           similar.push({ cached, similarity });
+        } catch {
+          removeFromIndex(entry.queryHash);
         }
-      } catch (error) {
-        // Skip corrupted files
-        continue;
       }
     }
 
-    // Sort by similarity (highest first)
     similar.sort((a, b) => b.similarity - a.similarity);
-
     return similar;
   } catch (error) {
     console.error("[Ollama Cache] Error finding similar cached responses:", error);
@@ -354,6 +400,7 @@ export function invalidateCache(
 
     if (fs.existsSync(cachePath)) {
       fs.unlinkSync(cachePath);
+      removeFromIndex(cacheKey);
       console.log(`[Ollama Cache] 🗑️  Invalidated cache: ${cacheKey.substring(0, 12)}...`);
       return true;
     }
@@ -384,6 +431,7 @@ export function clearExpiredCache(maxAge: number = DEFAULT_TTL): number {
 
         if (age > maxAge) {
           fs.unlinkSync(filePath);
+          removeFromIndex(cached.queryHash);
           cleared++;
         }
       } catch (error) {
@@ -418,6 +466,7 @@ export function clearAllCache(): number {
       fs.unlinkSync(filePath);
       cleared++;
     }
+    cacheIndex = new Map(); // reset index
 
     console.log(`[Ollama Cache] 🗑️  Cleared all ${cleared} cache entries`);
   } catch (error) {
