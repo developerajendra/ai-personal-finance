@@ -4,8 +4,8 @@
  * Usage:
  *   npx tsx scripts/migrate-json-to-sqlite.ts [email]
  *
- * If email is provided, it creates a user with that email.
- * If not, it prompts or uses a default.
+ * Default email (when omitted): developer.rajan@gmail.com — use your real Google account
+ * so OAuth sign-in maps to the same user row as migrated JSON data.
  */
 
 import fs from "fs";
@@ -49,7 +49,7 @@ function readJsonObj(filePath: string): any {
 }
 
 async function main() {
-  const emailArg = process.argv[2] || "admin@example.com";
+  const emailArg = process.argv[2] || "developer.rajan@gmail.com";
   const defaultPassword = "changeme123";
 
   console.log("=== JSON → SQLite Migration ===\n");
@@ -73,7 +73,7 @@ async function main() {
       .values({
         id: userId,
         email: emailArg,
-        name: "Admin",
+        name: "Developer",
         hashedPassword,
       })
       .run();
