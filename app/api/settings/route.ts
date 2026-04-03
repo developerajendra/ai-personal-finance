@@ -10,9 +10,11 @@ export async function GET() {
     }
     const userId = session.userId;
 
-    const zerodhaConfigs = userConfigRepo.getConfigsByProvider(userId, "zerodha");
-    const gmailConfigs = userConfigRepo.getConfigsByProvider(userId, "gmail");
-    const aiConfigs = userConfigRepo.getConfigsByProvider(userId, "ai");
+    const [zerodhaConfigs, gmailConfigs, aiConfigs] = await Promise.all([
+      userConfigRepo.getConfigsByProvider(userId, "zerodha"),
+      userConfigRepo.getConfigsByProvider(userId, "gmail"),
+      userConfigRepo.getConfigsByProvider(userId, "ai"),
+    ]);
 
     const mask = (value: string) =>
       value.length > 6 ? value.slice(0, 3) + "***" + value.slice(-3) : "***";
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     for (const [key, value] of Object.entries(configs)) {
       if (typeof value === "string" && value.trim()) {
-        userConfigRepo.setConfig(userId, provider, key, value.trim());
+        await userConfigRepo.setConfig(userId, provider, key, value.trim());
       }
     }
 
@@ -87,7 +89,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Provider is required" }, { status: 400 });
     }
 
-    userConfigRepo.deleteAllByProvider(userId, provider);
+    await userConfigRepo.deleteAllByProvider(userId, provider);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting settings:", error);
