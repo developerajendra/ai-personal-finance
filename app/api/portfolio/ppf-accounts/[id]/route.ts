@@ -17,7 +17,7 @@ export async function PATCH(
     }
     const userId = session.userId;
 
-    const accounts = loadPPFAccounts(userId);
+    const accounts = await loadPPFAccounts(userId);
     const existing = accounts.find((acc) => acc.id === params.id);
 
     if (!existing) {
@@ -38,8 +38,9 @@ export async function PATCH(
       rawData: body.rawData ?? existing.rawData,
     };
 
-    savePPFAccount(userId, updatedAccount);
-    const saved = loadPPFAccounts(userId).find((acc) => acc.id === params.id);
+    await savePPFAccount(userId, updatedAccount);
+    const savedAccounts = await loadPPFAccounts(userId);
+    const saved = savedAccounts.find((acc) => acc.id === params.id);
     return NextResponse.json(saved);
   } catch (error) {
     console.error("Error updating PPF account:", error);

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       ? undefined
       : snapshotMonth ?? (snapshotYear === 2025 ? 12 : currentMonth);
 
-    const snapshotData = calculateSnapshotAsOfDate(userId, snapshotYear, finalMonth);
+    const snapshotData = await calculateSnapshotAsOfDate(userId, snapshotYear, finalMonth);
 
     // Create snapshot date (end of month for monthly, end of year for yearly)
     let snapshotDate: string;
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       console.warn("Snapshot validation issues:", validation.errors);
     }
 
-    const saved = saveSnapshot(userId, snapshot);
+    const saved = await saveSnapshot(userId, snapshot);
 
     return NextResponse.json(
       {

@@ -30,7 +30,7 @@ export async function GET() {
     const [stocks, mutualFunds, ppfAccounts] = await Promise.all([
       loadStocks(userId),
       loadMutualFunds(userId),
-      Promise.resolve(loadPPFAccounts(userId)),
+      loadPPFAccounts(userId),
     ]);
 
     return NextResponse.json({

@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       // Extract Employee Share and Employer Share from the header (these are the deposit values)
       const employeeShareMatch = pdfText.match(/Employee Share[^\n]*\n[^\n]*\n(\d+)/);
       const employerShareMatch = pdfText.match(/Employer Share[^\n]*\n[^\n]*\n(\d+)/);
-      
+
       if (employeeShareMatch) {
         extractedData.depositEmployeeShare = parseInt(employeeShareMatch[1]) || 0;
       }
@@ -110,15 +110,15 @@ export async function POST(request: NextRequest) {
       const establishmentIndex = pdfText.indexOf(extractedData.establishmentName || extractedData.establishmentId || '');
       const searchStart = establishmentIndex > 0 ? establishmentIndex : 0;
       const textAfterEstablishment = pdfText.substring(searchStart);
-      
+
       // Find all Grand Total lines and find the one that matches our deposit values
       const allGrandTotals = Array.from(textAfterEstablishment.matchAll(/Grand Total\s*(\d+)/g));
       let grandTotalMatch = null;
-      
+
       if (extractedData.depositEmployeeShare > 0 && extractedData.depositEmployerShare > 0) {
         const empStr = extractedData.depositEmployeeShare.toString();
         const empShareStr = extractedData.depositEmployerShare.toString();
-        
+
         // Find the Grand Total that starts with our deposit values
         for (const match of allGrandTotals) {
           const allNumbers = match[1];
@@ -131,34 +131,34 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-      
+
       if (grandTotalMatch && extractedData.depositEmployeeShare > 0 && extractedData.depositEmployerShare > 0) {
         const allNumbers = grandTotalMatch[1];
         const empStr = extractedData.depositEmployeeShare.toString();
         const empShareStr = extractedData.depositEmployerShare.toString();
-        
+
         // Find where deposit values appear in the concatenated string
         if (allNumbers.startsWith(empStr)) {
           const afterEmp = allNumbers.substring(empStr.length);
-          
+
           if (afterEmp.startsWith(empShareStr)) {
             const afterEmpShare = afterEmp.substring(empShareStr.length);
-            
+
             // Pattern analysis from actual data:
             // "00108709" (8 digits) = 00 (withdraw emp, 2) + 108709 (pension, 6)
             // "0042319" (7 digits) = 00 (withdraw emp, 2) + 42319 (pension, 5)
             // So format is: withdrawEmployee (2 digits) + pension (4-6 digits)
             // Withdraw employer might be missing or combined
-            
+
             if (afterEmpShare.length >= 4) {
               let pensionFound = false;
-              
+
               // Try pension lengths from 6 down to 4 (longer first)
               for (let pensionLen = 6; pensionLen >= 4 && !pensionFound; pensionLen--) {
                 if (afterEmpShare.length >= pensionLen + 2) { // At least 2 digits for withdraw + pension
                   const pensionPart = afterEmpShare.slice(-pensionLen);
                   const withdrawPart = afterEmpShare.slice(0, -pensionLen);
-                  
+
                   const pension = parseInt(pensionPart);
                   // Validate pension is reasonable
                   if (pension > 0 && pension < 10000000) {
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
                   }
                 }
               }
-              
+
               // If still not found, try fallback: assume last 4-6 digits are pension
               if (!pensionFound && afterEmpShare.length >= 4) {
                 // Try different pension lengths
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
                     const pensionPart = afterEmpShare.slice(-pensionLen);
                     const withdrawPart = afterEmpShare.slice(0, -pensionLen);
                     const pension = parseInt(pensionPart);
-                    
+
                     if (pension > 0 && pension < 10000000) {
                       if (withdrawPart.length === 2) {
                         extractedData.withdrawEmployeeShare = parseInt(withdrawPart) || 0;
@@ -212,11 +212,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Calculate grand total (sum of all positive values minus withdrawals)
-      extractedData.grandTotal = 
-        extractedData.depositEmployeeShare + 
-        extractedData.depositEmployerShare - 
-        extractedData.withdrawEmployeeShare - 
-        extractedData.withdrawEmployerShare + 
+      extractedData.grandTotal =
+        extractedData.depositEmployeeShare +
+        extractedData.depositEmployerShare -
+        extractedData.withdrawEmployeeShare -
+        extractedData.withdrawEmployerShare +
         extractedData.pensionContribution;
 
       console.log("✅ Parsed PPF data:", JSON.stringify(extractedData, null, 2));
@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
       rawData: extractedData,
     };
 
-    savePPFAccount(userId, ppfAccount);
+    await savePPFAccount(userId, ppfAccount);
 
     return NextResponse.json({
       success: true,

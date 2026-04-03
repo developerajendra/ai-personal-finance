@@ -15,11 +15,14 @@ export async function GET(request: NextRequest) {
 
     initializeStorage();
     const jsonData = await loadFromJson<Loan>("loans", userId);
-    const normalizedData = jsonData.map((loan) => ({
-      ...loan,
-      isPublished: loan.isPublished ?? false,
-      outstandingAmount: getEffectiveOutstandingAmount(userId, loan),
-    }));
+
+    const normalizedData = await Promise.all(
+      jsonData.map(async (loan) => ({
+        ...loan,
+        isPublished: loan.isPublished ?? false,
+        outstandingAmount: await getEffectiveOutstandingAmount(userId, loan),
+      }))
+    );
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");

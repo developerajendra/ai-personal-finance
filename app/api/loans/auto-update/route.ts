@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const allSnapshots = loadLoanSnapshots(userId);
+    const allSnapshots = await loadLoanSnapshots(userId);
     let totalGenerated = 0;
     const generatedDetails: Array<{ loanId: string; loanName: string; year: number; month: number }> = [];
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Generate missing monthly snapshots up to the current month
-      const generated = generateMissingMonthlySnapshots(
+      const generated = await generateMissingMonthlySnapshots(
         userId,
         loan.id,
         lastSnapshot,

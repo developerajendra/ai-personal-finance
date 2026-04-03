@@ -1,35 +1,35 @@
 import * as financialSnapshotRepo from "@/core/db/repositories/financialSnapshotRepository";
 import type { FinancialSnapshot } from "@/core/types";
 
-export function loadSnapshots(userId: string): FinancialSnapshot[] {
+export async function loadSnapshots(userId: string): Promise<FinancialSnapshot[]> {
   return financialSnapshotRepo.findByUserId(userId);
 }
 
-export function getSnapshot(userId: string, year: number, month?: number): FinancialSnapshot | null {
+export async function getSnapshot(userId: string, year: number, month?: number): Promise<FinancialSnapshot | null> {
   return financialSnapshotRepo.findByYearMonth(userId, year, month);
 }
 
-export function getSnapshotsByYear(userId: string, year: number): FinancialSnapshot[] {
+export async function getSnapshotsByYear(userId: string, year: number): Promise<FinancialSnapshot[]> {
   return financialSnapshotRepo.findByYear(userId, year);
 }
 
-export function saveSnapshot(userId: string, snapshot: FinancialSnapshot): FinancialSnapshot {
+export async function saveSnapshot(userId: string, snapshot: FinancialSnapshot): Promise<FinancialSnapshot> {
   return financialSnapshotRepo.upsert(userId, snapshot);
 }
 
-export function getAvailableYears(userId: string): number[] {
+export async function getAvailableYears(userId: string): Promise<number[]> {
   return financialSnapshotRepo.getAvailableYears(userId);
 }
 
-export function getAvailableMonths(userId: string, year: number): number[] {
+export async function getAvailableMonths(userId: string, year: number): Promise<number[]> {
   return financialSnapshotRepo.getAvailableMonths(userId, year);
 }
 
-export function calculateGrowthMetrics(
+export async function calculateGrowthMetrics(
   userId: string,
   current: FinancialSnapshot,
   previous?: FinancialSnapshot
-): {
+): Promise<{
   monthlyGrowth: {
     netWorth: number;
     totalInvestments: number;
@@ -42,7 +42,7 @@ export function calculateGrowthMetrics(
     totalIncome: number;
     totalExpenses: number;
   };
-} {
+}> {
   const pct = (c: number, p: number) => (p === 0 ? (c > 0 ? 100 : 0) : ((c - p) / p) * 100);
 
   const monthlyGrowth = previous
@@ -56,8 +56,8 @@ export function calculateGrowthMetrics(
 
   const lastYearSnapshot =
     current.month !== undefined
-      ? getSnapshot(userId, current.year - 1, current.month)
-      : getSnapshot(userId, current.year - 1);
+      ? await getSnapshot(userId, current.year - 1, current.month)
+      : await getSnapshot(userId, current.year - 1);
 
   const yearlyGrowth = lastYearSnapshot
     ? {
@@ -71,7 +71,7 @@ export function calculateGrowthMetrics(
   return { monthlyGrowth, yearlyGrowth };
 }
 
-export function getPreviousSnapshot(userId: string, snapshot: FinancialSnapshot): FinancialSnapshot | null {
+export async function getPreviousSnapshot(userId: string, snapshot: FinancialSnapshot): Promise<FinancialSnapshot | null> {
   if (snapshot.month !== undefined) {
     if (snapshot.month > 1) {
       return getSnapshot(userId, snapshot.year, snapshot.month - 1);

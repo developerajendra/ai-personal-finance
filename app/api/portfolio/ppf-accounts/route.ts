@@ -10,7 +10,7 @@ export async function GET() {
     }
     const userId = session.userId;
 
-    const accounts = loadPPFAccounts(userId);
+    const accounts = await loadPPFAccounts(userId);
     return NextResponse.json(accounts);
   } catch (error) {
     console.error("Error fetching PPF accounts:", error);

@@ -1,71 +1,71 @@
 import * as loanSnapshotRepo from "@/core/db/repositories/loanSnapshotRepository";
 import type { LoanMonthlySnapshot } from "@/core/types";
 
-export function loadLoanSnapshots(userId: string): LoanMonthlySnapshot[] {
+export async function loadLoanSnapshots(userId: string): Promise<LoanMonthlySnapshot[]> {
   return loanSnapshotRepo.findByUserId(userId);
 }
 
-export function getLoanSnapshot(
+export async function getLoanSnapshot(
   userId: string,
   loanId: string,
   year: number,
   month: number
-): LoanMonthlySnapshot | null {
+): Promise<LoanMonthlySnapshot | null> {
   return loanSnapshotRepo.findByLoanAndMonth(userId, loanId, year, month);
 }
 
-export function getLoanSnapshotsByYear(
+export async function getLoanSnapshotsByYear(
   userId: string,
   loanId: string,
   year: number
-): LoanMonthlySnapshot[] {
+): Promise<LoanMonthlySnapshot[]> {
   return loanSnapshotRepo.findByYear(userId, loanId, year);
 }
 
-export function getLoanSnapshotsByMonth(
+export async function getLoanSnapshotsByMonth(
   userId: string,
   year: number,
   month: number
-): LoanMonthlySnapshot[] {
+): Promise<LoanMonthlySnapshot[]> {
   return loanSnapshotRepo.findByMonth(userId, year, month);
 }
 
-export function getLoanSnapshots(userId: string, loanId: string): LoanMonthlySnapshot[] {
+export async function getLoanSnapshots(userId: string, loanId: string): Promise<LoanMonthlySnapshot[]> {
   return loanSnapshotRepo.findByLoanId(userId, loanId);
 }
 
-export function getLatestLoanSnapshot(
+export async function getLatestLoanSnapshot(
   userId: string,
   loanId: string
-): LoanMonthlySnapshot | null {
+): Promise<LoanMonthlySnapshot | null> {
   return loanSnapshotRepo.findLatest(userId, loanId);
 }
 
-export function getEffectiveOutstandingAmount(
+export async function getEffectiveOutstandingAmount(
   userId: string,
   loan: { id: string; outstandingAmount: number }
-): number {
-  const latest = loanSnapshotRepo.findLatest(userId, loan.id);
+): Promise<number> {
+  const latest = await loanSnapshotRepo.findLatest(userId, loan.id);
   return latest ? latest.outstandingAmount : loan.outstandingAmount;
 }
 
-export function saveLoanMonthlySnapshot(
+export async function saveLoanMonthlySnapshot(
   userId: string,
   snapshot: LoanMonthlySnapshot
-): LoanMonthlySnapshot {
+): Promise<LoanMonthlySnapshot> {
   return loanSnapshotRepo.upsert(userId, snapshot);
 }
 
-export function getAvailableYearsForLoans(userId: string): number[] {
+export async function getAvailableYearsForLoans(userId: string): Promise<number[]> {
   return loanSnapshotRepo.getAvailableYears(userId);
 }
 
-export function getAvailableMonthsForLoans(userId: string, year: number): number[] {
+export async function getAvailableMonthsForLoans(userId: string, year: number): Promise<number[]> {
   return loanSnapshotRepo.getAvailableMonths(userId, year);
 }
 
-export function getLoansWithSnapshots(userId: string, year: number): string[] {
-  const snapshots = loanSnapshotRepo.findByUserId(userId).filter((s) => s.year === year);
+export async function getLoansWithSnapshots(userId: string, year: number): Promise<string[]> {
+  const snapshots = (await loanSnapshotRepo.findByUserId(userId)).filter((s) => s.year === year);
   return [...new Set(snapshots.map((s) => s.loanId))];
 }
 
@@ -106,24 +106,24 @@ export function calculateLoanGrowthMetrics(
   };
 }
 
-export function getPreviousLoanSnapshot(
+export async function getPreviousLoanSnapshot(
   userId: string,
   snapshot: LoanMonthlySnapshot
-): LoanMonthlySnapshot | null {
-  const all = loanSnapshotRepo.findByLoanId(userId, snapshot.loanId);
+): Promise<LoanMonthlySnapshot | null> {
+  const all = await loanSnapshotRepo.findByLoanId(userId, snapshot.loanId);
   const idx = all.findIndex((s) => s.year === snapshot.year && s.month === snapshot.month);
   if (idx > 0) return all[idx - 1];
   if (snapshot.month > 1) return loanSnapshotRepo.findByLoanAndMonth(userId, snapshot.loanId, snapshot.year, snapshot.month - 1);
   return loanSnapshotRepo.findByLoanAndMonth(userId, snapshot.loanId, snapshot.year - 1, 12);
 }
 
-export function generateMissingMonthlySnapshots(
+export async function generateMissingMonthlySnapshots(
   userId: string,
   loanId: string,
   lastSnapshot: LoanMonthlySnapshot,
   targetYear: number,
   targetMonth: number
-): LoanMonthlySnapshot[] {
+): Promise<LoanMonthlySnapshot[]> {
   const generated: LoanMonthlySnapshot[] = [];
   const lastDate = new Date(lastSnapshot.year, lastSnapshot.month - 1);
   const targetDate = new Date(targetYear, targetMonth - 1);
@@ -147,7 +147,7 @@ export function generateMissingMonthlySnapshots(
     const month = monthDate.getMonth() + 1;
     const year = monthDate.getFullYear();
 
-    const existing = loanSnapshotRepo.findByLoanAndMonth(userId, loanId, year, month);
+    const existing = await loanSnapshotRepo.findByLoanAndMonth(userId, loanId, year, month);
     if (existing) {
       prevOutstanding = existing.outstandingAmount;
       prevPrincipalPaid = existing.principalPaid;
@@ -178,7 +178,7 @@ export function generateMissingMonthlySnapshots(
     };
 
     generated.push(snap);
-    loanSnapshotRepo.upsert(userId, snap);
+    await loanSnapshotRepo.upsert(userId, snap);
 
     prevOutstanding = newOutstanding;
     prevPrincipalPaid = newPrincipalPaid;

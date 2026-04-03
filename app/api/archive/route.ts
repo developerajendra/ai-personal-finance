@@ -25,13 +25,13 @@ export async function GET(request: NextRequest) {
 
     if (action === "years") {
       // Get available years
-      const years = getAvailableYears(userId);
+      const years = await getAvailableYears(userId);
       return NextResponse.json({ years });
     }
 
     if (action === "months" && year) {
       // Get available months for a year
-      const months = getAvailableMonths(userId, parseInt(year));
+      const months = await getAvailableMonths(userId, parseInt(year));
       return NextResponse.json({ months });
     }
 
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       if (month) {
         // Get specific month snapshot
         const monthNum = parseInt(month);
-        const snapshot = getSnapshot(userId, yearNum, monthNum);
+        const snapshot = await getSnapshot(userId, yearNum, monthNum);
         if (!snapshot) {
           return NextResponse.json(
             { error: "Snapshot not found" },
@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
         }
 
         // Calculate growth metrics
-        const previous = getPreviousSnapshot(userId, snapshot);
-        const growth = calculateGrowthMetrics(userId, snapshot, previous || undefined);
+        const previous = await getPreviousSnapshot(userId, snapshot);
+        const growth = await calculateGrowthMetrics(userId, snapshot, previous || undefined);
 
         return NextResponse.json({
           snapshot,
@@ -62,29 +62,29 @@ export async function GET(request: NextRequest) {
         // For past years, try yearly snapshot first
         if (yearNum >= 2025) {
           // For 2025 and current year, return only monthly snapshots (exclude yearly)
-          const allSnapshots = getSnapshotsByYear(userId, yearNum);
+          const allSnapshots = await getSnapshotsByYear(userId, yearNum);
           const monthlySnapshots = allSnapshots.filter(s => s.month !== undefined);
           return NextResponse.json({ snapshots: monthlySnapshots });
         } else {
           // For past years, try yearly snapshot first
-          const yearlySnapshot = getSnapshot(userId, yearNum);
+          const yearlySnapshot = await getSnapshot(userId, yearNum);
           if (yearlySnapshot) {
-            const previous = getPreviousSnapshot(userId, yearlySnapshot);
-            const growth = calculateGrowthMetrics(userId, yearlySnapshot, previous || undefined);
+            const previous = await getPreviousSnapshot(userId, yearlySnapshot);
+            const growth = await calculateGrowthMetrics(userId, yearlySnapshot, previous || undefined);
             return NextResponse.json({
               snapshot: yearlySnapshot,
               growth,
             });
           }
           // Get all snapshots for the year
-          const snapshots = getSnapshotsByYear(userId, yearNum);
+          const snapshots = await getSnapshotsByYear(userId, yearNum);
           return NextResponse.json({ snapshots });
         }
       }
     }
 
     // Get all snapshots
-    const years = getAvailableYears(userId);
+    const years = await getAvailableYears(userId);
     return NextResponse.json({ years, message: "Use ?year=YYYY&month=MM to get specific snapshot" });
   } catch (error: any) {
     console.error("Error fetching archive data:", error);

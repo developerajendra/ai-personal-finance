@@ -18,21 +18,21 @@ export interface PPFAccount {
   rawData?: any;
 }
 
-export function loadPPFAccounts(userId: string): PPFAccount[] {
+export async function loadPPFAccounts(userId: string): Promise<PPFAccount[]> {
   return ppfAccountRepo.findByUserId(userId);
 }
 
-export function savePPFAccount(userId: string, account: PPFAccount): void {
-  const existing = ppfAccountRepo.findById(userId, account.id);
+export async function savePPFAccount(userId: string, account: PPFAccount): Promise<void> {
+  const existing = await ppfAccountRepo.findById(userId, account.id);
   if (existing) {
-    ppfAccountRepo.update(userId, account.id, account);
+    await ppfAccountRepo.update(userId, account.id, account);
   } else {
-    ppfAccountRepo.create(userId, account);
+    await ppfAccountRepo.create(userId, account);
   }
 }
 
-export function savePPFAccounts(userId: string, accounts: PPFAccount[]): void {
+export async function savePPFAccounts(userId: string, accounts: PPFAccount[]): Promise<void> {
   for (const account of accounts) {
-    savePPFAccount(userId, account);
+    await savePPFAccount(userId, account);
   }
 }

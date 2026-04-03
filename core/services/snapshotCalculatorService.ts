@@ -21,14 +21,14 @@ import type {
   FinancialSnapshot,
 } from "@/core/types";
 
-function getLoanOutstandingAtDate(userId: string, loan: Loan, asOfDate: Date): number {
+async function getLoanOutstandingAtDate(userId: string, loan: Loan, asOfDate: Date): Promise<number> {
   const start = new Date(loan.startDate);
   if (asOfDate < start) return 0;
   if (loan.status !== "active") return 0;
 
   const asOfYear = asOfDate.getFullYear();
   const asOfMonth = asOfDate.getMonth() + 1;
-  const snapshot = loanSnapshotRepo.findByLoanAndMonth(userId, loan.id, asOfYear, asOfMonth);
+  const snapshot = await loanSnapshotRepo.findByLoanAndMonth(userId, loan.id, asOfYear, asOfMonth);
   if (snapshot) {
     return snapshot.outstandingAmount;
   }
@@ -38,7 +38,7 @@ function getLoanOutstandingAtDate(userId: string, loan: Loan, asOfDate: Date): n
     (now.getTime() - asOfDate.getTime()) / (1000 * 60 * 60 * 24)
   );
   if (daysDiff <= 45 && daysDiff >= -31) {
-    const latest = loanSnapshotRepo.findLatest(userId, loan.id);
+    const latest = await loanSnapshotRepo.findLatest(userId, loan.id);
     return latest ? latest.outstandingAmount : loan.outstandingAmount;
   }
 
@@ -55,11 +55,11 @@ function getLoanOutstandingAtDate(userId: string, loan: Loan, asOfDate: Date): n
   return Math.max(0, Math.round(remaining * 100) / 100);
 }
 
-export function calculateSnapshotAsOfDate(
+export async function calculateSnapshotAsOfDate(
   userId: string,
   year: number,
   month?: number
-): Partial<FinancialSnapshot> {
+): Promise<Partial<FinancialSnapshot>> {
   const asOfDate =
     month !== undefined
       ? new Date(year, month, 0)
@@ -68,14 +68,25 @@ export function calculateSnapshotAsOfDate(
 
   const monthEnd = new Date(asOfDate.getTime());
 
-  const allInvestments = investmentRepo.findByUserId(userId);
-  const allLoans = loanRepo.findByUserId(userId);
-  const allProperties = propertyRepo.findByUserId(userId);
-  const bankBalances = bankBalanceRepo.findByUserId(userId);
-  const transactions = transactionRepo.findByUserId(userId);
-  const allStocks = stockRepo.findByUserId(userId);
-  const allMutualFunds = mutualFundRepo.findByUserId(userId);
-  const ppfAccounts = ppfAccountRepo.findByUserId(userId);
+  const [
+    allInvestments,
+    allLoans,
+    allProperties,
+    bankBalances,
+    transactions,
+    allStocks,
+    allMutualFunds,
+    ppfAccounts,
+  ] = await Promise.all([
+    investmentRepo.findByUserId(userId),
+    loanRepo.findByUserId(userId),
+    propertyRepo.findByUserId(userId),
+    bankBalanceRepo.findByUserId(userId),
+    transactionRepo.findByUserId(userId),
+    stockRepo.findByUserId(userId),
+    mutualFundRepo.findByUserId(userId),
+    ppfAccountRepo.findByUserId(userId),
+  ]);
 
   const filteredInvestments = allInvestments.filter((inv) => {
     if (!inv.isPublished) return false;
@@ -94,10 +105,11 @@ export function calculateSnapshotAsOfDate(
   const filteredLoans = allLoans.filter(
     (l) => l.isPublished && l.status === "active" && new Date(l.startDate) <= asOfDate
   );
-  const totalLoans = filteredLoans.reduce(
-    (sum, loan) => sum + getLoanOutstandingAtDate(userId, loan, asOfDate),
-    0
+
+  const loanOutstandingAmounts = await Promise.all(
+    filteredLoans.map((loan) => getLoanOutstandingAtDate(userId, loan, asOfDate))
   );
+  const totalLoans = loanOutstandingAmounts.reduce((sum, amount) => sum + amount, 0);
 
   const filteredProperties = allProperties.filter(
     (p) => p.isPublished && new Date(p.purchaseDate) <= asOfDate
@@ -245,14 +257,12 @@ export function calculateSnapshotAsOfDate(
       (investmentBreakdown["provident-fund"] || 0) + totalPPF;
   }
 
-  const loanBreakdown = filteredLoans.reduce(
-    (acc, loan) => {
-      const val = getLoanOutstandingAtDate(userId, loan, asOfDate);
-      acc[loan.type] = (acc[loan.type] || 0) + val;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+  const loanBreakdown: Record<string, number> = {};
+  for (let i = 0; i < filteredLoans.length; i++) {
+    const loan = filteredLoans[i];
+    const val = loanOutstandingAmounts[i];
+    loanBreakdown[loan.type] = (loanBreakdown[loan.type] || 0) + val;
+  }
 
   const propertyBreakdown = filteredProperties.reduce(
     (acc, p) => {
