@@ -2,7 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { createHash } from "crypto";
 
-const CACHE_DIR = path.join(process.cwd(), ".cache", "excel-data");
+// On Vercel, process.cwd() is read-only; use /tmp which is the only writable path
+const BASE_DIR = process.env.VERCEL ? "/tmp" : process.cwd();
+const CACHE_DIR = path.join(BASE_DIR, ".cache", "excel-data");
 
 // Ensure cache directory exists
 function ensureCacheDir() {

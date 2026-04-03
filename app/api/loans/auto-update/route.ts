@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Load all loans
-    const loans = loadFromJson<Loan>('loans', userId).filter((l) => l.isPublished);
+    const allLoansData = await loadFromJson<Loan>('loans', userId);
+    const loans = allLoansData.filter((l) => l.isPublished);
     if (loans.length === 0) {
       return NextResponse.json({
         success: true,

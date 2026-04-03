@@ -30,51 +30,52 @@ export function initializeStorage() {
   // No-op: SQLite is always ready
 }
 
-export function loadFromJson<T>(fileKey: FileKey, userId: string): T[] {
+export async function loadFromJson<T>(fileKey: FileKey, userId: string): Promise<T[]> {
   const repo = FILE_KEY_TO_REPO[fileKey];
-  return (repo as any).findByUserId(userId) as T[];
+  return (repo as any).findByUserId(userId) as Promise<T[]>;
 }
 
-export function saveToJson<T extends { id: string }>(fileKey: FileKey, data: T[], userId: string): void {
+export async function saveToJson<T extends { id: string }>(fileKey: FileKey, data: T[], userId: string): Promise<void> {
   const repo = FILE_KEY_TO_REPO[fileKey];
-  (repo as any).replaceAll(userId, data);
+  await (repo as any).replaceAll(userId, data);
 }
 
-export function appendToJson<T extends { id: string }>(fileKey: FileKey, newItems: T[], userId: string): void {
+export async function appendToJson<T extends { id: string }>(fileKey: FileKey, newItems: T[], userId: string): Promise<void> {
   const repo = FILE_KEY_TO_REPO[fileKey];
-  (repo as any).bulkCreate(userId, newItems);
+  await (repo as any).bulkCreate(userId, newItems);
 }
 
-export function updateInJson<T extends { id: string }>(
+export async function updateInJson<T extends { id: string }>(
   fileKey: FileKey,
   id: string,
   updates: Partial<T>,
   userId: string
-): T | null {
+): Promise<T | null> {
   const repo = FILE_KEY_TO_REPO[fileKey];
-  return (repo as any).update(userId, id, updates) as T | null;
+  return (repo as any).update(userId, id, updates) as Promise<T | null>;
 }
 
-export function deleteFromJson<T extends { id: string }>(
+export async function deleteFromJson<T extends { id: string }>(
   fileKey: FileKey,
   id: string,
   userId: string
-): boolean {
+): Promise<boolean> {
   const repo = FILE_KEY_TO_REPO[fileKey];
-  return (repo as any).remove(userId, id);
+  return (repo as any).remove(userId, id) as Promise<boolean>;
 }
 
-export function loadAllPortfolioData(userId: string) {
-  return {
-    investments: investmentRepo.findByUserId(userId),
-    loans: loanRepo.findByUserId(userId),
-    properties: propertyRepo.findByUserId(userId),
-    bankBalances: bankBalanceRepo.findByUserId(userId),
-    transactions: transactionRepo.findByUserId(userId),
-  };
+export async function loadAllPortfolioData(userId: string) {
+  const [investments, loans, properties, bankBalances, transactions] = await Promise.all([
+    investmentRepo.findByUserId(userId),
+    loanRepo.findByUserId(userId),
+    propertyRepo.findByUserId(userId),
+    bankBalanceRepo.findByUserId(userId),
+    transactionRepo.findByUserId(userId),
+  ]);
+  return { investments, loans, properties, bankBalances, transactions };
 }
 
-export function saveAllPortfolioData(
+export async function saveAllPortfolioData(
   userId: string,
   data: {
     investments?: Investment[];
@@ -83,26 +84,28 @@ export function saveAllPortfolioData(
     bankBalances?: BankBalance[];
     transactions?: Transaction[];
   }
-) {
-  if (data.investments !== undefined) investmentRepo.replaceAll(userId, data.investments);
-  if (data.loans !== undefined) loanRepo.replaceAll(userId, data.loans);
-  if (data.properties !== undefined) propertyRepo.replaceAll(userId, data.properties);
-  if (data.bankBalances !== undefined) bankBalanceRepo.replaceAll(userId, data.bankBalances);
-  if (data.transactions !== undefined) transactionRepo.replaceAll(userId, data.transactions);
+): Promise<void> {
+  const tasks: Promise<void>[] = [];
+  if (data.investments !== undefined) tasks.push(investmentRepo.replaceAll(userId, data.investments));
+  if (data.loans !== undefined) tasks.push(loanRepo.replaceAll(userId, data.loans));
+  if (data.properties !== undefined) tasks.push(propertyRepo.replaceAll(userId, data.properties));
+  if (data.bankBalances !== undefined) tasks.push(bankBalanceRepo.replaceAll(userId, data.bankBalances));
+  if (data.transactions !== undefined) tasks.push(transactionRepo.replaceAll(userId, data.transactions));
+  await Promise.all(tasks);
 }
 
-export function saveStocks(userId: string, stocks: ZerodhaStock[]): void {
-  stockRepo.replaceAll(userId, stocks);
+export async function saveStocks(userId: string, stocks: ZerodhaStock[]): Promise<void> {
+  await stockRepo.replaceAll(userId, stocks);
 }
 
-export function loadStocks(userId: string): ZerodhaStock[] {
+export async function loadStocks(userId: string): Promise<ZerodhaStock[]> {
   return stockRepo.findByUserId(userId);
 }
 
-export function saveMutualFunds(userId: string, mutualFunds: ZerodhaMutualFund[]): void {
-  mutualFundRepo.replaceAll(userId, mutualFunds);
+export async function saveMutualFunds(userId: string, mutualFunds: ZerodhaMutualFund[]): Promise<void> {
+  await mutualFundRepo.replaceAll(userId, mutualFunds);
 }
 
-export function loadMutualFunds(userId: string): ZerodhaMutualFund[] {
+export async function loadMutualFunds(userId: string): Promise<ZerodhaMutualFund[]> {
   return mutualFundRepo.findByUserId(userId);
 }

@@ -17,7 +17,7 @@ export async function PUT(
     initializeStorage();
     const id = params.id;
     const updated: BankBalance = await request.json();
-    const result = updateInJson<BankBalance>("bankBalances", id, updated, userId);
+    const result = await updateInJson<BankBalance>("bankBalances", id, updated, userId);
 
     if (!result) {
       return NextResponse.json(
@@ -48,8 +48,8 @@ export async function DELETE(
 
     initializeStorage();
     const id = params.id;
-    const deleted = deleteFromJson<BankBalance>("bankBalances", id, userId);
-    
+    const deleted = await deleteFromJson<BankBalance>("bankBalances", id, userId);
+
     if (!deleted) {
       return NextResponse.json(
         { error: "Bank balance not found" },

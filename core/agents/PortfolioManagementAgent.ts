@@ -275,9 +275,9 @@ export class PortfolioManagementAgent extends BaseAgent {
 
       const { loadFromJson, saveToJson } = await import('@/core/services/jsonStorageService');
 
-      const currentInvestments = loadFromJson<Investment>('investments', this.userId);
+      const currentInvestments = await loadFromJson<Investment>('investments', this.userId);
       currentInvestments.push(investment);
-      saveToJson('investments', currentInvestments, this.userId);
+      await saveToJson('investments', currentInvestments, this.userId);
       
       return investment;
     } catch (error: any) {

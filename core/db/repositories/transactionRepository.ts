@@ -20,29 +20,32 @@ function toAppModel(row: TransactionRow): Transaction {
   };
 }
 
-export function findByUserId(userId: string): Transaction[] {
-  return db.select().from(transactions).where(eq(transactions.userId, userId)).all().map(toAppModel);
+export async function findByUserId(userId: string): Promise<Transaction[]> {
+  const rows = await db.select().from(transactions).where(eq(transactions.userId, userId));
+  return rows.map(toAppModel);
 }
 
-export function findById(userId: string, id: string): Transaction | null {
-  const [row] = db.select().from(transactions).where(and(eq(transactions.userId, userId), eq(transactions.id, id))).limit(1).all();
+export async function findById(userId: string, id: string): Promise<Transaction | null> {
+  const rows = await db.select().from(transactions).where(and(eq(transactions.userId, userId), eq(transactions.id, id))).limit(1);
+  const [row] = rows;
   return row ? toAppModel(row) : null;
 }
 
-export function create(userId: string, data: Transaction): Transaction {
-  db.insert(transactions).values({ ...data, userId }).run();
-  return findById(userId, data.id)!;
+export async function create(userId: string, data: Transaction): Promise<Transaction> {
+  await db.insert(transactions).values({ ...data, userId });
+  return findById(userId, data.id) as Promise<Transaction>;
 }
 
-export function remove(userId: string, id: string): boolean {
-  return db.delete(transactions).where(and(eq(transactions.userId, userId), eq(transactions.id, id))).run().changes > 0;
+export async function remove(userId: string, id: string): Promise<boolean> {
+  const result = await db.delete(transactions).where(and(eq(transactions.userId, userId), eq(transactions.id, id)));
+  return result.rowsAffected > 0;
 }
 
-export function bulkCreate(userId: string, items: Transaction[]): void {
-  for (const item of items) db.insert(transactions).values({ ...item, userId }).run();
+export async function bulkCreate(userId: string, items: Transaction[]): Promise<void> {
+  for (const item of items) await db.insert(transactions).values({ ...item, userId });
 }
 
-export function replaceAll(userId: string, items: Transaction[]): void {
-  db.delete(transactions).where(eq(transactions.userId, userId)).run();
-  bulkCreate(userId, items);
+export async function replaceAll(userId: string, items: Transaction[]): Promise<void> {
+  await db.delete(transactions).where(eq(transactions.userId, userId));
+  await bulkCreate(userId, items);
 }

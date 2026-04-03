@@ -35,8 +35,8 @@ export interface UserConfig {
   configValue: string;
 }
 
-export function getConfig(userId: string, provider: string, configKey: string): string | null {
-  const [row] = db
+export async function getConfig(userId: string, provider: string, configKey: string): Promise<string | null> {
+  const rows = await db
     .select()
     .from(userConfigurations)
     .where(
@@ -46,14 +46,14 @@ export function getConfig(userId: string, provider: string, configKey: string): 
         eq(userConfigurations.configKey, configKey)
       )
     )
-    .limit(1)
-    .all();
+    .limit(1);
+  const [row] = rows;
   return row ? decrypt(row.configValue) : null;
 }
 
-export function setConfig(userId: string, provider: string, configKey: string, configValue: string): void {
+export async function setConfig(userId: string, provider: string, configKey: string, configValue: string): Promise<void> {
   const encrypted = encrypt(configValue);
-  const [existing] = db
+  const existingRows = await db
     .select()
     .from(userConfigurations)
     .where(
@@ -63,23 +63,21 @@ export function setConfig(userId: string, provider: string, configKey: string, c
         eq(userConfigurations.configKey, configKey)
       )
     )
-    .limit(1)
-    .all();
+    .limit(1);
+  const [existing] = existingRows;
 
   if (existing) {
-    db.update(userConfigurations)
+    await db.update(userConfigurations)
       .set({ configValue: encrypted, updatedAt: new Date().toISOString() })
-      .where(eq(userConfigurations.id, existing.id))
-      .run();
+      .where(eq(userConfigurations.id, existing.id));
   } else {
-    db.insert(userConfigurations)
-      .values({ userId, provider, configKey, configValue: encrypted })
-      .run();
+    await db.insert(userConfigurations)
+      .values({ userId, provider, configKey, configValue: encrypted });
   }
 }
 
-export function deleteConfig(userId: string, provider: string, configKey: string): boolean {
-  const result = db
+export async function deleteConfig(userId: string, provider: string, configKey: string): Promise<boolean> {
+  const result = await db
     .delete(userConfigurations)
     .where(
       and(
@@ -87,17 +85,15 @@ export function deleteConfig(userId: string, provider: string, configKey: string
         eq(userConfigurations.provider, provider),
         eq(userConfigurations.configKey, configKey)
       )
-    )
-    .run();
-  return result.changes > 0;
+    );
+  return result.rowsAffected > 0;
 }
 
-export function getConfigsByProvider(userId: string, provider: string): UserConfig[] {
-  const rows = db
+export async function getConfigsByProvider(userId: string, provider: string): Promise<UserConfig[]> {
+  const rows = await db
     .select()
     .from(userConfigurations)
-    .where(and(eq(userConfigurations.userId, userId), eq(userConfigurations.provider, provider)))
-    .all();
+    .where(and(eq(userConfigurations.userId, userId), eq(userConfigurations.provider, provider)));
   return rows.map((r) => ({
     provider: r.provider,
     configKey: r.configKey,
@@ -105,8 +101,7 @@ export function getConfigsByProvider(userId: string, provider: string): UserConf
   }));
 }
 
-export function deleteAllByProvider(userId: string, provider: string): void {
-  db.delete(userConfigurations)
-    .where(and(eq(userConfigurations.userId, userId), eq(userConfigurations.provider, provider)))
-    .run();
+export async function deleteAllByProvider(userId: string, provider: string): Promise<void> {
+  await db.delete(userConfigurations)
+    .where(and(eq(userConfigurations.userId, userId), eq(userConfigurations.provider, provider)));
 }

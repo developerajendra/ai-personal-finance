@@ -69,10 +69,10 @@ User's original message: "${message}"`;
       }
     }
 
-    const portfolioData = loadAllPortfolioData(userId);
-    
-    const stocks = loadStocks(userId);
-    const mutualFunds = loadMutualFunds(userId);
+    const portfolioData = await loadAllPortfolioData(userId);
+
+    const stocks = await loadStocks(userId);
+    const mutualFunds = await loadMutualFunds(userId);
 
     // Filter to only published items for dashboard/analytics (chatbot should use published data)
     const publishedInvestments = (portfolioData.investments || []).filter((inv: any) => inv.isPublished === true);
@@ -199,15 +199,15 @@ User's original message: "${message}"`;
 
           const { saveToJson, loadFromJson } = await import("@/core/services/jsonStorageService");
 
-          const currentInvestments = loadFromJson<{ id: string }>("investments", userId);
+          const currentInvestments = await loadFromJson<{ id: string }>("investments", userId);
           currentInvestments.push(newInvestment);
-          saveToJson("investments", currentInvestments, userId);
+          await saveToJson("investments", currentInvestments, userId);
 
-          console.log("[Chatbot] ✅ Created draft investment:", newInvestment.id, newInvestment.name, `Rs ${newInvestment.amount}`);
-          
+          console.log("[Chatbot] Created draft investment:", newInvestment.id, newInvestment.name, `Rs ${newInvestment.amount}`);
+
           // Enhance the response message with investment details
-          const investmentDetails = `\n\n**Investment Created:**\n- Name: ${newInvestment.name}\n- Amount: Rs ${newInvestment.amount.toLocaleString()}\n- Type: ${newInvestment.type}\n- Start Date: ${newInvestment.startDate}\n${newInvestment.maturityDate ? `- Maturity Date: ${newInvestment.maturityDate}\n` : ''}${newInvestment.interestRate ? `- Interest Rate: ${newInvestment.interestRate}%\n` : ''}\n✅ This investment has been saved in **draft mode**. You can find it in the Admin Panel → Portfolio tab under the Investments section. Review and publish it when you're ready!`;
-          
+          const investmentDetails = `\n\n**Investment Created:**\n- Name: ${newInvestment.name}\n- Amount: Rs ${newInvestment.amount.toLocaleString()}\n- Type: ${newInvestment.type}\n- Start Date: ${newInvestment.startDate}\n${newInvestment.maturityDate ? `- Maturity Date: ${newInvestment.maturityDate}\n` : ''}${newInvestment.interestRate ? `- Interest Rate: ${newInvestment.interestRate}%\n` : ''}\n This investment has been saved in **draft mode**. You can find it in the Admin Panel -> Portfolio tab under the Investments section. Review and publish it when you're ready!`;
+
           // Append investment details to the response
           const enhancedResponse = cleanerResponse + investmentDetails;
           return NextResponse.json({ response: enhancedResponse });
@@ -219,12 +219,12 @@ User's original message: "${message}"`;
           // Load all investments (including drafts) to find the one to update
           const { saveToJson, loadFromJson } = await import("@/core/services/jsonStorageService");
 
-          const allInvestments = loadFromJson("investments", userId);
-          
+          const allInvestments = await loadFromJson("investments", userId);
+
           // Find investment by name (case-insensitive partial match)
           const investmentName = actionJson.data.investmentName?.toLowerCase() || "";
-          const investmentIndex = allInvestments.findIndex((inv: any) => 
-            inv.name?.toLowerCase().includes(investmentName) || 
+          const investmentIndex = allInvestments.findIndex((inv: any) =>
+            inv.name?.toLowerCase().includes(investmentName) ||
             investmentName.includes(inv.name?.toLowerCase() || "")
           );
 
@@ -263,13 +263,13 @@ User's original message: "${message}"`;
 
           // Update in array
           allInvestments[investmentIndex] = updatedInvestment;
-          saveToJson("investments", allInvestments as { id: string }[], userId);
+          await saveToJson("investments", allInvestments as { id: string }[], userId);
 
-          console.log("[Chatbot] ✅ Updated investment:", updatedInvestment.id, updatedInvestment.name);
-          
+          console.log("[Chatbot] Updated investment:", updatedInvestment.id, updatedInvestment.name);
+
           // Enhance the response message with update details
-          const updateDetails = `\n\n**Investment Updated:**\n- Name: ${updatedInvestment.name}\n${actionJson.data.amount !== undefined ? `- Amount: Rs ${updatedInvestment.amount.toLocaleString()}\n` : ''}${actionJson.data.interestRate !== undefined ? `- Interest Rate: ${updatedInvestment.interestRate}%\n` : ''}${actionJson.data.maturityDate ? `- Maturity Date: ${updatedInvestment.maturityDate}\n` : ''}✅ The investment has been updated successfully. You can review it in the Admin Panel → Portfolio tab.`;
-          
+          const updateDetails = `\n\n**Investment Updated:**\n- Name: ${updatedInvestment.name}\n${actionJson.data.amount !== undefined ? `- Amount: Rs ${updatedInvestment.amount.toLocaleString()}\n` : ''}${actionJson.data.interestRate !== undefined ? `- Interest Rate: ${updatedInvestment.interestRate}%\n` : ''}${actionJson.data.maturityDate ? `- Maturity Date: ${updatedInvestment.maturityDate}\n` : ''} The investment has been updated successfully. You can review it in the Admin Panel -> Portfolio tab.`;
+
           // Append update details to the response
           const enhancedResponse = cleanerResponse + updateDetails;
           return NextResponse.json({ response: enhancedResponse });
@@ -277,8 +277,8 @@ User's original message: "${message}"`;
       } catch (e) {
         console.error("[Chatbot] Failed to execute action:", e);
         // If action failed, still return the cleaned response
-        return NextResponse.json({ 
-          response: cleanerResponse + "\n\n⚠ I encountered an error while creating the investment. Please try again or create it manually in the Portfolio section." 
+        return NextResponse.json({
+          response: cleanerResponse + "\n\n I encountered an error while creating the investment. Please try again or create it manually in the Portfolio section."
         });
       }
     }
@@ -293,4 +293,3 @@ User's original message: "${message}"`;
     );
   }
 }
-

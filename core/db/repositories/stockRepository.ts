@@ -18,15 +18,16 @@ function toAppModel(row: StockRow): ZerodhaStock {
   };
 }
 
-export function findByUserId(userId: string): ZerodhaStock[] {
-  return db.select().from(stocks).where(eq(stocks.userId, userId)).all().map(toAppModel);
+export async function findByUserId(userId: string): Promise<ZerodhaStock[]> {
+  const rows = await db.select().from(stocks).where(eq(stocks.userId, userId));
+  return rows.map(toAppModel);
 }
 
-export function replaceAll(userId: string, items: ZerodhaStock[]): void {
-  db.delete(stocks).where(eq(stocks.userId, userId)).run();
+export async function replaceAll(userId: string, items: ZerodhaStock[]): Promise<void> {
+  await db.delete(stocks).where(eq(stocks.userId, userId));
   const now = new Date().toISOString();
   for (const item of items) {
-    db.insert(stocks)
+    await db.insert(stocks)
       .values({
         userId,
         tradingsymbol: item.tradingsymbol,
@@ -38,7 +39,6 @@ export function replaceAll(userId: string, items: ZerodhaStock[]): void {
         pnl: item.pnl,
         pnlPercentage: item.pnl_percentage,
         lastUpdated: now,
-      })
-      .run();
+      });
   }
 }

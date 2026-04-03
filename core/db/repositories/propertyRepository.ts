@@ -23,36 +23,39 @@ function toAppModel(row: PropertyRow): Property {
   };
 }
 
-export function findByUserId(userId: string): Property[] {
-  return db.select().from(properties).where(eq(properties.userId, userId)).all().map(toAppModel);
+export async function findByUserId(userId: string): Promise<Property[]> {
+  const rows = await db.select().from(properties).where(eq(properties.userId, userId));
+  return rows.map(toAppModel);
 }
 
-export function findById(userId: string, id: string): Property | null {
-  const [row] = db.select().from(properties).where(and(eq(properties.userId, userId), eq(properties.id, id))).limit(1).all();
+export async function findById(userId: string, id: string): Promise<Property | null> {
+  const rows = await db.select().from(properties).where(and(eq(properties.userId, userId), eq(properties.id, id))).limit(1);
+  const [row] = rows;
   return row ? toAppModel(row) : null;
 }
 
-export function create(userId: string, data: Property): Property {
-  db.insert(properties).values({ ...data, userId }).run();
-  return findById(userId, data.id)!;
+export async function create(userId: string, data: Property): Promise<Property> {
+  await db.insert(properties).values({ ...data, userId });
+  return findById(userId, data.id) as Promise<Property>;
 }
 
-export function update(userId: string, id: string, data: Partial<Property>): Property | null {
-  const existing = findById(userId, id);
+export async function update(userId: string, id: string, data: Partial<Property>): Promise<Property | null> {
+  const existing = await findById(userId, id);
   if (!existing) return null;
-  db.update(properties).set({ ...data, updatedAt: new Date().toISOString() }).where(and(eq(properties.userId, userId), eq(properties.id, id))).run();
+  await db.update(properties).set({ ...data, updatedAt: new Date().toISOString() }).where(and(eq(properties.userId, userId), eq(properties.id, id)));
   return findById(userId, id);
 }
 
-export function remove(userId: string, id: string): boolean {
-  return db.delete(properties).where(and(eq(properties.userId, userId), eq(properties.id, id))).run().changes > 0;
+export async function remove(userId: string, id: string): Promise<boolean> {
+  const result = await db.delete(properties).where(and(eq(properties.userId, userId), eq(properties.id, id)));
+  return result.rowsAffected > 0;
 }
 
-export function bulkCreate(userId: string, items: Property[]): void {
-  for (const item of items) db.insert(properties).values({ ...item, userId }).run();
+export async function bulkCreate(userId: string, items: Property[]): Promise<void> {
+  for (const item of items) await db.insert(properties).values({ ...item, userId });
 }
 
-export function replaceAll(userId: string, items: Property[]): void {
-  db.delete(properties).where(eq(properties.userId, userId)).run();
-  bulkCreate(userId, items);
+export async function replaceAll(userId: string, items: Property[]): Promise<void> {
+  await db.delete(properties).where(eq(properties.userId, userId));
+  await bulkCreate(userId, items);
 }

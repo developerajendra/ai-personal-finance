@@ -18,15 +18,16 @@ function toAppModel(row: MFRow): ZerodhaMutualFund {
   };
 }
 
-export function findByUserId(userId: string): ZerodhaMutualFund[] {
-  return db.select().from(mutualFunds).where(eq(mutualFunds.userId, userId)).all().map(toAppModel);
+export async function findByUserId(userId: string): Promise<ZerodhaMutualFund[]> {
+  const rows = await db.select().from(mutualFunds).where(eq(mutualFunds.userId, userId));
+  return rows.map(toAppModel);
 }
 
-export function replaceAll(userId: string, items: ZerodhaMutualFund[]): void {
-  db.delete(mutualFunds).where(eq(mutualFunds.userId, userId)).run();
+export async function replaceAll(userId: string, items: ZerodhaMutualFund[]): Promise<void> {
+  await db.delete(mutualFunds).where(eq(mutualFunds.userId, userId));
   const now = new Date().toISOString();
   for (const item of items) {
-    db.insert(mutualFunds)
+    await db.insert(mutualFunds)
       .values({
         userId,
         tradingsymbol: item.tradingsymbol,
@@ -38,7 +39,6 @@ export function replaceAll(userId: string, items: ZerodhaMutualFund[]): void {
         pnl: item.pnl,
         pnlPercentage: item.pnl_percentage,
         lastUpdated: now,
-      })
-      .run();
+      });
   }
 }

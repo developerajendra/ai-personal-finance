@@ -16,7 +16,7 @@ export async function PUT(
 
     initializeStorage();
     const property: Property = await request.json();
-    const updated = updateInJson<Property>("properties", params.id, property, userId);
+    const updated = await updateInJson<Property>("properties", params.id, property, userId);
 
     if (!updated) {
       return NextResponse.json(
@@ -46,8 +46,8 @@ export async function DELETE(
     const userId = session.userId;
 
     initializeStorage();
-    const deleted = deleteFromJson<Property>("properties", params.id, userId);
-    
+    const deleted = await deleteFromJson<Property>("properties", params.id, userId);
+
     if (!deleted) {
       return NextResponse.json(
         { error: "Property not found" },

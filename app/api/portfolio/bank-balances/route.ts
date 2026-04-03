@@ -13,16 +13,16 @@ export async function GET(request: NextRequest) {
     const userId = session.userId;
 
     initializeStorage();
-    const jsonData = loadFromJson<BankBalance>("bankBalances", userId);
+    const jsonData = await loadFromJson<BankBalance>("bankBalances", userId);
     const normalizedData = jsonData.map(bb => ({
       ...bb,
       isPublished: bb.isPublished ?? false
     }));
-    
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "100");
-    
+
     let filteredData = normalizedData;
     if (searchParams.has("isPublished")) {
       const isPublished = searchParams.get("isPublished") === "true";
@@ -52,17 +52,17 @@ export async function POST(request: NextRequest) {
     const userId = session.userId;
 
     initializeStorage();
-    const jsonData = loadFromJson<BankBalance>("bankBalances", userId);
+    const jsonData = await loadFromJson<BankBalance>("bankBalances", userId);
     const normalizedData = jsonData.map(bb => ({
       ...bb,
       isPublished: bb.isPublished ?? false
     }));
-    
+
     const bankBalance: BankBalance = await request.json();
     const bankBalanceToAdd = { ...bankBalance, isPublished: bankBalance.isPublished ?? true };
     const updatedData = [...normalizedData, bankBalanceToAdd];
-    saveToJson("bankBalances", updatedData, userId);
-    
+    await saveToJson("bankBalances", updatedData, userId);
+
     return NextResponse.json(bankBalanceToAdd, { status: 201 });
   } catch (error) {
     return NextResponse.json(

@@ -32,57 +32,53 @@ function toAppModel(row: InvestmentRow): Investment {
   };
 }
 
-export function findByUserId(userId: string): Investment[] {
-  const rows = db.select().from(investments).where(eq(investments.userId, userId)).all();
+export async function findByUserId(userId: string): Promise<Investment[]> {
+  const rows = await db.select().from(investments).where(eq(investments.userId, userId));
   return rows.map(toAppModel);
 }
 
-export function findById(userId: string, id: string): Investment | null {
-  const [row] = db
+export async function findById(userId: string, id: string): Promise<Investment | null> {
+  const rows = await db
     .select()
     .from(investments)
     .where(and(eq(investments.userId, userId), eq(investments.id, id)))
-    .limit(1)
-    .all();
+    .limit(1);
+  const [row] = rows;
   return row ? toAppModel(row) : null;
 }
 
-export function create(userId: string, data: Investment): Investment {
-  db.insert(investments)
-    .values({ ...data, userId, tags: data.tags ?? null })
-    .run();
-  return findById(userId, data.id)!;
+export async function create(userId: string, data: Investment): Promise<Investment> {
+  await db.insert(investments)
+    .values({ ...data, userId, tags: data.tags ?? null });
+  return findById(userId, data.id) as Promise<Investment>;
 }
 
-export function update(userId: string, id: string, data: Partial<Investment>): Investment | null {
-  const existing = findById(userId, id);
+export async function update(userId: string, id: string, data: Partial<Investment>): Promise<Investment | null> {
+  const existing = await findById(userId, id);
   if (!existing) return null;
 
   const now = new Date().toISOString();
-  db.update(investments)
+  await db.update(investments)
     .set({ ...data, tags: data.tags ?? undefined, updatedAt: now })
-    .where(and(eq(investments.userId, userId), eq(investments.id, id)))
-    .run();
+    .where(and(eq(investments.userId, userId), eq(investments.id, id)));
   return findById(userId, id);
 }
 
-export function remove(userId: string, id: string): boolean {
-  const result = db
+export async function remove(userId: string, id: string): Promise<boolean> {
+  const result = await db
     .delete(investments)
-    .where(and(eq(investments.userId, userId), eq(investments.id, id)))
-    .run();
-  return result.changes > 0;
+    .where(and(eq(investments.userId, userId), eq(investments.id, id)));
+  return result.rowsAffected > 0;
 }
 
-export function bulkCreate(userId: string, items: Investment[]): void {
+export async function bulkCreate(userId: string, items: Investment[]): Promise<void> {
   for (const item of items) {
-    db.insert(investments)
-      .values({ ...item, userId, tags: item.tags ?? null })
-      .run();
+    await db.insert(investments)
+      .values({ ...item, userId, tags: item.tags ?? null });
   }
 }
 
-export function replaceAll(userId: string, items: Investment[]): void {
-  db.delete(investments).where(eq(investments.userId, userId)).run();
-  bulkCreate(userId, items);
+export async function replaceAll(userId: string, items: Investment[]): Promise<void> {
+  await db.delete(investments).where(eq(investments.userId, userId));
+  await bulkCreate(userId, items);
 }

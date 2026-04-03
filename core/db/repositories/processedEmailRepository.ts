@@ -18,26 +18,27 @@ function toAppModel(row: EmailRow): ProcessedEmail {
   };
 }
 
-export function findByUserId(userId: string): ProcessedEmail[] {
-  return db.select().from(processedEmails).where(eq(processedEmails.userId, userId)).all().map(toAppModel);
+export async function findByUserId(userId: string): Promise<ProcessedEmail[]> {
+  const rows = await db.select().from(processedEmails).where(eq(processedEmails.userId, userId));
+  return rows.map(toAppModel);
 }
 
-export function isProcessed(userId: string, emailId: string): boolean {
-  const [row] = db
+export async function isProcessed(userId: string, emailId: string): Promise<boolean> {
+  const rows = await db
     .select()
     .from(processedEmails)
     .where(and(eq(processedEmails.userId, userId), eq(processedEmails.emailId, emailId)))
-    .limit(1)
-    .all();
+    .limit(1);
+  const [row] = rows;
   return !!row;
 }
 
-export function markProcessed(userId: string, emailId: string, investmentId?: string): void {
-  db.insert(processedEmails).values({ userId, emailId, investmentId: investmentId ?? null }).run();
+export async function markProcessed(userId: string, emailId: string, investmentId?: string): Promise<void> {
+  await db.insert(processedEmails).values({ userId, emailId, investmentId: investmentId ?? null });
 }
 
-export function bulkCreate(userId: string, items: ProcessedEmail[]): void {
+export async function bulkCreate(userId: string, items: ProcessedEmail[]): Promise<void> {
   for (const item of items) {
-    markProcessed(userId, item.emailId, item.investmentId);
+    await markProcessed(userId, item.emailId, item.investmentId);
   }
 }

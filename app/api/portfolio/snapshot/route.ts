@@ -13,10 +13,10 @@ export async function GET() {
     const userId = session.userId;
 
     const [rawInvestments, rawLoans, rawProperties, rawBankBalances] = await Promise.all([
-      Promise.resolve(loadFromJson<Investment>("investments", userId)),
-      Promise.resolve(loadFromJson<Loan>("loans", userId)),
-      Promise.resolve(loadFromJson<Property>("properties", userId)),
-      Promise.resolve(loadFromJson<BankBalance>("bankBalances", userId)),
+      loadFromJson<Investment>("investments", userId),
+      loadFromJson<Loan>("loans", userId),
+      loadFromJson<Property>("properties", userId),
+      loadFromJson<BankBalance>("bankBalances", userId),
     ]);
 
     const investments = rawInvestments
@@ -27,9 +27,11 @@ export async function GET() {
     const properties = rawProperties.filter((p) => p.isPublished ?? false);
     const bankBalances = rawBankBalances.filter((bb) => bb.isPublished ?? false);
 
-    const stocks = loadStocks(userId);
-    const mutualFunds = loadMutualFunds(userId);
-    const ppfAccounts = loadPPFAccounts(userId);
+    const [stocks, mutualFunds, ppfAccounts] = await Promise.all([
+      loadStocks(userId),
+      loadMutualFunds(userId),
+      Promise.resolve(loadPPFAccounts(userId)),
+    ]);
 
     return NextResponse.json({
       investments,

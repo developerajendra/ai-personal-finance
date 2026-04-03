@@ -1,7 +1,9 @@
 import fs from "fs";
 import path from "path";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+// On Vercel, process.cwd() is read-only; use /tmp which is the only writable path
+const BASE_DIR = process.env.VERCEL ? "/tmp" : process.cwd();
+const DATA_DIR = path.join(BASE_DIR, "data");
 const LOANS_DIR = path.join(DATA_DIR, "loans");
 const REFERENCE_DATA_FILE = path.join(LOANS_DIR, "loanReferenceData.json");
 const OLD_REFERENCE_DATA_FILE = path.join(DATA_DIR, "loanReferenceData.json");

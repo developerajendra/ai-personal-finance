@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const userId = session.userId;
 
     initializeStorage();
-    const jsonData = loadFromJson<Loan>("loans", userId);
+    const jsonData = await loadFromJson<Loan>("loans", userId);
     const normalizedData = jsonData.map((loan) => ({
       ...loan,
       isPublished: loan.isPublished ?? false,
@@ -54,17 +54,17 @@ export async function POST(request: NextRequest) {
     const userId = session.userId;
 
     initializeStorage();
-    const jsonData = loadFromJson<Loan>("loans", userId);
+    const jsonData = await loadFromJson<Loan>("loans", userId);
     const normalizedData = jsonData.map(loan => ({
       ...loan,
       isPublished: loan.isPublished ?? false
     }));
-    
+
     const loan: Loan = await request.json();
     const loanToAdd = { ...loan, isPublished: loan.isPublished ?? true };
     const updatedData = [...normalizedData, loanToAdd];
-    saveToJson("loans", updatedData, userId);
-    
+    await saveToJson("loans", updatedData, userId);
+
     return NextResponse.json(loanToAdd, { status: 201 });
   } catch (error) {
     return NextResponse.json(

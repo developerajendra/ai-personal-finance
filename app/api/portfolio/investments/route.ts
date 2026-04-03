@@ -13,16 +13,16 @@ export async function GET(request: NextRequest) {
     const userId = session.userId;
 
     initializeStorage();
-    const jsonData = loadFromJson<Investment>("investments", userId);
+    const jsonData = await loadFromJson<Investment>("investments", userId);
     const normalizedData = jsonData.map(inv => ({
       ...inv,
       isPublished: inv.isPublished ?? false
     }));
-    
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "100");
-    
+
     let filteredData = normalizedData;
     if (searchParams.has("isPublished")) {
       const isPublished = searchParams.get("isPublished") === "true";
@@ -69,17 +69,17 @@ export async function POST(request: NextRequest) {
     const userId = session.userId;
 
     initializeStorage();
-    const jsonData = loadFromJson<Investment>("investments", userId);
+    const jsonData = await loadFromJson<Investment>("investments", userId);
     const normalizedData = jsonData.map(inv => ({
       ...inv,
       isPublished: inv.isPublished ?? false
     }));
-    
+
     const investment: Investment = await request.json();
     const investmentToAdd = { ...investment, isPublished: investment.isPublished ?? true };
     const updatedData = [...normalizedData, investmentToAdd];
-    saveToJson("investments", updatedData, userId);
-    
+    await saveToJson("investments", updatedData, userId);
+
     return NextResponse.json(investmentToAdd, { status: 201 });
   } catch (error) {
     return NextResponse.json(

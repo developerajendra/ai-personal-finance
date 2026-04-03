@@ -2,7 +2,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { createHash } from "crypto";
 
-const CACHE_DIR = path.join(process.cwd(), ".cache", "ollama-responses");
+// On Vercel, process.cwd() is read-only; use /tmp which is the only writable path
+const BASE_DIR = process.env.VERCEL ? "/tmp" : process.cwd();
+const CACHE_DIR = path.join(BASE_DIR, ".cache", "ollama-responses");
 const DEFAULT_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const FUZZY_MATCH_THRESHOLD = parseFloat(
   process.env.OLLAMA_CACHE_FUZZY_THRESHOLD || "0.85"

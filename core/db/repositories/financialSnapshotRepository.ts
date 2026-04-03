@@ -35,36 +35,35 @@ function toAppModel(row: SnapshotRow): FinancialSnapshot {
   };
 }
 
-export function findByUserId(userId: string): FinancialSnapshot[] {
-  return db.select().from(financialSnapshots).where(eq(financialSnapshots.userId, userId)).all().map(toAppModel);
+export async function findByUserId(userId: string): Promise<FinancialSnapshot[]> {
+  const rows = await db.select().from(financialSnapshots).where(eq(financialSnapshots.userId, userId));
+  return rows.map(toAppModel);
 }
 
-export function findByYearMonth(userId: string, year: number, month?: number): FinancialSnapshot | null {
+export async function findByYearMonth(userId: string, year: number, month?: number): Promise<FinancialSnapshot | null> {
   let rows;
   if (month === undefined) {
-    rows = db
+    rows = await db
       .select()
       .from(financialSnapshots)
       .where(and(eq(financialSnapshots.userId, userId), eq(financialSnapshots.year, year), isNull(financialSnapshots.month)))
-      .limit(1)
-      .all();
+      .limit(1);
   } else {
-    rows = db
+    rows = await db
       .select()
       .from(financialSnapshots)
       .where(and(eq(financialSnapshots.userId, userId), eq(financialSnapshots.year, year), eq(financialSnapshots.month, month)))
-      .limit(1)
-      .all();
+      .limit(1);
   }
   return rows.length > 0 ? toAppModel(rows[0]) : null;
 }
 
-export function findByYear(userId: string, year: number): FinancialSnapshot[] {
-  return db
+export async function findByYear(userId: string, year: number): Promise<FinancialSnapshot[]> {
+  const rows = await db
     .select()
     .from(financialSnapshots)
-    .where(and(eq(financialSnapshots.userId, userId), eq(financialSnapshots.year, year)))
-    .all()
+    .where(and(eq(financialSnapshots.userId, userId), eq(financialSnapshots.year, year)));
+  return rows
     .map(toAppModel)
     .sort((a, b) => {
       if (a.month !== undefined && b.month !== undefined) return a.month - b.month;
@@ -72,12 +71,12 @@ export function findByYear(userId: string, year: number): FinancialSnapshot[] {
     });
 }
 
-export function upsert(userId: string, data: FinancialSnapshot): FinancialSnapshot {
-  const existing = findByYearMonth(userId, data.year, data.month);
+export async function upsert(userId: string, data: FinancialSnapshot): Promise<FinancialSnapshot> {
+  const existing = await findByYearMonth(userId, data.year, data.month);
   const now = new Date().toISOString();
 
   if (existing) {
-    db.update(financialSnapshots)
+    await db.update(financialSnapshots)
       .set({
         ...data,
         userId,
@@ -88,10 +87,9 @@ export function upsert(userId: string, data: FinancialSnapshot): FinancialSnapsh
         categoryBreakdown: data.categoryBreakdown ?? null,
         updatedAt: now,
       })
-      .where(and(eq(financialSnapshots.userId, userId), eq(financialSnapshots.id, existing.id)))
-      .run();
+      .where(and(eq(financialSnapshots.userId, userId), eq(financialSnapshots.id, existing.id)));
   } else {
-    db.insert(financialSnapshots)
+    await db.insert(financialSnapshots)
       .values({
         ...data,
         userId,
@@ -100,22 +98,22 @@ export function upsert(userId: string, data: FinancialSnapshot): FinancialSnapsh
         loanBreakdown: data.loanBreakdown ?? null,
         propertyBreakdown: data.propertyBreakdown ?? null,
         categoryBreakdown: data.categoryBreakdown ?? null,
-      })
-      .run();
+      });
   }
-  return findByYearMonth(userId, data.year, data.month)!;
+  return findByYearMonth(userId, data.year, data.month) as Promise<FinancialSnapshot>;
 }
 
-export function remove(userId: string, id: string): boolean {
-  return db.delete(financialSnapshots).where(and(eq(financialSnapshots.userId, userId), eq(financialSnapshots.id, id))).run().changes > 0;
+export async function remove(userId: string, id: string): Promise<boolean> {
+  const result = await db.delete(financialSnapshots).where(and(eq(financialSnapshots.userId, userId), eq(financialSnapshots.id, id)));
+  return result.rowsAffected > 0;
 }
 
-export function getAvailableYears(userId: string): number[] {
-  const all = findByUserId(userId);
+export async function getAvailableYears(userId: string): Promise<number[]> {
+  const all = await findByUserId(userId);
   return [...new Set(all.map((s) => s.year))].sort((a, b) => b - a);
 }
 
-export function getAvailableMonths(userId: string, year: number): number[] {
-  const byYear = findByYear(userId, year);
+export async function getAvailableMonths(userId: string, year: number): Promise<number[]> {
+  const byYear = await findByYear(userId, year);
   return byYear.filter((s) => s.month !== undefined).map((s) => s.month!).sort((a, b) => a - b);
 }

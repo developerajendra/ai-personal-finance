@@ -12,7 +12,7 @@ export async function GET() {
     const userId = session.userId;
 
     initializeStorage();
-    const categories = loadFromJson<PortfolioCategory>("portfolioCategories", userId);
+    const categories = await loadFromJson<PortfolioCategory>("portfolioCategories", userId);
     return NextResponse.json(categories);
   } catch (error: any) {
     return NextResponse.json(
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingCategories = loadFromJson<PortfolioCategory>("portfolioCategories", userId);
+    const existingCategories = await loadFromJson<PortfolioCategory>("portfolioCategories", userId);
     if (existingCategories.some((cat) => cat.slug === slug)) {
       return NextResponse.json(
         { error: "A category with this slug already exists" },
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     };
 
     const updatedCategories = [...existingCategories, newCategory];
-    saveToJson("portfolioCategories", updatedCategories, userId);
+    await saveToJson("portfolioCategories", updatedCategories, userId);
 
     return NextResponse.json(newCategory, { status: 201 });
   } catch (error: any) {

@@ -31,12 +31,12 @@ export async function POST(request: NextRequest) {
     let updated = false;
 
     if (type === "investment") {
-      const data = loadFromJson<Investment>("investments", userId);
+      const data = await loadFromJson<Investment>("investments", userId);
       const index = data.findIndex(i => i.id === id);
       if (index !== -1) {
         data[index] = { ...data[index], isPublished, updatedAt: new Date().toISOString() };
         item = data[index];
-        saveToJson("investments", data, userId);
+        await saveToJson("investments", data, userId);
         updated = true;
 
         if (isPublished) {
@@ -47,23 +47,23 @@ export async function POST(request: NextRequest) {
               const processedEmails = JSON.parse(fs.readFileSync(processedEmailsFile, 'utf-8'));
               console.log(`[Publish] Found ${processedEmails.length} processed emails in file`);
               const processedEmail = processedEmails.find((pe: any) => pe.investmentId === id);
-              
+
               if (processedEmail?.emailId) {
                 console.log(`[Publish] Found email ${processedEmail.emailId} for investment ${id}`);
                 const cookieStore = await cookies();
                 const accessToken = cookieStore.get('gmail_access_token')?.value || process.env.GMAIL_ACCESS_TOKEN;
                 const refreshToken = cookieStore.get('gmail_refresh_token')?.value || process.env.GMAIL_REFRESH_TOKEN;
-                
+
                 if (accessToken && refreshToken) {
                   console.log(`[Publish] Gmail tokens available, moving email to personal-finance label...`);
                   try {
                     await moveEmailToLabel(accessToken, refreshToken, processedEmail.emailId, 'personal-finance');
-                    console.log(`[Publish] ✅ Successfully moved email ${processedEmail.emailId} to personal-finance label for investment ${id}`);
+                    console.log(`[Publish] Successfully moved email ${processedEmail.emailId} to personal-finance label for investment ${id}`);
                   } catch (labelError: any) {
                     console.log(`[Publish] Trying with space variation...`);
                     try {
                       await moveEmailToLabel(accessToken, refreshToken, processedEmail.emailId, 'personal finance');
-                      console.log(`[Publish] ✅ Successfully moved email ${processedEmail.emailId} to "personal finance" label for investment ${id}`);
+                      console.log(`[Publish] Successfully moved email ${processedEmail.emailId} to "personal finance" label for investment ${id}`);
                     } catch (spaceError: any) {
                       console.error(`[Publish] Failed to move email with both variations:`, {
                         hyphenError: labelError.message,
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
                 }
               } else {
                 console.log(`[Publish] No email found for investment ${id} in processed-emails.json`);
-                console.log(`[Publish] Available investment IDs in processed emails:`, 
+                console.log(`[Publish] Available investment IDs in processed emails:`,
                   processedEmails.filter((pe: any) => pe.investmentId).map((pe: any) => pe.investmentId)
                 );
               }
@@ -93,30 +93,30 @@ export async function POST(request: NextRequest) {
         }
       }
     } else if (type === "loan") {
-      const data = loadFromJson<Loan>("loans", userId);
+      const data = await loadFromJson<Loan>("loans", userId);
       const index = data.findIndex(l => l.id === id);
       if (index !== -1) {
         data[index] = { ...data[index], isPublished, updatedAt: new Date().toISOString() };
         item = data[index];
-        saveToJson("loans", data, userId);
+        await saveToJson("loans", data, userId);
         updated = true;
       }
     } else if (type === "property") {
-      const data = loadFromJson<Property>("properties", userId);
+      const data = await loadFromJson<Property>("properties", userId);
       const index = data.findIndex(p => p.id === id);
       if (index !== -1) {
         data[index] = { ...data[index], isPublished, updatedAt: new Date().toISOString() };
         item = data[index];
-        saveToJson("properties", data, userId);
+        await saveToJson("properties", data, userId);
         updated = true;
       }
     } else if (type === "bank-balance") {
-      const data = loadFromJson<BankBalance>("bankBalances", userId);
+      const data = await loadFromJson<BankBalance>("bankBalances", userId);
       const index = data.findIndex(bb => bb.id === id);
       if (index !== -1) {
         data[index] = { ...data[index], isPublished, updatedAt: new Date().toISOString() };
         item = data[index];
-        saveToJson("bankBalances", data, userId);
+        await saveToJson("bankBalances", data, userId);
         updated = true;
       }
     }

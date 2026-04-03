@@ -1,18 +1,15 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
-import path from "path";
-import fs from "fs";
+import { drizzle } from "drizzle-orm/libsql";
+import { createClient } from "@libsql/client";
 import * as schema from "./schema";
 
-const DB_PATH = path.join(process.cwd(), "data", "app.db");
+/**
+ * Database client.
+ * - Local dev: uses file:./data/app.db  (no TURSO_DATABASE_URL needed)
+ * - Vercel / production: uses Turso cloud via TURSO_DATABASE_URL + TURSO_AUTH_TOKEN
+ */
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL ?? "file:./data/app.db",
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
 
-const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-
-const sqlite = new Database(DB_PATH);
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
-
-export const db = drizzle(sqlite, { schema });
+export const db = drizzle(client, { schema });

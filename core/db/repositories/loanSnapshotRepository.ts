@@ -23,22 +23,23 @@ function toAppModel(row: SnapshotRow): LoanMonthlySnapshot {
   };
 }
 
-export function findByUserId(userId: string): LoanMonthlySnapshot[] {
-  return db.select().from(loanSnapshots).where(eq(loanSnapshots.userId, userId)).all().map(toAppModel);
+export async function findByUserId(userId: string): Promise<LoanMonthlySnapshot[]> {
+  const rows = await db.select().from(loanSnapshots).where(eq(loanSnapshots.userId, userId));
+  return rows.map(toAppModel);
 }
 
-export function findByLoanId(userId: string, loanId: string): LoanMonthlySnapshot[] {
-  return db
+export async function findByLoanId(userId: string, loanId: string): Promise<LoanMonthlySnapshot[]> {
+  const rows = await db
     .select()
     .from(loanSnapshots)
-    .where(and(eq(loanSnapshots.userId, userId), eq(loanSnapshots.loanId, loanId)))
-    .all()
+    .where(and(eq(loanSnapshots.userId, userId), eq(loanSnapshots.loanId, loanId)));
+  return rows
     .map(toAppModel)
     .sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
 }
 
-export function findByLoanAndMonth(userId: string, loanId: string, year: number, month: number): LoanMonthlySnapshot | null {
-  const [row] = db
+export async function findByLoanAndMonth(userId: string, loanId: string, year: number, month: number): Promise<LoanMonthlySnapshot | null> {
+  const rows = await db
     .select()
     .from(loanSnapshots)
     .where(
@@ -49,44 +50,43 @@ export function findByLoanAndMonth(userId: string, loanId: string, year: number,
         eq(loanSnapshots.month, month)
       )
     )
-    .limit(1)
-    .all();
+    .limit(1);
+  const [row] = rows;
   return row ? toAppModel(row) : null;
 }
 
-export function findByMonth(userId: string, year: number, month: number): LoanMonthlySnapshot[] {
-  return db
+export async function findByMonth(userId: string, year: number, month: number): Promise<LoanMonthlySnapshot[]> {
+  const rows = await db
     .select()
     .from(loanSnapshots)
-    .where(and(eq(loanSnapshots.userId, userId), eq(loanSnapshots.year, year), eq(loanSnapshots.month, month)))
-    .all()
-    .map(toAppModel);
+    .where(and(eq(loanSnapshots.userId, userId), eq(loanSnapshots.year, year), eq(loanSnapshots.month, month)));
+  return rows.map(toAppModel);
 }
 
-export function findByYear(userId: string, loanId: string, year: number): LoanMonthlySnapshot[] {
-  return db
+export async function findByYear(userId: string, loanId: string, year: number): Promise<LoanMonthlySnapshot[]> {
+  const rows = await db
     .select()
     .from(loanSnapshots)
-    .where(and(eq(loanSnapshots.userId, userId), eq(loanSnapshots.loanId, loanId), eq(loanSnapshots.year, year)))
-    .all()
+    .where(and(eq(loanSnapshots.userId, userId), eq(loanSnapshots.loanId, loanId), eq(loanSnapshots.year, year)));
+  return rows
     .map(toAppModel)
     .sort((a, b) => a.month - b.month);
 }
 
-export function findLatest(userId: string, loanId: string): LoanMonthlySnapshot | null {
-  const all = findByLoanId(userId, loanId);
+export async function findLatest(userId: string, loanId: string): Promise<LoanMonthlySnapshot | null> {
+  const all = await findByLoanId(userId, loanId);
   return all.length > 0 ? all[all.length - 1] : null;
 }
 
-export function create(userId: string, data: LoanMonthlySnapshot): LoanMonthlySnapshot {
-  db.insert(loanSnapshots).values({ ...data, userId }).run();
-  return findByLoanAndMonth(userId, data.loanId, data.year, data.month)!;
+export async function create(userId: string, data: LoanMonthlySnapshot): Promise<LoanMonthlySnapshot> {
+  await db.insert(loanSnapshots).values({ ...data, userId });
+  return findByLoanAndMonth(userId, data.loanId, data.year, data.month) as Promise<LoanMonthlySnapshot>;
 }
 
-export function upsert(userId: string, data: LoanMonthlySnapshot): LoanMonthlySnapshot {
-  const existing = findByLoanAndMonth(userId, data.loanId, data.year, data.month);
+export async function upsert(userId: string, data: LoanMonthlySnapshot): Promise<LoanMonthlySnapshot> {
+  const existing = await findByLoanAndMonth(userId, data.loanId, data.year, data.month);
   if (existing) {
-    db.update(loanSnapshots)
+    await db.update(loanSnapshots)
       .set({
         outstandingAmount: data.outstandingAmount,
         principalPaid: data.principalPaid,
@@ -97,23 +97,23 @@ export function upsert(userId: string, data: LoanMonthlySnapshot): LoanMonthlySn
         snapshotDate: data.snapshotDate,
         updatedAt: new Date().toISOString(),
       })
-      .where(and(eq(loanSnapshots.userId, userId), eq(loanSnapshots.id, existing.id)))
-      .run();
-    return findByLoanAndMonth(userId, data.loanId, data.year, data.month)!;
+      .where(and(eq(loanSnapshots.userId, userId), eq(loanSnapshots.id, existing.id)));
+    return findByLoanAndMonth(userId, data.loanId, data.year, data.month) as Promise<LoanMonthlySnapshot>;
   }
   return create(userId, data);
 }
 
-export function remove(userId: string, id: string): boolean {
-  return db.delete(loanSnapshots).where(and(eq(loanSnapshots.userId, userId), eq(loanSnapshots.id, id))).run().changes > 0;
+export async function remove(userId: string, id: string): Promise<boolean> {
+  const result = await db.delete(loanSnapshots).where(and(eq(loanSnapshots.userId, userId), eq(loanSnapshots.id, id)));
+  return result.rowsAffected > 0;
 }
 
-export function getAvailableYears(userId: string): number[] {
-  const rows = findByUserId(userId);
+export async function getAvailableYears(userId: string): Promise<number[]> {
+  const rows = await findByUserId(userId);
   return [...new Set(rows.map((r) => r.year))].sort((a, b) => b - a);
 }
 
-export function getAvailableMonths(userId: string, year: number): number[] {
-  const rows = findByUserId(userId).filter((r) => r.year === year);
-  return [...new Set(rows.map((r) => r.month))].sort((a, b) => a - b);
+export async function getAvailableMonths(userId: string, year: number): Promise<number[]> {
+  const rows = await findByUserId(userId);
+  return [...new Set(rows.filter((r) => r.year === year).map((r) => r.month))].sort((a, b) => a - b);
 }

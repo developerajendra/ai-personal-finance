@@ -30,36 +30,39 @@ function toAppModel(row: BankBalanceRow): BankBalance {
   };
 }
 
-export function findByUserId(userId: string): BankBalance[] {
-  return db.select().from(bankBalances).where(eq(bankBalances.userId, userId)).all().map(toAppModel);
+export async function findByUserId(userId: string): Promise<BankBalance[]> {
+  const rows = await db.select().from(bankBalances).where(eq(bankBalances.userId, userId));
+  return rows.map(toAppModel);
 }
 
-export function findById(userId: string, id: string): BankBalance | null {
-  const [row] = db.select().from(bankBalances).where(and(eq(bankBalances.userId, userId), eq(bankBalances.id, id))).limit(1).all();
+export async function findById(userId: string, id: string): Promise<BankBalance | null> {
+  const rows = await db.select().from(bankBalances).where(and(eq(bankBalances.userId, userId), eq(bankBalances.id, id))).limit(1);
+  const [row] = rows;
   return row ? toAppModel(row) : null;
 }
 
-export function create(userId: string, data: BankBalance): BankBalance {
-  db.insert(bankBalances).values({ ...data, userId, tags: data.tags ?? null }).run();
-  return findById(userId, data.id)!;
+export async function create(userId: string, data: BankBalance): Promise<BankBalance> {
+  await db.insert(bankBalances).values({ ...data, userId, tags: data.tags ?? null });
+  return findById(userId, data.id) as Promise<BankBalance>;
 }
 
-export function update(userId: string, id: string, data: Partial<BankBalance>): BankBalance | null {
-  const existing = findById(userId, id);
+export async function update(userId: string, id: string, data: Partial<BankBalance>): Promise<BankBalance | null> {
+  const existing = await findById(userId, id);
   if (!existing) return null;
-  db.update(bankBalances).set({ ...data, tags: data.tags ?? undefined, updatedAt: new Date().toISOString() }).where(and(eq(bankBalances.userId, userId), eq(bankBalances.id, id))).run();
+  await db.update(bankBalances).set({ ...data, tags: data.tags ?? undefined, updatedAt: new Date().toISOString() }).where(and(eq(bankBalances.userId, userId), eq(bankBalances.id, id)));
   return findById(userId, id);
 }
 
-export function remove(userId: string, id: string): boolean {
-  return db.delete(bankBalances).where(and(eq(bankBalances.userId, userId), eq(bankBalances.id, id))).run().changes > 0;
+export async function remove(userId: string, id: string): Promise<boolean> {
+  const result = await db.delete(bankBalances).where(and(eq(bankBalances.userId, userId), eq(bankBalances.id, id)));
+  return result.rowsAffected > 0;
 }
 
-export function bulkCreate(userId: string, items: BankBalance[]): void {
-  for (const item of items) db.insert(bankBalances).values({ ...item, userId, tags: item.tags ?? null }).run();
+export async function bulkCreate(userId: string, items: BankBalance[]): Promise<void> {
+  for (const item of items) await db.insert(bankBalances).values({ ...item, userId, tags: item.tags ?? null });
 }
 
-export function replaceAll(userId: string, items: BankBalance[]): void {
-  db.delete(bankBalances).where(eq(bankBalances.userId, userId)).run();
-  bulkCreate(userId, items);
+export async function replaceAll(userId: string, items: BankBalance[]): Promise<void> {
+  await db.delete(bankBalances).where(eq(bankBalances.userId, userId));
+  await bulkCreate(userId, items);
 }

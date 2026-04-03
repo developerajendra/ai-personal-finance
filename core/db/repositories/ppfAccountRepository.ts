@@ -25,38 +25,40 @@ function toAppModel(row: PPFRow): PPFAccount {
   };
 }
 
-export function findByUserId(userId: string): PPFAccount[] {
-  return db.select().from(ppfAccounts).where(eq(ppfAccounts.userId, userId)).all().map(toAppModel);
+export async function findByUserId(userId: string): Promise<PPFAccount[]> {
+  const rows = await db.select().from(ppfAccounts).where(eq(ppfAccounts.userId, userId));
+  return rows.map(toAppModel);
 }
 
-export function findById(userId: string, id: string): PPFAccount | null {
-  const [row] = db.select().from(ppfAccounts).where(and(eq(ppfAccounts.userId, userId), eq(ppfAccounts.id, id))).limit(1).all();
+export async function findById(userId: string, id: string): Promise<PPFAccount | null> {
+  const rows = await db.select().from(ppfAccounts).where(and(eq(ppfAccounts.userId, userId), eq(ppfAccounts.id, id))).limit(1);
+  const [row] = rows;
   return row ? toAppModel(row) : null;
 }
 
-export function create(userId: string, data: PPFAccount): PPFAccount {
-  db.insert(ppfAccounts).values({
+export async function create(userId: string, data: PPFAccount): Promise<PPFAccount> {
+  await db.insert(ppfAccounts).values({
     ...data,
     userId,
     rawData: data.rawData ?? null,
-  }).run();
-  return findById(userId, data.id)!;
+  });
+  return findById(userId, data.id) as Promise<PPFAccount>;
 }
 
-export function update(userId: string, id: string, data: Partial<PPFAccount>): PPFAccount | null {
-  const existing = findById(userId, id);
+export async function update(userId: string, id: string, data: Partial<PPFAccount>): Promise<PPFAccount | null> {
+  const existing = await findById(userId, id);
   if (!existing) return null;
-  db.update(ppfAccounts)
+  await db.update(ppfAccounts)
     .set({ ...data, lastUpdated: new Date().toISOString(), rawData: data.rawData ?? undefined })
-    .where(and(eq(ppfAccounts.userId, userId), eq(ppfAccounts.id, id)))
-    .run();
+    .where(and(eq(ppfAccounts.userId, userId), eq(ppfAccounts.id, id)));
   return findById(userId, id);
 }
 
-export function remove(userId: string, id: string): boolean {
-  return db.delete(ppfAccounts).where(and(eq(ppfAccounts.userId, userId), eq(ppfAccounts.id, id))).run().changes > 0;
+export async function remove(userId: string, id: string): Promise<boolean> {
+  const result = await db.delete(ppfAccounts).where(and(eq(ppfAccounts.userId, userId), eq(ppfAccounts.id, id)));
+  return result.rowsAffected > 0;
 }
 
-export function bulkCreate(userId: string, items: PPFAccount[]): void {
-  for (const item of items) create(userId, item);
+export async function bulkCreate(userId: string, items: PPFAccount[]): Promise<void> {
+  for (const item of items) await create(userId, item);
 }

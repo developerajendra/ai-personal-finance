@@ -16,7 +16,7 @@ export async function PUT(
 
     initializeStorage();
     const loan: Loan = await request.json();
-    const updated = updateInJson<Loan>("loans", params.id, loan, userId);
+    const updated = await updateInJson<Loan>("loans", params.id, loan, userId);
 
     if (!updated) {
       return NextResponse.json(
@@ -46,8 +46,8 @@ export async function DELETE(
     const userId = session.userId;
 
     initializeStorage();
-    const deleted = deleteFromJson<Loan>("loans", params.id, userId);
-    
+    const deleted = await deleteFromJson<Loan>("loans", params.id, userId);
+
     if (!deleted) {
       return NextResponse.json(
         { error: "Loan not found" },

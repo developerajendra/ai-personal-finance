@@ -19,32 +19,35 @@ function toAppModel(row: CategoryRow): PortfolioCategory {
   };
 }
 
-export function findByUserId(userId: string): PortfolioCategory[] {
-  return db.select().from(portfolioCategories).where(eq(portfolioCategories.userId, userId)).all().map(toAppModel);
+export async function findByUserId(userId: string): Promise<PortfolioCategory[]> {
+  const rows = await db.select().from(portfolioCategories).where(eq(portfolioCategories.userId, userId));
+  return rows.map(toAppModel);
 }
 
-export function findById(userId: string, id: string): PortfolioCategory | null {
-  const [row] = db.select().from(portfolioCategories).where(and(eq(portfolioCategories.userId, userId), eq(portfolioCategories.id, id))).limit(1).all();
+export async function findById(userId: string, id: string): Promise<PortfolioCategory | null> {
+  const rows = await db.select().from(portfolioCategories).where(and(eq(portfolioCategories.userId, userId), eq(portfolioCategories.id, id))).limit(1);
+  const [row] = rows;
   return row ? toAppModel(row) : null;
 }
 
-export function create(userId: string, data: PortfolioCategory): PortfolioCategory {
-  db.insert(portfolioCategories).values({ ...data, userId }).run();
-  return findById(userId, data.id)!;
+export async function create(userId: string, data: PortfolioCategory): Promise<PortfolioCategory> {
+  await db.insert(portfolioCategories).values({ ...data, userId });
+  return findById(userId, data.id) as Promise<PortfolioCategory>;
 }
 
-export function update(userId: string, id: string, data: Partial<PortfolioCategory>): PortfolioCategory | null {
-  const existing = findById(userId, id);
+export async function update(userId: string, id: string, data: Partial<PortfolioCategory>): Promise<PortfolioCategory | null> {
+  const existing = await findById(userId, id);
   if (!existing) return null;
-  db.update(portfolioCategories).set({ ...data, updatedAt: new Date().toISOString() }).where(and(eq(portfolioCategories.userId, userId), eq(portfolioCategories.id, id))).run();
+  await db.update(portfolioCategories).set({ ...data, updatedAt: new Date().toISOString() }).where(and(eq(portfolioCategories.userId, userId), eq(portfolioCategories.id, id)));
   return findById(userId, id);
 }
 
-export function remove(userId: string, id: string): boolean {
-  return db.delete(portfolioCategories).where(and(eq(portfolioCategories.userId, userId), eq(portfolioCategories.id, id))).run().changes > 0;
+export async function remove(userId: string, id: string): Promise<boolean> {
+  const result = await db.delete(portfolioCategories).where(and(eq(portfolioCategories.userId, userId), eq(portfolioCategories.id, id)));
+  return result.rowsAffected > 0;
 }
 
-export function replaceAll(userId: string, items: PortfolioCategory[]): void {
-  db.delete(portfolioCategories).where(eq(portfolioCategories.userId, userId)).run();
-  for (const item of items) db.insert(portfolioCategories).values({ ...item, userId }).run();
+export async function replaceAll(userId: string, items: PortfolioCategory[]): Promise<void> {
+  await db.delete(portfolioCategories).where(eq(portfolioCategories.userId, userId));
+  for (const item of items) await db.insert(portfolioCategories).values({ ...item, userId });
 }

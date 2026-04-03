@@ -342,14 +342,14 @@ export class LoanManagementAgent extends BaseAgent {
 
       const { loadFromJson, saveToJson } = await import('@/core/services/jsonStorageService');
 
-      const currentLoans = loadFromJson<Loan>('loans', this.userId);
+      const currentLoans = await loadFromJson<Loan>('loans', this.userId);
       const loanIndex = currentLoans.findIndex((l: Loan) => l.id === loan.id);
 
       if (loanIndex >= 0) {
         currentLoans[loanIndex].outstandingAmount = finalOutstandingAmount;
         currentLoans[loanIndex].interestRate = extractedData.interestRate;
         currentLoans[loanIndex].updatedAt = new Date().toISOString();
-        saveToJson('loans', currentLoans, this.userId);
+        await saveToJson('loans', currentLoans, this.userId);
       }
 
       console.log(
@@ -413,13 +413,13 @@ export class LoanManagementAgent extends BaseAgent {
 
       const { loadFromJson, saveToJson } = await import('@/core/services/jsonStorageService');
 
-      const currentLoans = loadFromJson<Loan>('loans', this.userId);
+      const currentLoans = await loadFromJson<Loan>('loans', this.userId);
       const loanIndex = currentLoans.findIndex((l: Loan) => l.id === loan.id);
 
       if (loanIndex >= 0) {
         currentLoans[loanIndex].interestRate = extractedData.newRate;
         currentLoans[loanIndex].updatedAt = new Date().toISOString();
-        saveToJson('loans', currentLoans, this.userId);
+        await saveToJson('loans', currentLoans, this.userId);
       }
 
       const allSnapshots = getLoanSnapshots(this.userId, loan.id);
@@ -488,7 +488,7 @@ export class LoanManagementAgent extends BaseAgent {
   ): Promise<Loan | null> {
     const { initializeStorage, loadFromJson } = await import('@/core/services/jsonStorageService');
     initializeStorage();
-    const loans = loadFromJson<Loan>('loans', this.userId);
+    const loans = await loadFromJson<Loan>('loans', this.userId);
 
     // Try matching by account number (if stored in description or name)
     // Note: We don't store account numbers in Loan interface, so we'll match by name/type

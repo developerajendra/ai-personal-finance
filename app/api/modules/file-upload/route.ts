@@ -3,9 +3,9 @@ import * as XLSX from "xlsx";
 import { Transaction } from "@/core/types";
 import { analyzeExcelData, ExcelAnalysisResult } from "@/core/services/excelAnalyzerService";
 import { generateCacheKey, saveToCache, loadFromCache } from "@/core/services/cacheService";
-import { 
+import {
   loadAllPortfolioData,
-  saveAllPortfolioData 
+  saveAllPortfolioData
 } from "@/core/services/jsonStorageService";
 import { getSession } from "@/core/auth/getSession";
 
@@ -17,12 +17,12 @@ export async function POST(request: NextRequest) {
     }
     const userId = session.userId;
 
-    const existingData = loadAllPortfolioData(userId);
+    const existingData = await loadAllPortfolioData(userId);
     const investments = [...existingData.investments];
     const loans = [...existingData.loans];
     const properties = [...existingData.properties];
     const bankBalances = [...existingData.bankBalances];
-    
+
     // Check if this is a Google Drive upload (JSON body) or direct file upload (FormData)
     const contentType = request.headers.get("content-type") || "";
 
@@ -58,50 +58,48 @@ export async function POST(request: NextRequest) {
       const buffer = await file.arrayBuffer();
       const bufferNode = Buffer.from(buffer);
       fileInfoForCache = { name: file.name, buffer: bufferNode };
-      
+
       // Check for cache bypass query parameter
       const url = new URL(request.url);
       const bypassCache = url.searchParams.get("bypassCache") === "true" || url.searchParams.get("force") === "true";
-      
+
       // Check cache first (unless bypassed)
       const cacheKey = generateCacheKey(file.name, bufferNode);
-      
+
       if (bypassCache) {
-        console.log(`\n🔄 CACHE BYPASSED - Will call Ollama for fresh analysis`);
+        console.log(`\nCACHE BYPASSED - Will call Ollama for fresh analysis`);
         console.log(`   (bypassCache=true query parameter detected)\n`);
         cachedData = null;
       } else {
-        console.log(`🔍 Checking cache for file: ${file.name}...`);
+        console.log(`Checking cache for file: ${file.name}...`);
         cachedData = await loadFromCache(cacheKey);
-        
+
         if (cachedData) {
           console.log(`\n`);
-          console.log(`╔══════════════════════════════════════════════════════════════╗`);
-          console.log(`║  ⚠️  CACHE HIT - SKIPPING OLLAMA CALL                        ║`);
-          console.log(`╚══════════════════════════════════════════════════════════════╝`);
-          console.log(`📁 File: ${file.name}`);
-          console.log(`✅ Using cached data. Found:`);
+          console.log(`CACHE HIT - SKIPPING OLLAMA CALL`);
+          console.log(`File: ${file.name}`);
+          console.log(`Using cached data. Found:`);
           console.log(`   - ${cachedData.portfolioItems?.investments?.length || 0} investments`);
           console.log(`   - ${cachedData.portfolioItems?.loans?.length || 0} loans`);
           console.log(`   - ${cachedData.portfolioItems?.properties?.length || 0} properties`);
           console.log(`   - ${cachedData.portfolioItems?.bankBalances?.length || 0} bank balances`);
-          console.log(`\n💡 To force fresh AI analysis, add ?bypassCache=true to the upload URL`);
+          console.log(`\nTo force fresh AI analysis, add ?bypassCache=true to the upload URL`);
           console.log(`   or rename the file to create a new cache key\n`);
-          
+
           // Load cached portfolio items into memory and JSON
           investments.splice(0, investments.length, ...(cachedData.portfolioItems?.investments || []));
           loans.splice(0, loans.length, ...(cachedData.portfolioItems?.loans || []));
           properties.splice(0, properties.length, ...(cachedData.portfolioItems?.properties || []));
           bankBalances.splice(0, bankBalances.length, ...(cachedData.portfolioItems?.bankBalances || []));
-          
-          saveAllPortfolioData(userId, {
+
+          await saveAllPortfolioData(userId, {
             investments,
             loans,
             properties,
             bankBalances,
             transactions: cachedData.transactions || [],
           });
-          
+
           return NextResponse.json({
             success: true,
             transactions: cachedData.transactions || [],
@@ -117,7 +115,7 @@ export async function POST(request: NextRequest) {
             aiError: null,
             validDataRows: cachedData.parsedData?.length || 0,
             cached: true,
-            message: `✅ Loaded ${file.name} from cache. Found ${investments.length} investments, ${loans.length} loans, ${properties.length} properties, and ${bankBalances.length} bank balances. To force fresh AI analysis, add ?bypassCache=true to the URL.`,
+            message: `Loaded ${file.name} from cache. Found ${investments.length} investments, ${loans.length} loans, ${properties.length} properties, and ${bankBalances.length} bank balances. To force fresh AI analysis, add ?bypassCache=true to the URL.`,
           });
         }
       }
@@ -234,12 +232,10 @@ export async function POST(request: NextRequest) {
 
     try {
       console.log("\n");
-      console.log("╔══════════════════════════════════════════════════════════════╗");
-      console.log("║  FILE UPLOAD API - STARTING AI ANALYSIS                      ║");
-      console.log("╚══════════════════════════════════════════════════════════════╝");
-      console.log("📁 File upload route: Starting AI analysis of Excel data...");
-      console.log(`📊 Valid data rows: ${validData.length}`);
-      console.log("📋 Sample valid row:", JSON.stringify(validData[0], null, 2));
+      console.log("FILE UPLOAD API - STARTING AI ANALYSIS");
+      console.log("File upload route: Starting AI analysis of Excel data...");
+      console.log(`Valid data rows: ${validData.length}`);
+      console.log("Sample valid row:", JSON.stringify(validData[0], null, 2));
       console.log("\n");
 
       // Clean and prepare data for AI - remove empty columns
@@ -281,12 +277,12 @@ export async function POST(request: NextRequest) {
       let addedLoans = 0;
       let addedProperties = 0;
       let addedBankBalances = 0;
-      
+
       if (portfolioItems.investments.length > 0) {
         portfolioItems.investments.forEach((inv) => {
           // Check for duplicates by name and amount
           const exists = investments.find(
-            (i) => i.name === inv.name && 
+            (i) => i.name === inv.name &&
                    Math.abs(i.amount - inv.amount) < 0.01 &&
                    i.startDate === inv.startDate
           );
@@ -295,7 +291,7 @@ export async function POST(request: NextRequest) {
             addedInvestments++;
           }
         });
-        console.log(`✅ Added ${addedInvestments} new investments. Total investments: ${investments.length}`);
+        console.log(`Added ${addedInvestments} new investments. Total investments: ${investments.length}`);
         if (investments.length > 0) {
           console.log(`Sample investment:`, investments[investments.length - 1]);
         }
@@ -304,7 +300,7 @@ export async function POST(request: NextRequest) {
       if (portfolioItems.loans.length > 0) {
         portfolioItems.loans.forEach((loan) => {
           const exists = loans.find(
-            (l) => l.name === loan.name && 
+            (l) => l.name === loan.name &&
                    Math.abs(l.principalAmount - loan.principalAmount) < 0.01
           );
           if (!exists) {
@@ -312,7 +308,7 @@ export async function POST(request: NextRequest) {
             addedLoans++;
           }
         });
-        console.log(`✅ Added ${addedLoans} new loans. Total loans: ${loans.length}`);
+        console.log(`Added ${addedLoans} new loans. Total loans: ${loans.length}`);
         if (loans.length > 0) {
           console.log(`Sample loan:`, loans[loans.length - 1]);
         }
@@ -321,7 +317,7 @@ export async function POST(request: NextRequest) {
       if (portfolioItems.properties.length > 0) {
         portfolioItems.properties.forEach((prop) => {
           const exists = properties.find(
-            (p) => p.name === prop.name && 
+            (p) => p.name === prop.name &&
                    Math.abs(p.purchasePrice - prop.purchasePrice) < 0.01
           );
           if (!exists) {
@@ -329,7 +325,7 @@ export async function POST(request: NextRequest) {
             addedProperties++;
           }
         });
-        console.log(`✅ Added ${addedProperties} new properties. Total properties: ${properties.length}`);
+        console.log(`Added ${addedProperties} new properties. Total properties: ${properties.length}`);
         if (properties.length > 0) {
           console.log(`Sample property:`, properties[properties.length - 1]);
         }
@@ -338,7 +334,7 @@ export async function POST(request: NextRequest) {
       if (portfolioItems.bankBalances && portfolioItems.bankBalances.length > 0) {
         portfolioItems.bankBalances.forEach((bb) => {
           const exists = bankBalances.find(
-            (b) => b.bankName === bb.bankName && 
+            (b) => b.bankName === bb.bankName &&
                    b.accountNumber === bb.accountNumber
           );
           if (!exists) {
@@ -346,7 +342,7 @@ export async function POST(request: NextRequest) {
             addedBankBalances++;
           }
         });
-        console.log(`✅ Added ${addedBankBalances} new bank balances. Total bank balances: ${bankBalances.length}`);
+        console.log(`Added ${addedBankBalances} new bank balances. Total bank balances: ${bankBalances.length}`);
         if (bankBalances.length > 0) {
           console.log(`Sample bank balance:`, bankBalances[bankBalances.length - 1]);
         }
@@ -376,20 +372,20 @@ export async function POST(request: NextRequest) {
           rowCount: validData.length,
         },
       });
-      console.log(`💾 Saved to cache for future use: ${fileInfoForCache.name}`);
+      console.log(`Saved to cache for future use: ${fileInfoForCache.name}`);
     }
 
     // Save all data to JSON files for persistence (this ensures all data is saved, not just new items)
-    console.log(`💾 Saving all portfolio data to JSON files...`);
+    console.log(`Saving all portfolio data to JSON files...`);
     console.log(`   Investments: ${investments.length}, Loans: ${loans.length}, Properties: ${properties.length}, Bank Balances: ${bankBalances.length}`);
-    saveAllPortfolioData(userId, {
+    await saveAllPortfolioData(userId, {
       investments,
       loans,
       properties,
       bankBalances,
       transactions,
     });
-    console.log(`✅ All portfolio data saved to JSON files successfully!`);
+    console.log(`All portfolio data saved to JSON files successfully!`);
 
     const totalPortfolioItems = investments.length + loans.length + properties.length + bankBalances.length;
     const newlyCreated = (portfolioItems.investments.length > 0 ? portfolioItems.investments.length : 0) +
@@ -397,7 +393,7 @@ export async function POST(request: NextRequest) {
                         (portfolioItems.properties.length > 0 ? portfolioItems.properties.length : 0) +
                         (portfolioItems.bankBalances?.length > 0 ? portfolioItems.bankBalances.length : 0);
 
-    console.log(`📊 Final counts - Investments: ${investments.length}, Loans: ${loans.length}, Properties: ${properties.length}, Bank Balances: ${bankBalances.length}`);
+    console.log(`Final counts - Investments: ${investments.length}, Loans: ${loans.length}, Properties: ${properties.length}, Bank Balances: ${bankBalances.length}`);
 
     return NextResponse.json({
       success: true,
@@ -415,10 +411,10 @@ export async function POST(request: NextRequest) {
       validDataRows: validData.length,
       cached: false,
       message: totalPortfolioItems > 0
-        ? `✅ Processed ${transactions.length} transactions. AI created ${newlyCreated} new portfolio items (${investments.length} total investments, ${loans.length} total loans, ${properties.length} total properties, ${bankBalances.length} total bank balances). Data saved to JSON files. Check the Portfolio tab!`
+        ? `Processed ${transactions.length} transactions. AI created ${newlyCreated} new portfolio items (${investments.length} total investments, ${loans.length} total loans, ${properties.length} total properties, ${bankBalances.length} total bank balances). Data saved to JSON files. Check the Portfolio tab!`
         : aiError
-          ? `⚠️ Processed ${transactions.length} transactions. AI analysis failed: ${aiError.message}. Check server logs for details.`
-          : `ℹ️ Processed ${transactions.length} transactions. No portfolio items detected. Found ${validData.length} valid data rows.`,
+          ? `Processed ${transactions.length} transactions. AI analysis failed: ${aiError.message}. Check server logs for details.`
+          : `Processed ${transactions.length} transactions. No portfolio items detected. Found ${validData.length} valid data rows.`,
     });
   } catch (error: any) {
     console.error("File upload error:", error);
@@ -428,4 +424,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

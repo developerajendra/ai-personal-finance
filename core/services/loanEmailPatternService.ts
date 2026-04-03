@@ -2,7 +2,9 @@ import fs from "fs";
 import path from "path";
 import { loadFromJson, saveToJson, initializeStorage } from "./jsonStorageService";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+// On Vercel, process.cwd() is read-only; use /tmp which is the only writable path
+const BASE_DIR = process.env.VERCEL ? "/tmp" : process.cwd();
+const DATA_DIR = path.join(BASE_DIR, "data");
 const LOANS_DIR = path.join(DATA_DIR, "loans");
 const PATTERNS_FILE = path.join(LOANS_DIR, "loanEmailPatterns.json");
 const OLD_PATTERNS_FILE = path.join(DATA_DIR, "loanEmailPatterns.json");

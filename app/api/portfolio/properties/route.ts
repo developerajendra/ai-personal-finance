@@ -13,16 +13,16 @@ export async function GET(request: NextRequest) {
     const userId = session.userId;
 
     initializeStorage();
-    const jsonData = loadFromJson<Property>("properties", userId);
+    const jsonData = await loadFromJson<Property>("properties", userId);
     const normalizedData = jsonData.map(prop => ({
       ...prop,
       isPublished: prop.isPublished ?? false
     }));
-    
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "100");
-    
+
     let filteredData = normalizedData;
     if (searchParams.has("isPublished")) {
       const isPublished = searchParams.get("isPublished") === "true";
@@ -52,17 +52,17 @@ export async function POST(request: NextRequest) {
     const userId = session.userId;
 
     initializeStorage();
-    const jsonData = loadFromJson<Property>("properties", userId);
+    const jsonData = await loadFromJson<Property>("properties", userId);
     const normalizedData = jsonData.map(prop => ({
       ...prop,
       isPublished: prop.isPublished ?? false
     }));
-    
+
     const property: Property = await request.json();
     const propertyToAdd = { ...property, isPublished: property.isPublished ?? true };
     const updatedData = [...normalizedData, propertyToAdd];
-    saveToJson("properties", updatedData, userId);
-    
+    await saveToJson("properties", updatedData, userId);
+
     return NextResponse.json(propertyToAdd, { status: 201 });
   } catch (error) {
     return NextResponse.json(

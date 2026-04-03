@@ -15,7 +15,7 @@ export async function GET(
     const userId = session.userId;
 
     initializeStorage();
-    const categories = loadFromJson<PortfolioCategory>("portfolioCategories", userId);
+    const categories = await loadFromJson<PortfolioCategory>("portfolioCategories", userId);
     const category = categories.find((cat) => cat.id === params.id);
 
     if (!category) {
@@ -49,7 +49,7 @@ export async function PUT(
     const body = await request.json();
     const { name, slug, icon, href, type, description } = body;
 
-    const categories = loadFromJson<PortfolioCategory>("portfolioCategories", userId);
+    const categories = await loadFromJson<PortfolioCategory>("portfolioCategories", userId);
     const existingCategory = categories.find((cat) => cat.id === params.id);
 
     if (!existingCategory) {
@@ -88,7 +88,7 @@ export async function PUT(
       updatedAt: new Date().toISOString(),
     };
 
-    const updatedCategory = updateInJson<PortfolioCategory>(
+    const updatedCategory = await updateInJson<PortfolioCategory>(
       "portfolioCategories",
       params.id,
       updates,
@@ -123,7 +123,7 @@ export async function DELETE(
     const userId = session.userId;
 
     initializeStorage();
-    const deleted = deleteFromJson<PortfolioCategory>(
+    const deleted = await deleteFromJson<PortfolioCategory>(
       "portfolioCategories",
       params.id,
       userId
