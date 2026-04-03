@@ -322,7 +322,7 @@ export class LoanManagementAgent extends BaseAgent {
         updatedAt: new Date().toISOString(),
       };
 
-      const savedSnapshot = saveLoanMonthlySnapshot(this.userId, snapshot);
+      const savedSnapshot = await saveLoanMonthlySnapshot(this.userId, snapshot);
 
       // Record email metadata
       recordEmailProcessing(
@@ -337,7 +337,7 @@ export class LoanManagementAgent extends BaseAgent {
       if (monthsDiff >= 2) {
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;
-        generateMissingMonthlySnapshots(this.userId, loan.id, savedSnapshot, currentYear, currentMonth);
+        await generateMissingMonthlySnapshots(this.userId, loan.id, savedSnapshot, currentYear, currentMonth);
       }
 
       const { loadFromJson, saveToJson } = await import('@/core/services/jsonStorageService');
