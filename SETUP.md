@@ -16,7 +16,7 @@
    
    The `.env.local` file is already created with the Gemini API key. Make sure it contains:
    ```
-   AI_CHAT_API_KEY=AIzaSyCTncSzkGPObw5Bm1vZPb9SjhX-qdDWpOs
+   AI_CHAT_API_KEY=YOUR_AI_API_KEY
    GEMINI_MODEL=gemini-2.0-flash-exp
    ```
 

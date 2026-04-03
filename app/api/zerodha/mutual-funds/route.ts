@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchMutualFunds, getMockMutualFunds } from "@/core/services/zerodhaService";
 import { loadMutualFunds, saveMutualFunds } from "@/core/services/jsonStorageService";
 import { cookies } from "next/headers";
+import { getSession } from "@/core/auth/getSession";
 
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.userId;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const refresh = searchParams.get("refresh") === "true" || searchParams.get("sync") === "true";
@@ -13,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     // Try to load from JSON first (unless refresh is requested)
     if (!refresh) {
-      const cachedMutualFunds = loadMutualFunds();
+      const cachedMutualFunds = loadMutualFunds(userId);
       if (cachedMutualFunds.length > 0) {
         return NextResponse.json({ 
           mutualFunds: cachedMutualFunds, 
@@ -26,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // If not authenticated, return mock or cached data
     if (!accessToken) {
-      const cachedMutualFunds = loadMutualFunds();
+      const cachedMutualFunds = loadMutualFunds(userId);
       if (cachedMutualFunds.length > 0) {
         return NextResponse.json({ 
           mutualFunds: cachedMutualFunds, 
@@ -38,7 +45,7 @@ export async function GET(request: NextRequest) {
       
       // Return mock data if no cache
       const mutualFunds = getMockMutualFunds();
-      saveMutualFunds(mutualFunds); // Save mock data for future use
+      saveMutualFunds(userId, mutualFunds); // Save mock data for future use
       return NextResponse.json({ 
         mutualFunds, 
         isAuthenticated: false,
@@ -50,7 +57,7 @@ export async function GET(request: NextRequest) {
     // Fetch from API and update cache
     try {
       const mutualFunds = await fetchMutualFunds(accessToken);
-      saveMutualFunds(mutualFunds); // Save to JSON cache
+      saveMutualFunds(userId, mutualFunds); // Save to JSON cache
       return NextResponse.json({ 
         mutualFunds, 
         isAuthenticated: true,
@@ -61,7 +68,7 @@ export async function GET(request: NextRequest) {
       console.error("Error fetching from Zerodha API:", apiError);
       
       // Fallback to cached data if API fails
-      const cachedMutualFunds = loadMutualFunds();
+      const cachedMutualFunds = loadMutualFunds(userId);
       if (cachedMutualFunds.length > 0) {
         return NextResponse.json({ 
           mutualFunds: cachedMutualFunds, 
@@ -75,7 +82,7 @@ export async function GET(request: NextRequest) {
       // Return mock data on error in development
       if (process.env.NODE_ENV === "development") {
         const mutualFunds = getMockMutualFunds();
-        saveMutualFunds(mutualFunds);
+        saveMutualFunds(userId, mutualFunds);
         return NextResponse.json({ 
           mutualFunds, 
           isAuthenticated: false,
@@ -90,7 +97,7 @@ export async function GET(request: NextRequest) {
     console.error("Error in mutual funds route:", error);
     
     // Last resort: try to return cached data
-    const cachedMutualFunds = loadMutualFunds();
+    const cachedMutualFunds = loadMutualFunds(userId);
     if (cachedMutualFunds.length > 0) {
       return NextResponse.json({ 
         mutualFunds: cachedMutualFunds, 

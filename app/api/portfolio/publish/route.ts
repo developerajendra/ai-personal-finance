@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Investment, Loan, Property, BankBalance } from "@/core/types";
-import { investments, loans, properties, bankBalances } from "@/core/dataStore";
+import { getSession } from "@/core/auth/getSession";
 import { loadFromJson, saveToJson, initializeStorage } from "@/core/services/jsonStorageService";
 import { moveEmailToLabel } from "@/core/services/gmailService";
 import { cookies } from "next/headers";
@@ -9,6 +9,12 @@ import * as path from "path";
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     const body = await request.json();
     const { type, id, isPublished } = body;
 
@@ -25,20 +31,17 @@ export async function POST(request: NextRequest) {
     let updated = false;
 
     if (type === "investment") {
-      const data = loadFromJson<Investment>("investments");
-      investments.splice(0, investments.length, ...data);
-      const index = investments.findIndex(i => i.id === id);
+      const data = loadFromJson<Investment>("investments", userId);
+      const index = data.findIndex(i => i.id === id);
       if (index !== -1) {
-        investments[index] = { ...investments[index], isPublished, updatedAt: new Date().toISOString() };
-        item = investments[index];
-        saveToJson("investments", investments);
+        data[index] = { ...data[index], isPublished, updatedAt: new Date().toISOString() };
+        item = data[index];
+        saveToJson("investments", data, userId);
         updated = true;
 
-        // If investment is being published, move associated email to personal-finance folder
         if (isPublished) {
           try {
             console.log(`[Publish] Investment ${id} is being published, looking for associated email...`);
-            // Find emailId from processed-emails.json
             const processedEmailsFile = path.join(process.cwd(), 'data', 'processed-emails.json');
             if (fs.existsSync(processedEmailsFile)) {
               const processedEmails = JSON.parse(fs.readFileSync(processedEmailsFile, 'utf-8'));
@@ -47,19 +50,16 @@ export async function POST(request: NextRequest) {
               
               if (processedEmail?.emailId) {
                 console.log(`[Publish] Found email ${processedEmail.emailId} for investment ${id}`);
-                // Get Gmail tokens from cookies or environment
                 const cookieStore = await cookies();
                 const accessToken = cookieStore.get('gmail_access_token')?.value || process.env.GMAIL_ACCESS_TOKEN;
                 const refreshToken = cookieStore.get('gmail_refresh_token')?.value || process.env.GMAIL_REFRESH_TOKEN;
                 
                 if (accessToken && refreshToken) {
                   console.log(`[Publish] Gmail tokens available, moving email to personal-finance label...`);
-                  // Try both "personal-finance" and "personal finance" variations
                   try {
                     await moveEmailToLabel(accessToken, refreshToken, processedEmail.emailId, 'personal-finance');
                     console.log(`[Publish] ✅ Successfully moved email ${processedEmail.emailId} to personal-finance label for investment ${id}`);
                   } catch (labelError: any) {
-                    // Try with space instead of hyphen
                     console.log(`[Publish] Trying with space variation...`);
                     try {
                       await moveEmailToLabel(accessToken, refreshToken, processedEmail.emailId, 'personal finance');
@@ -87,40 +87,36 @@ export async function POST(request: NextRequest) {
               console.warn(`[Publish] Processed emails file not found at: ${processedEmailsFile}`);
             }
           } catch (error: any) {
-            // Log error but don't fail the publish operation
             console.error('[Publish] Error moving email to personal-finance folder:', error);
             console.error('[Publish] Error stack:', error.stack);
           }
         }
       }
     } else if (type === "loan") {
-      const data = loadFromJson<Loan>("loans");
-      loans.splice(0, loans.length, ...data);
-      const index = loans.findIndex(l => l.id === id);
+      const data = loadFromJson<Loan>("loans", userId);
+      const index = data.findIndex(l => l.id === id);
       if (index !== -1) {
-        loans[index] = { ...loans[index], isPublished, updatedAt: new Date().toISOString() };
-        item = loans[index];
-        saveToJson("loans", loans);
+        data[index] = { ...data[index], isPublished, updatedAt: new Date().toISOString() };
+        item = data[index];
+        saveToJson("loans", data, userId);
         updated = true;
       }
     } else if (type === "property") {
-      const data = loadFromJson<Property>("properties");
-      properties.splice(0, properties.length, ...data);
-      const index = properties.findIndex(p => p.id === id);
+      const data = loadFromJson<Property>("properties", userId);
+      const index = data.findIndex(p => p.id === id);
       if (index !== -1) {
-        properties[index] = { ...properties[index], isPublished, updatedAt: new Date().toISOString() };
-        item = properties[index];
-        saveToJson("properties", properties);
+        data[index] = { ...data[index], isPublished, updatedAt: new Date().toISOString() };
+        item = data[index];
+        saveToJson("properties", data, userId);
         updated = true;
       }
     } else if (type === "bank-balance") {
-      const data = loadFromJson<BankBalance>("bankBalances");
-      bankBalances.splice(0, bankBalances.length, ...data);
-      const index = bankBalances.findIndex(bb => bb.id === id);
+      const data = loadFromJson<BankBalance>("bankBalances", userId);
+      const index = data.findIndex(bb => bb.id === id);
       if (index !== -1) {
-        bankBalances[index] = { ...bankBalances[index], isPublished, updatedAt: new Date().toISOString() };
-        item = bankBalances[index];
-        saveToJson("bankBalances", bankBalances);
+        data[index] = { ...data[index], isPublished, updatedAt: new Date().toISOString() };
+        item = data[index];
+        saveToJson("bankBalances", data, userId);
         updated = true;
       }
     }
@@ -145,4 +141,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

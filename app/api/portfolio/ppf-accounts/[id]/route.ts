@@ -4,13 +4,20 @@ import {
   savePPFAccount,
   PPFAccount,
 } from "@/core/services/ppfStorageService";
+import { getSession } from "@/core/auth/getSession";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const accounts = loadPPFAccounts();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
+    const accounts = loadPPFAccounts(userId);
     const existing = accounts.find((acc) => acc.id === params.id);
 
     if (!existing) {
@@ -31,8 +38,8 @@ export async function PATCH(
       rawData: body.rawData ?? existing.rawData,
     };
 
-    savePPFAccount(updatedAccount);
-    const saved = loadPPFAccounts().find((acc) => acc.id === params.id);
+    savePPFAccount(userId, updatedAccount);
+    const saved = loadPPFAccounts(userId).find((acc) => acc.id === params.id);
     return NextResponse.json(saved);
   } catch (error) {
     console.error("Error updating PPF account:", error);

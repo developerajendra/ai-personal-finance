@@ -26,7 +26,9 @@ import {
   LucideIcon,
   X,
   Archive,
+  Settings,
 } from 'lucide-react';
+import { signOut } from 'next-auth/react';
 import { cn } from '@/shared/utils/cn';
 import { PortfolioCategory } from '@/core/types';
 
@@ -106,6 +108,13 @@ const baseNavigation = [
       { name: 'Upload Files', href: '/data/upload', icon: Upload },
       { name: 'AI Analysis', href: '/data/analysis', icon: Sparkles },
     ],
+  },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: Settings,
+    defaultHref: '/settings',
+    submenu: [],
   },
 ];
 
@@ -293,13 +302,9 @@ export function Sidebar() {
 
     setIsLoggingOut(true);
     try {
-      const response = await fetch('/api/gmail/disconnect', { method: 'POST' });
-      if (response.ok) {
-        // Reload the page to show login screen
-        window.location.reload();
-      } else {
-        throw new Error('Failed to logout');
-      }
+      // Clear Gmail cookies / agent tokens (best-effort; do not block app sign-out)
+      await fetch('/api/gmail/disconnect', { method: 'POST' }).catch(() => undefined);
+      await signOut({ callbackUrl: '/auth/signin' });
     } catch (error) {
       console.error('Error logging out:', error);
       alert('Failed to logout. Please try again.');

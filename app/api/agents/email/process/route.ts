@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMainOrchestrator } from '@/core/agents/agentManager';
 import { cookies } from 'next/headers';
+import { getSession } from "@/core/auth/getSession";
 
 export async function POST(request: NextRequest) {
   try {
-    const orchestrator = getMainOrchestrator();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
+    const orchestrator = getMainOrchestrator(userId);
     const portfolioAgent = orchestrator.getPortfolioAgent();
     const loanAgent = orchestrator.getLoanAgent();
 
@@ -75,7 +82,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const orchestrator = getMainOrchestrator();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
+    const orchestrator = getMainOrchestrator(userId);
     const portfolioAgent = orchestrator.getPortfolioAgent();
     const loanAgent = orchestrator.getLoanAgent();
 

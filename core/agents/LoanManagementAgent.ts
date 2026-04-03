@@ -11,6 +11,7 @@ import { Loan, LoanMonthlySnapshot } from '@/core/types';
 import {
   saveLoanMonthlySnapshot,
   getLoanSnapshot,
+  getLoanSnapshots,
   generateMissingMonthlySnapshots,
   getPreviousLoanSnapshot,
 } from '@/core/services/loanAnalyticsService';
@@ -34,8 +35,9 @@ export class LoanManagementAgent extends BaseAgent {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
   private isAuthenticated: boolean = false;
+  private userId: string;
 
-  constructor() {
+  constructor(userId: string) {
     super({
       name: 'loan-management',
       enabled: process.env.LOAN_AGENT_ENABLED !== 'false',
@@ -44,6 +46,7 @@ export class LoanManagementAgent extends BaseAgent {
         10
       ), // 5 minutes default
     });
+    this.userId = userId;
     this.loadProcessedEmails();
     this.loadTokens();
   }
@@ -319,7 +322,7 @@ export class LoanManagementAgent extends BaseAgent {
         updatedAt: new Date().toISOString(),
       };
 
-      const savedSnapshot = saveLoanMonthlySnapshot(snapshot);
+      const savedSnapshot = saveLoanMonthlySnapshot(this.userId, snapshot);
 
       // Record email metadata
       recordEmailProcessing(
@@ -334,30 +337,19 @@ export class LoanManagementAgent extends BaseAgent {
       if (monthsDiff >= 2) {
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1;
-        generateMissingMonthlySnapshots(loan.id, savedSnapshot, currentYear, currentMonth);
+        generateMissingMonthlySnapshots(this.userId, loan.id, savedSnapshot, currentYear, currentMonth);
       }
 
-      // Update loan outstanding amount and interest rate if changed
-      const { initializeStorage, loadFromJson, saveToJson } = await import('@/core/services/jsonStorageService');
-      const { loans } = await import('@/core/dataStore');
+      const { loadFromJson, saveToJson } = await import('@/core/services/jsonStorageService');
 
-      initializeStorage();
-      const currentLoans = loadFromJson<Loan>('loans');
-      const loanIndex = currentLoans.findIndex(l => l.id === loan.id);
+      const currentLoans = loadFromJson<Loan>('loans', this.userId);
+      const loanIndex = currentLoans.findIndex((l: Loan) => l.id === loan.id);
 
       if (loanIndex >= 0) {
-        currentLoans[loanIndex].outstandingAmount = finalOutstandingAmount; // Use recalculated value
+        currentLoans[loanIndex].outstandingAmount = finalOutstandingAmount;
         currentLoans[loanIndex].interestRate = extractedData.interestRate;
-        // Note: Loan interface has tenureMonths (total), not remainingTenureMonths
-        // We can calculate remaining tenure if needed, but for now just update outstanding amount and rate
         currentLoans[loanIndex].updatedAt = new Date().toISOString();
-        saveToJson('loans', currentLoans);
-
-        // Update in-memory store
-        const memoryLoanIndex = loans.findIndex(l => l.id === loan.id);
-        if (memoryLoanIndex >= 0) {
-          loans[memoryLoanIndex] = currentLoans[loanIndex];
-        }
+        saveToJson('loans', currentLoans, this.userId);
       }
 
       console.log(
@@ -419,56 +411,35 @@ export class LoanManagementAgent extends BaseAgent {
 
       console.log(`[Loan Agent] Processing interest rate change: ${extractedData.oldRate}% -> ${extractedData.newRate}% (effective ${extractedData.effectiveDate})`);
 
-      // Update loan interest rate
-      const { initializeStorage, loadFromJson, saveToJson } = await import('@/core/services/jsonStorageService');
-      const { loans } = await import('@/core/dataStore');
+      const { loadFromJson, saveToJson } = await import('@/core/services/jsonStorageService');
 
-      initializeStorage();
-      const currentLoans = loadFromJson<Loan>('loans');
-      const loanIndex = currentLoans.findIndex(l => l.id === loan.id);
+      const currentLoans = loadFromJson<Loan>('loans', this.userId);
+      const loanIndex = currentLoans.findIndex((l: Loan) => l.id === loan.id);
 
       if (loanIndex >= 0) {
         currentLoans[loanIndex].interestRate = extractedData.newRate;
         currentLoans[loanIndex].updatedAt = new Date().toISOString();
-        saveToJson('loans', currentLoans);
-
-        // Update in-memory store
-        const memoryLoanIndex = loans.findIndex(l => l.id === loan.id);
-        if (memoryLoanIndex >= 0) {
-          loans[memoryLoanIndex] = currentLoans[loanIndex];
-        }
+        saveToJson('loans', currentLoans, this.userId);
       }
 
-      // Update all snapshots on or after the effective date
-      const { getLoanSnapshots, loadLoanSnapshots, saveLoanSnapshots } = await import('@/core/services/loanAnalyticsService');
-      const allSnapshots = getLoanSnapshots(loan.id);
-      const allSnapshotsData = loadLoanSnapshots();
+      const allSnapshots = getLoanSnapshots(this.userId, loan.id);
       
       let updatedSnapshotsCount = 0;
       for (const snapshot of allSnapshots) {
-        // Create snapshot date at the end of the month for comparison
-        const snapshotDate = new Date(snapshot.year, snapshot.month, 0); // Last day of the month
+        const snapshotDate = new Date(snapshot.year, snapshot.month, 0);
         snapshotDate.setHours(0, 0, 0, 0);
         
-        // Update snapshots on or after the effective date
         if (snapshotDate >= effectiveDate) {
-          // Find the snapshot in the full array and update it
-          const snapshotIndex = allSnapshotsData.findIndex(
-            s => s.id === snapshot.id
-          );
-          if (snapshotIndex >= 0) {
-            const oldRate = allSnapshotsData[snapshotIndex].interestRate;
-            allSnapshotsData[snapshotIndex].interestRate = extractedData.newRate;
-            allSnapshotsData[snapshotIndex].updatedAt = new Date().toISOString();
-            updatedSnapshotsCount++;
-            console.log(`[Loan Agent] Updated snapshot ${snapshot.year}-${snapshot.month}: ${oldRate}% -> ${extractedData.newRate}%`);
-          }
+          const oldRate = snapshot.interestRate;
+          snapshot.interestRate = extractedData.newRate;
+          snapshot.updatedAt = new Date().toISOString();
+          saveLoanMonthlySnapshot(this.userId, snapshot);
+          updatedSnapshotsCount++;
+          console.log(`[Loan Agent] Updated snapshot ${snapshot.year}-${snapshot.month}: ${oldRate}% -> ${extractedData.newRate}%`);
         }
       }
 
-      // Save updated snapshots
       if (updatedSnapshotsCount > 0) {
-        saveLoanSnapshots(allSnapshotsData);
         console.log(`[Loan Agent] ✅ Updated ${updatedSnapshotsCount} snapshot(s) with new interest rate ${extractedData.newRate}%`);
       }
 
@@ -517,7 +488,7 @@ export class LoanManagementAgent extends BaseAgent {
   ): Promise<Loan | null> {
     const { initializeStorage, loadFromJson } = await import('@/core/services/jsonStorageService');
     initializeStorage();
-    const loans = loadFromJson<Loan>('loans');
+    const loans = loadFromJson<Loan>('loans', this.userId);
 
     // Try matching by account number (if stored in description or name)
     // Note: We don't store account numbers in Loan interface, so we'll match by name/type

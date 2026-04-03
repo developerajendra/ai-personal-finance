@@ -1,31 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Investment } from "@/core/types";
-import { investments } from "@/core/dataStore";
-import { loadFromJson, updateInJson, deleteFromJson, initializeStorage } from "@/core/services/jsonStorageService";
+import { getSession } from "@/core/auth/getSession";
+import { updateInJson, deleteFromJson, initializeStorage } from "@/core/services/jsonStorageService";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
-    const jsonData = loadFromJson<Investment>("investments");
-    investments.splice(0, investments.length, ...jsonData);
-    
     const investment: Investment = await request.json();
-    const updated = updateInJson<Investment>("investments", params.id, investment);
+    const updated = updateInJson<Investment>("investments", params.id, investment, userId);
 
     if (!updated) {
       return NextResponse.json(
         { error: "Investment not found" },
         { status: 404 }
       );
-    }
-
-    // Update in-memory store
-    const index = investments.findIndex((inv) => inv.id === params.id);
-    if (index !== -1) {
-      investments[index] = updated;
     }
 
     return NextResponse.json(updated);
@@ -42,23 +39,20 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
-    const jsonData = loadFromJson<Investment>("investments");
-    investments.splice(0, investments.length, ...jsonData);
-    
-    const deleted = deleteFromJson<Investment>("investments", params.id);
+    const deleted = deleteFromJson<Investment>("investments", params.id, userId);
     
     if (!deleted) {
       return NextResponse.json(
         { error: "Investment not found" },
         { status: 404 }
       );
-    }
-
-    // Update in-memory store
-    const index = investments.findIndex((inv) => inv.id === params.id);
-    if (index !== -1) {
-      investments.splice(index, 1);
     }
 
     return NextResponse.json({ success: true });

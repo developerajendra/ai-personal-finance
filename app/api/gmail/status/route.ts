@@ -1,36 +1,35 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { getSession } from '@/core/auth/getSession';
 
 export async function GET() {
   try {
-    // Check for tokens in environment variables
+    const session = await getSession();
+    const userId = session?.userId;
+
     const envAccessToken = process.env.GMAIL_ACCESS_TOKEN;
     const envRefreshToken = process.env.GMAIL_REFRESH_TOKEN;
     const hasEnvTokens = !!(envAccessToken && envRefreshToken);
 
-    // Check for tokens in cookies
     const cookieStore = await cookies();
     const cookieAccessToken = cookieStore.get('gmail_access_token');
     const cookieRefreshToken = cookieStore.get('gmail_refresh_token');
     const hasCookieTokens = !!(cookieAccessToken && cookieRefreshToken);
 
-    // Check agent's in-memory tokens
     let hasAgentTokens = false;
     try {
-      const { getMainOrchestrator } = await import('@/core/agents/agentManager');
-      const orchestrator = getMainOrchestrator();
-      const portfolioAgent = orchestrator.getPortfolioAgent();
-      hasAgentTokens = portfolioAgent.isGmailAuthenticated();
-    } catch (error) {
-      // Agent might not be initialized, ignore
+      if (userId) {
+        const { getMainOrchestrator } = await import('@/core/agents/agentManager');
+        const orchestrator = getMainOrchestrator(userId);
+        const portfolioAgent = orchestrator.getPortfolioAgent();
+        hasAgentTokens = portfolioAgent.isGmailAuthenticated();
+      }
+    } catch {
+      // Agent might not be initialized
     }
 
     const hasTokens = hasEnvTokens || hasCookieTokens || hasAgentTokens;
-    let isExpired = false;
-
-    // Check if token is expired (if we have expiry info)
-    // Note: OAuth tokens typically expire after 1 hour, but we don't track expiry in env vars
-    // The gmailService will handle token refresh automatically
+    const isExpired = false;
 
     return NextResponse.json({
       isConnected: hasTokens,

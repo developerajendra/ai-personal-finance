@@ -1,11 +1,9 @@
 import { Sidebar } from "@/shared/components/Sidebar";
-import { GmailLoginGate } from "@/shared/components/GmailLoginGate";
 import { ProvidentFundDetailView } from "@/modules/portfolio/components/ProvidentFundDetailView";
 
 export default function ProvidentFundPage() {
   return (
-    <GmailLoginGate>
-      <div className="flex h-screen">
+    <div className="flex h-screen">
         <Sidebar />
         <main className="flex-1 overflow-auto">
           <div className="p-6 space-y-6">
@@ -18,7 +16,6 @@ export default function ProvidentFundPage() {
             <ProvidentFundDetailView />
           </div>
         </main>
-      </div>
-    </GmailLoginGate>
+    </div>
   );
 }

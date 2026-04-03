@@ -104,7 +104,7 @@ personal-finance-ai/
    ```
 
 2. **Environment variables** are already configured in `.env.local`:
-   - Gemini API key: `AIzaSyCTncSzkGPObw5Bm1vZPb9SjhX-qdDWpOs`
+   - Gemini API key: `YOUR_AI_API_KEY`
    - Model: `gemini-2.0-flash-exp`
 
 3. **Run development server**:

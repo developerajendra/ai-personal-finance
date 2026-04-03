@@ -18,8 +18,9 @@ export class PortfolioManagementAgent extends BaseAgent {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
   private isAuthenticated: boolean = false;
+  private userId: string;
 
-  constructor() {
+  constructor(userId: string) {
     super({
       name: 'portfolio-management',
       enabled: process.env.PORTFOLIO_AGENT_ENABLED !== 'false',
@@ -28,6 +29,7 @@ export class PortfolioManagementAgent extends BaseAgent {
         10
       ), // 5 minutes default
     });
+    this.userId = userId;
     this.loadProcessedEmails();
     this.loadTokens();
   }
@@ -271,17 +273,11 @@ export class PortfolioManagementAgent extends BaseAgent {
         updatedAt: new Date().toISOString(),
       };
 
-      // Save to storage directly using jsonStorageService
-      const { initializeStorage, loadFromJson, saveToJson } = await import('@/core/services/jsonStorageService');
-      const { investments } = await import('@/core/dataStore');
-      
-      initializeStorage();
-      const currentInvestments = loadFromJson<Investment>('investments');
+      const { loadFromJson, saveToJson } = await import('@/core/services/jsonStorageService');
+
+      const currentInvestments = loadFromJson<Investment>('investments', this.userId);
       currentInvestments.push(investment);
-      saveToJson('investments', currentInvestments);
-      
-      // Also update in-memory store
-      investments.push(investment);
+      saveToJson('investments', currentInvestments, this.userId);
       
       return investment;
     } catch (error: any) {

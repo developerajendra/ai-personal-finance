@@ -2,7 +2,6 @@
 
 import { Sidebar } from "@/shared/components/Sidebar";
 import { PortfolioGrid } from "@/modules/portfolio/components/PortfolioGrid";
-import { GmailLoginGate } from "@/shared/components/GmailLoginGate";
 import Link from "next/link";
 import { TrendingUp, PieChart, ArrowRight, CreditCard, Home, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -77,8 +76,7 @@ export default function PortfolioPage() {
   const totalMutualFunds = mutualFundsData?.mutualFunds?.reduce((sum, mf) => sum + ((mf.last_price || 0) * (mf.quantity || 0)), 0) || 0;
 
   return (
-    <GmailLoginGate>
-      <div className="flex h-screen">
+    <div className="flex h-screen">
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <div className="p-6 space-y-6">
@@ -213,8 +211,7 @@ export default function PortfolioPage() {
           <PortfolioGrid />
         </div>
       </main>
-      </div>
-    </GmailLoginGate>
+    </div>
   );
 }
 

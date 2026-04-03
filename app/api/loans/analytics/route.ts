@@ -11,9 +11,16 @@ import {
   getPreviousLoanSnapshot,
 } from '@/core/services/loanAnalyticsService';
 import { LoanMonthlySnapshot } from '@/core/types';
+import { getSession } from "@/core/auth/getSession";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     const searchParams = request.nextUrl.searchParams;
     const action = searchParams.get('action');
     const year = searchParams.get('year');
@@ -22,21 +29,21 @@ export async function GET(request: NextRequest) {
 
     // Get available years
     if (action === 'years') {
-      const years = getAvailableYearsForLoans();
+      const years = getAvailableYearsForLoans(userId);
       return NextResponse.json({ years });
     }
 
     // Get available months for a year
     if (action === 'months' && year) {
       const yearNum = parseInt(year);
-      const months = getAvailableMonthsForLoans(yearNum);
+      const months = getAvailableMonthsForLoans(userId, yearNum);
       return NextResponse.json({ months });
     }
 
     // Get loans with snapshots for a year
     if (action === 'loans' && year) {
       const yearNum = parseInt(year);
-      const loanIds = getLoansWithSnapshots(yearNum);
+      const loanIds = getLoansWithSnapshots(userId, yearNum);
       return NextResponse.json({ loanIds });
     }
 
@@ -44,7 +51,7 @@ export async function GET(request: NextRequest) {
     if (loanId && year && month) {
       const yearNum = parseInt(year);
       const monthNum = parseInt(month);
-      const snapshot = getLoanSnapshot(loanId, yearNum, monthNum);
+      const snapshot = getLoanSnapshot(userId, loanId, yearNum, monthNum);
       
       if (!snapshot) {
         return NextResponse.json(
@@ -54,7 +61,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Calculate growth metrics
-      const previous = getPreviousLoanSnapshot(snapshot);
+      const previous = getPreviousLoanSnapshot(userId, snapshot);
       const growth = calculateLoanGrowthMetrics(snapshot, previous || undefined);
 
       return NextResponse.json({
@@ -66,11 +73,11 @@ export async function GET(request: NextRequest) {
     // Get snapshots by loan and year
     if (loanId && year) {
       const yearNum = parseInt(year);
-      const snapshots = getLoanSnapshotsByYear(loanId, yearNum);
+      const snapshots = getLoanSnapshotsByYear(userId, loanId, yearNum);
       
       // Calculate growth metrics for each snapshot
       const snapshotsWithGrowth = snapshots.map(snapshot => {
-        const previous = getPreviousLoanSnapshot(snapshot);
+        const previous = getPreviousLoanSnapshot(userId, snapshot);
         const growth = calculateLoanGrowthMetrics(snapshot, previous || undefined);
         return { snapshot, growth };
       });
@@ -82,11 +89,11 @@ export async function GET(request: NextRequest) {
     if (year && month) {
       const yearNum = parseInt(year);
       const monthNum = parseInt(month);
-      const snapshots = getLoanSnapshotsByMonth(yearNum, monthNum);
+      const snapshots = getLoanSnapshotsByMonth(userId, yearNum, monthNum);
       
       // Calculate growth metrics for each snapshot
       const snapshotsWithGrowth = snapshots.map(snapshot => {
-        const previous = getPreviousLoanSnapshot(snapshot);
+        const previous = getPreviousLoanSnapshot(userId, snapshot);
         const growth = calculateLoanGrowthMetrics(snapshot, previous || undefined);
         return { snapshot, growth };
       });
@@ -96,20 +103,20 @@ export async function GET(request: NextRequest) {
 
     // Get all snapshots for a loan
     if (loanId) {
-      const snapshots = getLoanSnapshots(loanId);
+      const snapshots = getLoanSnapshots(userId, loanId);
       return NextResponse.json({ snapshots });
     }
 
     // Get all snapshots for a year (all loans)
     if (year) {
       const yearNum = parseInt(year);
-      const loanIds = getLoansWithSnapshots(yearNum);
+      const loanIds = getLoansWithSnapshots(userId, yearNum);
       const allSnapshots: Array<{ snapshot: LoanMonthlySnapshot; growth: any }> = [];
       
       for (const id of loanIds) {
-        const snapshots = getLoanSnapshotsByYear(id, yearNum);
+        const snapshots = getLoanSnapshotsByYear(userId, id, yearNum);
         snapshots.forEach(snapshot => {
-          const previous = getPreviousLoanSnapshot(snapshot);
+          const previous = getPreviousLoanSnapshot(userId, snapshot);
           const growth = calculateLoanGrowthMetrics(snapshot, previous || undefined);
           allSnapshots.push({ snapshot, growth });
         });
@@ -127,7 +134,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Default: return available years
-    const years = getAvailableYearsForLoans();
+    const years = getAvailableYearsForLoans(userId);
     return NextResponse.json({ years, message: 'Use ?year=YYYY&month=MM&loanId=xxx to get specific snapshots' });
   } catch (error: any) {
     console.error('Error fetching loan analytics:', error);

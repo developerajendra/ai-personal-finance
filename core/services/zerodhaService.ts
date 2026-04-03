@@ -5,9 +5,24 @@
 
 import { KiteConnect } from "kiteconnect";
 import crypto from "crypto";
+import * as userConfigRepo from "@/core/db/repositories/userConfigRepository";
 
-const ZERODHA_API_KEY = process.env.ZERODHA_API_KEY || "";
-const ZERODHA_API_SECRET = process.env.ZERODHA_API_SECRET || "";
+function getZerodhaApiKey(userId?: string): string {
+  if (userId) {
+    const key = userConfigRepo.getConfig(userId, "zerodha", "api_key");
+    if (key) return key;
+  }
+  return process.env.ZERODHA_API_KEY || "";
+}
+
+function getZerodhaApiSecret(userId?: string): string {
+  if (userId) {
+    const secret = userConfigRepo.getConfig(userId, "zerodha", "api_secret");
+    if (secret) return secret;
+  }
+  return process.env.ZERODHA_API_SECRET || "";
+}
+
 const ZERODHA_REDIRECT_URI = process.env.ZERODHA_REDIRECT_URI || "http://localhost:3000/api/zerodha/callback";
 
 export interface ZerodhaStock {
@@ -43,10 +58,10 @@ export interface ZerodhaPortfolio {
 /**
  * Get Zerodha Kite Connect login URL
  */
-export function getZerodhaLoginUrl(): string {
+export function getZerodhaLoginUrl(userId?: string): string {
   const baseUrl = "https://kite.zerodha.com/connect/login";
   const params = new URLSearchParams({
-    api_key: ZERODHA_API_KEY,
+    api_key: getZerodhaApiKey(userId),
     v: "3",
   });
   return `${baseUrl}?${params.toString()}`;
@@ -63,13 +78,15 @@ function generateChecksum(apiKey: string, requestToken: string, apiSecret: strin
 /**
  * Exchange authorization code for access token
  */
-export async function exchangeAuthCode(requestToken: string): Promise<string> {
+export async function exchangeAuthCode(requestToken: string, userId?: string): Promise<string> {
   try {
-    if (!ZERODHA_API_KEY || !ZERODHA_API_SECRET) {
+    const apiKey = getZerodhaApiKey(userId);
+    const apiSecret = getZerodhaApiSecret(userId);
+    if (!apiKey || !apiSecret) {
       throw new Error("Zerodha API credentials not configured");
     }
 
-    const checksum = generateChecksum(ZERODHA_API_KEY, requestToken, ZERODHA_API_SECRET);
+    const checksum = generateChecksum(apiKey, requestToken, apiSecret);
 
     const response = await fetch("https://api.kite.trade/session/token", {
       method: "POST",
@@ -77,7 +94,7 @@ export async function exchangeAuthCode(requestToken: string): Promise<string> {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        api_key: ZERODHA_API_KEY,
+        api_key: apiKey,
         request_token: requestToken,
         checksum: checksum,
       }),
@@ -103,14 +120,15 @@ export async function exchangeAuthCode(requestToken: string): Promise<string> {
 /**
  * Fetch stock holdings from Zerodha
  */
-export async function fetchStocks(accessToken: string): Promise<ZerodhaStock[]> {
+export async function fetchStocks(accessToken: string, userId?: string): Promise<ZerodhaStock[]> {
   try {
-    if (!ZERODHA_API_KEY || !accessToken) {
+    const apiKey = getZerodhaApiKey(userId);
+    if (!apiKey || !accessToken) {
       throw new Error("Zerodha API not configured or not authenticated");
     }
 
     const kite = new KiteConnect({
-      api_key: ZERODHA_API_KEY,
+      api_key: apiKey,
     });
     
     kite.setAccessToken(accessToken);
@@ -161,14 +179,15 @@ export async function fetchStocks(accessToken: string): Promise<ZerodhaStock[]> 
 /**
  * Fetch mutual fund holdings from Zerodha
  */
-export async function fetchMutualFunds(accessToken: string): Promise<ZerodhaMutualFund[]> {
+export async function fetchMutualFunds(accessToken: string, userId?: string): Promise<ZerodhaMutualFund[]> {
   try {
-    if (!ZERODHA_API_KEY || !accessToken) {
+    const apiKey = getZerodhaApiKey(userId);
+    if (!apiKey || !accessToken) {
       throw new Error("Zerodha API not configured or not authenticated");
     }
 
     const kite = new KiteConnect({
-      api_key: ZERODHA_API_KEY,
+      api_key: apiKey,
     });
     
     kite.setAccessToken(accessToken);

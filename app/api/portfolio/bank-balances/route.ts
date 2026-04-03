@@ -1,39 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BankBalance } from "@/core/types";
 import { paginate, PaginationParams } from "@/core/services/scalabilityService";
-import { bankBalances } from "@/core/dataStore";
+import { getSession } from "@/core/auth/getSession";
 import { loadFromJson, saveToJson, initializeStorage } from "@/core/services/jsonStorageService";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
-    const jsonData = loadFromJson<BankBalance>("bankBalances");
-    // Ensure isPublished field exists (default to false for backward compatibility)
+    const jsonData = loadFromJson<BankBalance>("bankBalances", userId);
     const normalizedData = jsonData.map(bb => ({
       ...bb,
       isPublished: bb.isPublished ?? false
     }));
-    bankBalances.splice(0, bankBalances.length, ...normalizedData);
     
-    // Check for pagination parameters
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "100");
     
-    // Filter by isPublished if specified
-    let filteredData = bankBalances;
+    let filteredData = normalizedData;
     if (searchParams.has("isPublished")) {
       const isPublished = searchParams.get("isPublished") === "true";
-      filteredData = bankBalances.filter(bb => (bb.isPublished ?? false) === isPublished);
+      filteredData = normalizedData.filter(bb => (bb.isPublished ?? false) === isPublished);
     }
 
-    // If pagination requested, return paginated results
     if (searchParams.has("page") || searchParams.has("pageSize")) {
       const paginated = paginate<BankBalance>(filteredData, { page, pageSize });
       return NextResponse.json(paginated);
     }
 
-    // Otherwise return all (for small datasets)
     return NextResponse.json(filteredData);
   } catch (error) {
     return NextResponse.json(
@@ -45,20 +45,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
-    const jsonData = loadFromJson<BankBalance>("bankBalances");
-    // Ensure isPublished field exists (default to false for backward compatibility)
+    const jsonData = loadFromJson<BankBalance>("bankBalances", userId);
     const normalizedData = jsonData.map(bb => ({
       ...bb,
       isPublished: bb.isPublished ?? false
     }));
-    bankBalances.splice(0, bankBalances.length, ...normalizedData);
     
     const bankBalance: BankBalance = await request.json();
-    // Ensure isPublished is set (default to true for manually created items)
     const bankBalanceToAdd = { ...bankBalance, isPublished: bankBalance.isPublished ?? true };
-    bankBalances.push(bankBalanceToAdd);
-    saveToJson("bankBalances", bankBalances);
+    const updatedData = [...normalizedData, bankBalanceToAdd];
+    saveToJson("bankBalances", updatedData, userId);
     
     return NextResponse.json(bankBalanceToAdd, { status: 201 });
   } catch (error) {
@@ -68,4 +71,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

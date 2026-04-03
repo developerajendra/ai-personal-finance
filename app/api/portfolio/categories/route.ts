@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PortfolioCategory } from "@/core/types";
+import { getSession } from "@/core/auth/getSession";
 import { loadFromJson, saveToJson, initializeStorage } from "@/core/services/jsonStorageService";
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
-    const categories = loadFromJson<PortfolioCategory>("portfolioCategories");
+    const categories = loadFromJson<PortfolioCategory>("portfolioCategories", userId);
     return NextResponse.json(categories);
   } catch (error: any) {
     return NextResponse.json(
@@ -17,11 +24,16 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
     const body = await request.json();
     const { name, slug, icon, href, type, description } = body;
 
-    // Validation
     if (!name || !slug || !href || !type) {
       return NextResponse.json(
         { error: "Missing required fields: name, slug, href, and type are required" },
@@ -29,7 +41,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate type
     const validTypes = ["investment", "loan", "property", "bank-balance"];
     if (!validTypes.includes(type)) {
       return NextResponse.json(
@@ -38,8 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if slug already exists
-    const existingCategories = loadFromJson<PortfolioCategory>("portfolioCategories");
+    const existingCategories = loadFromJson<PortfolioCategory>("portfolioCategories", userId);
     if (existingCategories.some((cat) => cat.slug === slug)) {
       return NextResponse.json(
         { error: "A category with this slug already exists" },
@@ -47,7 +57,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new category
     const newCategory: PortfolioCategory = {
       id: `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name,
@@ -61,7 +70,7 @@ export async function POST(request: NextRequest) {
     };
 
     const updatedCategories = [...existingCategories, newCategory];
-    saveToJson("portfolioCategories", updatedCategories);
+    saveToJson("portfolioCategories", updatedCategories, userId);
 
     return NextResponse.json(newCategory, { status: 201 });
   } catch (error: any) {

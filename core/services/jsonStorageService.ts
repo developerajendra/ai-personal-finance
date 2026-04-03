@@ -1,272 +1,108 @@
-import fs from "fs";
-import path from "path";
-import { Investment, Loan, Property, BankBalance, Transaction } from "@/core/types";
-import { ZerodhaStock, ZerodhaMutualFund } from "@/core/services/zerodhaService";
+/**
+ * Compatibility shim: delegates to SQLite repositories.
+ * All functions now require userId. API routes should be updated to pass userId directly.
+ * This file exists only for backward compatibility and will be removed in Phase 6.
+ */
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const FILES = {
-  investments: path.join(DATA_DIR, "investments.json"),
-  loans: path.join(DATA_DIR, "loans.json"),
-  properties: path.join(DATA_DIR, "properties.json"),
-  bankBalances: path.join(DATA_DIR, "bankBalances.json"),
-  transactions: path.join(DATA_DIR, "transactions.json"),
-  stocks: path.join(DATA_DIR, "stocks.json"),
-  mutualFunds: path.join(DATA_DIR, "mutualFunds.json"),
-  portfolioCategories: path.join(DATA_DIR, "portfolioCategories.json"),
-};
+import * as investmentRepo from "@/core/db/repositories/investmentRepository";
+import * as loanRepo from "@/core/db/repositories/loanRepository";
+import * as propertyRepo from "@/core/db/repositories/propertyRepository";
+import * as bankBalanceRepo from "@/core/db/repositories/bankBalanceRepository";
+import * as transactionRepo from "@/core/db/repositories/transactionRepository";
+import * as stockRepo from "@/core/db/repositories/stockRepository";
+import * as mutualFundRepo from "@/core/db/repositories/mutualFundRepository";
+import * as portfolioCategoryRepo from "@/core/db/repositories/portfolioCategoryRepository";
+import type { Investment, Loan, Property, BankBalance, Transaction, PortfolioCategory } from "@/core/types";
+import type { ZerodhaStock, ZerodhaMutualFund } from "@/core/services/zerodhaService";
 
-// Ensure data directory exists (only checks once per process)
-let dataDirInitialized = false;
-function ensureDataDir() {
-  if (dataDirInitialized) return;
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    console.log(`📁 Created data directory: ${DATA_DIR}`);
-  }
-  dataDirInitialized = true;
-}
+const FILE_KEY_TO_REPO = {
+  investments: investmentRepo,
+  loans: loanRepo,
+  properties: propertyRepo,
+  bankBalances: bankBalanceRepo,
+  transactions: transactionRepo,
+  portfolioCategories: portfolioCategoryRepo,
+} as const;
 
-// Initialize JSON files if they don't exist
-function initializeFile(filePath: string) {
-  try {
-    const dir = path.dirname(filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify([], null, 2), "utf-8");
-      console.log(`📄 Initialized JSON file: ${filePath}`);
-    }
-  } catch (error) {
-    console.warn(`Original warning: Failed to initialize file ${filePath}:`, error);
-  }
-}
+type FileKey = keyof typeof FILE_KEY_TO_REPO;
 
-// Initialize all data files
 export function initializeStorage() {
-  ensureDataDir();
-  Object.values(FILES).forEach(initializeFile);
+  // No-op: SQLite is always ready
 }
 
-// Load data from JSON file
-export function loadFromJson<T>(fileKey: keyof typeof FILES): T[] {
-  try {
-    ensureDataDir();
-    const filePath = FILES[fileKey];
-    initializeFile(filePath);
-
-    const content = fs.readFileSync(filePath, "utf-8");
-    const data = JSON.parse(content || "[]");
-    console.log(`📖 Loaded ${data.length} items from ${fileKey}`);
-    return Array.isArray(data) ? data : [];
-  } catch (error) {
-    console.error(`❌ Error loading ${fileKey}:`, error);
-    return [];
-  }
+export function loadFromJson<T>(fileKey: FileKey, userId: string): T[] {
+  const repo = FILE_KEY_TO_REPO[fileKey];
+  return (repo as any).findByUserId(userId) as T[];
 }
 
-// Save data to JSON file
-export function saveToJson<T>(fileKey: keyof typeof FILES, data: T[]): void {
-  try {
-    ensureDataDir();
-    const filePath = FILES[fileKey];
-
-    const jsonString = JSON.stringify(data, null, 2);
-    fs.writeFileSync(filePath, jsonString, "utf-8");
-    console.log(`💾 Saved ${data.length} items to ${fileKey}`);
-  } catch (error) {
-    console.error(`❌ Error saving ${fileKey}:`, error);
-    throw error;
-  }
+export function saveToJson<T extends { id: string }>(fileKey: FileKey, data: T[], userId: string): void {
+  const repo = FILE_KEY_TO_REPO[fileKey];
+  (repo as any).replaceAll(userId, data);
 }
 
-// Append data to JSON file (for adding new items)
-export function appendToJson<T>(fileKey: keyof typeof FILES, newItems: T[]): void {
-  try {
-    const existing = loadFromJson<T>(fileKey);
-    const updated = [...existing, ...newItems];
-    saveToJson(fileKey, updated);
-    console.log(`➕ Appended ${newItems.length} items to ${fileKey}`);
-  } catch (error) {
-    console.error(`❌ Error appending to ${fileKey}:`, error);
-    throw error;
-  }
+export function appendToJson<T extends { id: string }>(fileKey: FileKey, newItems: T[], userId: string): void {
+  const repo = FILE_KEY_TO_REPO[fileKey];
+  (repo as any).bulkCreate(userId, newItems);
 }
 
-// Update item in JSON file
 export function updateInJson<T extends { id: string }>(
-  fileKey: keyof typeof FILES,
+  fileKey: FileKey,
   id: string,
-  updates: Partial<T>
+  updates: Partial<T>,
+  userId: string
 ): T | null {
-  try {
-    const items = loadFromJson<T>(fileKey);
-    const index = items.findIndex((item) => item.id === id);
-
-    if (index === -1) {
-      console.warn(`⚠️ Item with id ${id} not found in ${fileKey}`);
-      return null;
-    }
-
-    items[index] = { ...items[index], ...updates, updatedAt: new Date().toISOString() };
-    saveToJson(fileKey, items);
-    console.log(`✏️ Updated item ${id} in ${fileKey}`);
-    return items[index];
-  } catch (error) {
-    console.error(`❌ Error updating ${fileKey}:`, error);
-    throw error;
-  }
+  const repo = FILE_KEY_TO_REPO[fileKey];
+  return (repo as any).update(userId, id, updates) as T | null;
 }
 
-// Delete item from JSON file
 export function deleteFromJson<T extends { id: string }>(
-  fileKey: keyof typeof FILES,
-  id: string
+  fileKey: FileKey,
+  id: string,
+  userId: string
 ): boolean {
-  try {
-    const items = loadFromJson<T>(fileKey);
-    const filtered = items.filter((item) => item.id !== id);
-
-    if (filtered.length === items.length) {
-      console.warn(`⚠️ Item with id ${id} not found in ${fileKey}`);
-      return false;
-    }
-
-    saveToJson(fileKey, filtered);
-    console.log(`🗑️ Deleted item ${id} from ${fileKey}`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Error deleting from ${fileKey}:`, error);
-    throw error;
-  }
+  const repo = FILE_KEY_TO_REPO[fileKey];
+  return (repo as any).remove(userId, id);
 }
 
-// Load all portfolio data
-export function loadAllPortfolioData() {
+export function loadAllPortfolioData(userId: string) {
   return {
-    investments: loadFromJson<Investment>("investments"),
-    loans: loadFromJson<Loan>("loans"),
-    properties: loadFromJson<Property>("properties"),
-    bankBalances: loadFromJson<BankBalance>("bankBalances"),
-    transactions: loadFromJson<Transaction>("transactions"),
+    investments: investmentRepo.findByUserId(userId),
+    loans: loanRepo.findByUserId(userId),
+    properties: propertyRepo.findByUserId(userId),
+    bankBalances: bankBalanceRepo.findByUserId(userId),
+    transactions: transactionRepo.findByUserId(userId),
   };
 }
 
-// Save all portfolio data
-export function saveAllPortfolioData(data: {
-  investments?: Investment[];
-  loans?: Loan[];
-  properties?: Property[];
-  bankBalances?: BankBalance[];
-  transactions?: Transaction[];
-}) {
-  ensureDataDir();
-  if (data.investments !== undefined) {
-    saveToJson("investments", data.investments);
-    console.log(`💾 Saved ${data.investments.length} investments to JSON`);
+export function saveAllPortfolioData(
+  userId: string,
+  data: {
+    investments?: Investment[];
+    loans?: Loan[];
+    properties?: Property[];
+    bankBalances?: BankBalance[];
+    transactions?: Transaction[];
   }
-  if (data.loans !== undefined) {
-    saveToJson("loans", data.loans);
-    console.log(`💾 Saved ${data.loans.length} loans to JSON`);
-  }
-  if (data.properties !== undefined) {
-    saveToJson("properties", data.properties);
-    console.log(`💾 Saved ${data.properties.length} properties to JSON`);
-  }
-  if (data.bankBalances !== undefined) {
-    saveToJson("bankBalances", data.bankBalances);
-    console.log(`💾 Saved ${data.bankBalances.length} bank balances to JSON`);
-  }
-  if (data.transactions !== undefined) {
-    saveToJson("transactions", data.transactions);
-    console.log(`💾 Saved ${data.transactions.length} transactions to JSON`);
-  }
-  console.log("✅ All portfolio data saved to JSON files successfully");
+) {
+  if (data.investments !== undefined) investmentRepo.replaceAll(userId, data.investments);
+  if (data.loans !== undefined) loanRepo.replaceAll(userId, data.loans);
+  if (data.properties !== undefined) propertyRepo.replaceAll(userId, data.properties);
+  if (data.bankBalances !== undefined) bankBalanceRepo.replaceAll(userId, data.bankBalances);
+  if (data.transactions !== undefined) transactionRepo.replaceAll(userId, data.transactions);
 }
 
-// Save stocks data
-export function saveStocks(stocks: ZerodhaStock[]): void {
-  try {
-    ensureDataDir();
-    const filePath = FILES.stocks;
-    const data = {
-      stocks,
-      lastUpdated: new Date().toISOString(),
-    };
-    const jsonString = JSON.stringify(data, null, 2);
-    fs.writeFileSync(filePath, jsonString, "utf-8");
-    console.log(`💾 Saved ${stocks.length} stocks to JSON`);
-  } catch (error) {
-    console.error(`❌ Error saving stocks:`, error);
-    throw error;
-  }
+export function saveStocks(userId: string, stocks: ZerodhaStock[]): void {
+  stockRepo.replaceAll(userId, stocks);
 }
 
-// Load stocks data
-export function loadStocks(): ZerodhaStock[] {
-  try {
-    ensureDataDir();
-    const filePath = FILES.stocks;
-    initializeFile(filePath);
-
-    if (!fs.existsSync(filePath)) {
-      return [];
-    }
-
-    const content = fs.readFileSync(filePath, "utf-8");
-    const data = JSON.parse(content || "{}");
-    
-    // Handle both old format (array) and new format (object with stocks property)
-    if (Array.isArray(data)) {
-      return data;
-    }
-    return data.stocks || [];
-  } catch (error) {
-    console.error(`❌ Error loading stocks:`, error);
-    return [];
-  }
+export function loadStocks(userId: string): ZerodhaStock[] {
+  return stockRepo.findByUserId(userId);
 }
 
-// Save mutual funds data
-export function saveMutualFunds(mutualFunds: ZerodhaMutualFund[]): void {
-  try {
-    ensureDataDir();
-    const filePath = FILES.mutualFunds;
-    const data = {
-      mutualFunds,
-      lastUpdated: new Date().toISOString(),
-    };
-    const jsonString = JSON.stringify(data, null, 2);
-    fs.writeFileSync(filePath, jsonString, "utf-8");
-    console.log(`💾 Saved ${mutualFunds.length} mutual funds to JSON`);
-  } catch (error) {
-    console.error(`❌ Error saving mutual funds:`, error);
-    throw error;
-  }
+export function saveMutualFunds(userId: string, mutualFunds: ZerodhaMutualFund[]): void {
+  mutualFundRepo.replaceAll(userId, mutualFunds);
 }
 
-// Load mutual funds data
-export function loadMutualFunds(): ZerodhaMutualFund[] {
-  try {
-    ensureDataDir();
-    const filePath = FILES.mutualFunds;
-    initializeFile(filePath);
-
-    if (!fs.existsSync(filePath)) {
-      return [];
-    }
-
-    const content = fs.readFileSync(filePath, "utf-8");
-    const data = JSON.parse(content || "{}");
-    
-    // Handle both old format (array) and new format (object with mutualFunds property)
-    if (Array.isArray(data)) {
-      return data;
-    }
-    return data.mutualFunds || [];
-  } catch (error) {
-    console.error(`❌ Error loading mutual funds:`, error);
-    return [];
-  }
+export function loadMutualFunds(userId: string): ZerodhaMutualFund[] {
+  return mutualFundRepo.findByUserId(userId);
 }
-

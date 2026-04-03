@@ -10,9 +10,14 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf .next"
+    "clean": "rm -rf .next",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:migrate-data": "npx tsx scripts/migrate-json-to-sqlite.ts"
   },
   "dependencies": {
+    "@auth/drizzle-adapter": "^1.11.1",
     "@google/generative-ai": "^0.21.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -21,10 +26,13 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@tanstack/react-query": "^5.28.0",
     "autoprefixer": "^10.4.19",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.8.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "crypto": "^1.0.1",
     "date-fns": "^3.3.0",
+    "drizzle-orm": "^0.45.2",
     "exceljs": "^4.4.0",
     "git": "^0.1.5",
     "googleapis": "^169.0.0",
@@ -32,6 +40,7 @@
     "kiteconnect": "^5.1.0",
     "lucide-react": "^0.344.0",
     "next": "^14.2.0",
+    "next-auth": "^5.0.0-beta.30",
     "ollama": "^0.6.3",
     "pdf-parse": "^1.1.1",
     "postcss": "^8.4.38",
@@ -47,10 +56,13 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.11.0",
     "@types/pdf-parse": "^1.1.4",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^8.56.0",
     "eslint-config-next": "^14.2.0",
     "typescript": "^5.3.3"

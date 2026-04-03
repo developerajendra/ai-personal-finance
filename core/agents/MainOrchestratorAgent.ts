@@ -16,9 +16,9 @@ export class MainOrchestratorAgent {
   private alerts: AgentMessage[] = [];
   private messageProcessorInterval?: NodeJS.Timeout;
 
-  constructor() {
-    this.portfolioAgent = new PortfolioManagementAgent();
-    this.loanAgent = new LoanManagementAgent();
+  constructor(userId: string) {
+    this.portfolioAgent = new PortfolioManagementAgent(userId);
+    this.loanAgent = new LoanManagementAgent(userId);
     this.setupMessageHandlers();
   }
 

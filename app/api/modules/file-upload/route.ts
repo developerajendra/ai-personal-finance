@@ -2,27 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { Transaction } from "@/core/types";
 import { analyzeExcelData, ExcelAnalysisResult } from "@/core/services/excelAnalyzerService";
-import { investments, loans, properties, bankBalances } from "@/core/dataStore";
 import { generateCacheKey, saveToCache, loadFromCache } from "@/core/services/cacheService";
 import { 
-  loadFromJson, 
-  saveToJson, 
-  initializeStorage,
   loadAllPortfolioData,
   saveAllPortfolioData 
 } from "@/core/services/jsonStorageService";
+import { getSession } from "@/core/auth/getSession";
 
 export async function POST(request: NextRequest) {
   try {
-    // Initialize JSON storage
-    initializeStorage();
-    
-    // Load existing data from JSON files
-    const existingData = loadAllPortfolioData();
-    investments.splice(0, investments.length, ...existingData.investments);
-    loans.splice(0, loans.length, ...existingData.loans);
-    properties.splice(0, properties.length, ...existingData.properties);
-    bankBalances.splice(0, bankBalances.length, ...existingData.bankBalances);
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
+    const existingData = loadAllPortfolioData(userId);
+    const investments = [...existingData.investments];
+    const loans = [...existingData.loans];
+    const properties = [...existingData.properties];
+    const bankBalances = [...existingData.bankBalances];
     
     // Check if this is a Google Drive upload (JSON body) or direct file upload (FormData)
     const contentType = request.headers.get("content-type") || "";
@@ -95,8 +94,7 @@ export async function POST(request: NextRequest) {
           properties.splice(0, properties.length, ...(cachedData.portfolioItems?.properties || []));
           bankBalances.splice(0, bankBalances.length, ...(cachedData.portfolioItems?.bankBalances || []));
           
-          // Save cached data to JSON files
-          saveAllPortfolioData({
+          saveAllPortfolioData(userId, {
             investments,
             loans,
             properties,
@@ -384,7 +382,7 @@ export async function POST(request: NextRequest) {
     // Save all data to JSON files for persistence (this ensures all data is saved, not just new items)
     console.log(`💾 Saving all portfolio data to JSON files...`);
     console.log(`   Investments: ${investments.length}, Loans: ${loans.length}, Properties: ${properties.length}, Bank Balances: ${bankBalances.length}`);
-    saveAllPortfolioData({
+    saveAllPortfolioData(userId, {
       investments,
       loans,
       properties,

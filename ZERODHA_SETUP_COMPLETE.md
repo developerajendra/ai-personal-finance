@@ -13,7 +13,7 @@
 **IMPORTANT**: Before connecting, you must add the redirect URI in your Zerodha app settings:
 
 1. Go to https://kite.trade/apps/
-2. Click on your app (API Key: `lf13vcrphs0h7u97`)
+2. Click on your app (API Key: `YOUR_ZERODHA_API_KEY`)
 3. In the "Redirect URL" field, add:
    ```
    http://localhost:3000/api/zerodha/callback

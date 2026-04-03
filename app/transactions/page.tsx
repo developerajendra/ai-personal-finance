@@ -1,11 +1,9 @@
 import { Sidebar } from "@/shared/components/Sidebar";
 import { DataGrid } from "@/modules/admin-panel/components/DataGrid";
-import { GmailLoginGate } from "@/shared/components/GmailLoginGate";
 
 export default function TransactionsPage() {
   return (
-    <GmailLoginGate>
-      <div className="flex h-screen">
+    <div className="flex h-screen">
         <Sidebar />
         <main className="flex-1 overflow-auto">
           <div className="p-6 space-y-6">
@@ -19,8 +17,7 @@ export default function TransactionsPage() {
             <DataGrid />
           </div>
         </main>
-      </div>
-    </GmailLoginGate>
+    </div>
   );
 }
 

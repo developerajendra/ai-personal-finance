@@ -5,11 +5,18 @@ import {
 } from '@/core/services/loanAnalyticsService';
 import { loadFromJson } from '@/core/services/jsonStorageService';
 import { Loan, LoanMonthlySnapshot } from '@/core/types';
+import { getSession } from "@/core/auth/getSession";
 
 const PAYMENT_DAY = 4; // Loan payment happens on the 4th of every month
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     const now = new Date();
     const dayOfMonth = now.getDate();
     const currentYear = now.getFullYear();
@@ -25,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Load all loans
-    const loans = loadFromJson<Loan>('loans').filter((l) => l.isPublished);
+    const loans = loadFromJson<Loan>('loans', userId).filter((l) => l.isPublished);
     if (loans.length === 0) {
       return NextResponse.json({
         success: true,
@@ -34,7 +41,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const allSnapshots = loadLoanSnapshots();
+    const allSnapshots = loadLoanSnapshots(userId);
     let totalGenerated = 0;
     const generatedDetails: Array<{ loanId: string; loanName: string; year: number; month: number }> = [];
 
@@ -65,6 +72,7 @@ export async function POST(request: NextRequest) {
 
       // Generate missing monthly snapshots up to the current month
       const generated = generateMissingMonthlySnapshots(
+        userId,
         loan.id,
         lastSnapshot,
         currentYear,

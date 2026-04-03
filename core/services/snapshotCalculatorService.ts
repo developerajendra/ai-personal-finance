@@ -4,38 +4,31 @@
  * Supports date-filtered investments (with ruleFormula), transactions, properties, and loans.
  */
 
-import { loadFromJson } from "./jsonStorageService";
-import { loadStocks, loadMutualFunds } from "./jsonStorageService";
-import { PPFAccount, loadPPFAccounts } from "./ppfStorageService";
+import * as investmentRepo from "@/core/db/repositories/investmentRepository";
+import * as loanRepo from "@/core/db/repositories/loanRepository";
+import * as propertyRepo from "@/core/db/repositories/propertyRepository";
+import * as bankBalanceRepo from "@/core/db/repositories/bankBalanceRepository";
+import * as transactionRepo from "@/core/db/repositories/transactionRepository";
+import * as stockRepo from "@/core/db/repositories/stockRepository";
+import * as mutualFundRepo from "@/core/db/repositories/mutualFundRepository";
+import * as ppfAccountRepo from "@/core/db/repositories/ppfAccountRepository";
+import * as loanSnapshotRepo from "@/core/db/repositories/loanSnapshotRepository";
 import { getInvestmentValueAtDate } from "@/core/utils/investmentValueCalculator";
-import {
-  getEffectiveOutstandingAmount,
-  getLoanSnapshot,
-} from "./loanAnalyticsService";
 import type {
   Investment,
   Loan,
-  Property,
   BankBalance,
-  Transaction,
+  FinancialSnapshot,
 } from "@/core/types";
-import type { FinancialSnapshot } from "@/core/types";
 
-/**
- * Get loan outstanding at a given date.
- * - For snapshots with matching loan analytics data: use snapshot.outstandingAmount.
- * - For "current" month (asOf within 45 days of today): use effective outstanding
- *   (latest loan snapshot) to match Dashboard and /portfolio/loans.
- * - For older snapshots without analytics: use linear principal repayment approximation.
- */
-function getLoanOutstandingAtDate(loan: Loan, asOfDate: Date): number {
+function getLoanOutstandingAtDate(userId: string, loan: Loan, asOfDate: Date): number {
   const start = new Date(loan.startDate);
   if (asOfDate < start) return 0;
   if (loan.status !== "active") return 0;
 
   const asOfYear = asOfDate.getFullYear();
   const asOfMonth = asOfDate.getMonth() + 1;
-  const snapshot = getLoanSnapshot(loan.id, asOfYear, asOfMonth);
+  const snapshot = loanSnapshotRepo.findByLoanAndMonth(userId, loan.id, asOfYear, asOfMonth);
   if (snapshot) {
     return snapshot.outstandingAmount;
   }
@@ -45,7 +38,8 @@ function getLoanOutstandingAtDate(loan: Loan, asOfDate: Date): number {
     (now.getTime() - asOfDate.getTime()) / (1000 * 60 * 60 * 24)
   );
   if (daysDiff <= 45 && daysDiff >= -31) {
-    return getEffectiveOutstandingAmount(loan);
+    const latest = loanSnapshotRepo.findLatest(userId, loan.id);
+    return latest ? latest.outstandingAmount : loan.outstandingAmount;
   }
 
   const monthsElapsed = Math.max(
@@ -61,32 +55,29 @@ function getLoanOutstandingAtDate(loan: Loan, asOfDate: Date): number {
   return Math.max(0, Math.round(remaining * 100) / 100);
 }
 
-/**
- * Calculate financial snapshot as of end of given year/month
- */
 export function calculateSnapshotAsOfDate(
+  userId: string,
   year: number,
   month?: number
 ): Partial<FinancialSnapshot> {
   const asOfDate =
     month !== undefined
-      ? new Date(year, month, 0) // Last day of month (0 = previous month's last day)
+      ? new Date(year, month, 0)
       : new Date(year, 11, 31);
   asOfDate.setHours(23, 59, 59, 999);
 
   const monthEnd = new Date(asOfDate.getTime());
 
-  const investments = loadFromJson<Investment>("investments");
-  const loans = loadFromJson<Loan>("loans");
-  const properties = loadFromJson<Property>("properties");
-  const bankBalances = loadFromJson<BankBalance>("bankBalances");
-  const transactions = loadFromJson<Transaction>("transactions");
-  const stocks = loadStocks();
-  const mutualFunds = loadMutualFunds();
-  const ppfAccounts = loadPPFAccounts();
+  const allInvestments = investmentRepo.findByUserId(userId);
+  const allLoans = loanRepo.findByUserId(userId);
+  const allProperties = propertyRepo.findByUserId(userId);
+  const bankBalances = bankBalanceRepo.findByUserId(userId);
+  const transactions = transactionRepo.findByUserId(userId);
+  const allStocks = stockRepo.findByUserId(userId);
+  const allMutualFunds = mutualFundRepo.findByUserId(userId);
+  const ppfAccounts = ppfAccountRepo.findByUserId(userId);
 
-  // Filter investments: active at asOfDate (startDate <= asOf, exclude if closed before asOf)
-  const filteredInvestments = investments.filter((inv) => {
+  const filteredInvestments = allInvestments.filter((inv) => {
     if (!inv.isPublished) return false;
     if (inv.status === "closed") {
       const closedDate = inv.endDate || inv.maturityDate || inv.updatedAt;
@@ -100,30 +91,24 @@ export function calculateSnapshotAsOfDate(
     0
   );
 
-  // Filter and sum loans
-  const filteredLoans = loans.filter(
+  const filteredLoans = allLoans.filter(
     (l) => l.isPublished && l.status === "active" && new Date(l.startDate) <= asOfDate
   );
   const totalLoans = filteredLoans.reduce(
-    (sum, loan) => sum + getLoanOutstandingAtDate(loan, asOfDate),
+    (sum, loan) => sum + getLoanOutstandingAtDate(userId, loan, asOfDate),
     0
   );
 
-  // Filter properties: purchased before asOfDate
-  const filteredProperties = properties.filter(
-    (p) =>
-      p.isPublished &&
-      new Date(p.purchaseDate) <= asOfDate
+  const filteredProperties = allProperties.filter(
+    (p) => p.isPublished && new Date(p.purchaseDate) <= asOfDate
   );
   const totalProperties = filteredProperties.reduce(
     (sum, p) => sum + (p.currentValue || p.purchasePrice || 0),
     0
   );
 
-  // Bank balances: use current (no historical balance data)
   const nonReceivableBalances = bankBalances.filter(
-    (bb: BankBalance & { tags?: string[] }) =>
-      bb.isPublished && !bb.tags?.includes("receivable")
+    (bb: BankBalance) => bb.isPublished && !bb.tags?.includes("receivable")
   );
   const totalBankBalances = nonReceivableBalances.reduce(
     (sum, bb) => sum + (bb.balance || 0),
@@ -131,11 +116,10 @@ export function calculateSnapshotAsOfDate(
   );
 
   const receivableBalances = bankBalances.filter(
-    (bb: BankBalance & { tags?: string[] }) =>
-      bb.isPublished && bb.tags?.includes("receivable")
+    (bb: BankBalance) => bb.isPublished && bb.tags?.includes("receivable")
   );
   const totalReceivables = receivableBalances.reduce(
-    (sum, bb: BankBalance & { interestRate?: number; issueDate?: string; dueDate?: string }) => {
+    (sum, bb: BankBalance) => {
       if (bb.interestRate && bb.issueDate) {
         const principal = bb.balance || 0;
         const issueDate = new Date(bb.issueDate);
@@ -152,22 +136,18 @@ export function calculateSnapshotAsOfDate(
     0
   );
 
-  // Stocks, MF, PPF: use current values (no historical price data available)
   const totalStocks =
-    stocks?.reduce(
-      (sum: number, s: { last_price?: number; quantity?: number }) =>
-        sum + ((s.last_price || 0) * (s.quantity || 0)),
+    allStocks?.reduce(
+      (sum, s) => sum + ((s.last_price || 0) * (s.quantity || 0)),
       0
     ) ?? 0;
   const totalMutualFunds =
-    mutualFunds?.reduce(
-      (sum: number, m: { last_price?: number; quantity?: number }) =>
-        sum + ((m.last_price || 0) * (m.quantity || 0)),
+    allMutualFunds?.reduce(
+      (sum, m) => sum + ((m.last_price || 0) * (m.quantity || 0)),
       0
     ) ?? 0;
   const totalPPF = ppfAccounts.reduce((sum, a) => sum + (a.grandTotal || 0), 0);
 
-  // Fixed vs Liquid assets
   const fixedAssetsFromInvestments = filteredInvestments
     .filter((inv) => inv.assetType === "fixed")
     .reduce((sum, inv) => sum + getInvestmentValueAtDate(inv, asOfDate), 0);
@@ -183,22 +163,22 @@ export function calculateSnapshotAsOfDate(
     .reduce((sum, p) => sum + (p.currentValue || p.purchasePrice || 0), 0);
 
   const fixedBank = nonReceivableBalances.filter(
-    (bb: BankBalance & { assetType?: string }) => bb.assetType === "fixed"
+    (bb: BankBalance) => bb.assetType === "fixed"
   );
   const fixedAssetsFromBankBalances = fixedBank.reduce(
-    (sum: number, bb: BankBalance) => sum + (bb.balance || 0),
+    (sum, bb: BankBalance) => sum + (bb.balance || 0),
     0
   );
 
   const liquidBankFilter = bankBalances.filter(
-    (bb: BankBalance & { tags?: string[]; assetType?: string }) => {
+    (bb: BankBalance) => {
       if (!bb.isPublished) return false;
       if (bb.tags?.includes("receivable")) return true;
       return bb.assetType !== "fixed";
     }
   );
   const liquidAssetsFromBankBalances = liquidBankFilter.reduce(
-    (sum: number, bb: BankBalance & { tags?: string[]; interestRate?: number; issueDate?: string; dueDate?: string }) => {
+    (sum, bb: BankBalance) => {
       if (bb.tags?.includes("receivable")) {
         if (bb.interestRate && bb.issueDate) {
           const principal = bb.balance || 0;
@@ -230,7 +210,6 @@ export function calculateSnapshotAsOfDate(
 
   const netWorth = totalFixedAssets + totalLiquidAssets - totalLoans;
 
-  // Filter transactions by date <= end of snapshot month
   const refMonth = month ?? 12;
   const lastDay = new Date(year, refMonth, 0).getDate();
   const monthEndStr = `${year}-${String(refMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999Z`;
@@ -246,7 +225,6 @@ export function calculateSnapshotAsOfDate(
     .reduce((sum, t) => sum + t.amount, 0);
   const netBalance = totalIncome - totalExpenses;
 
-  // Breakdowns
   const investmentBreakdown = filteredInvestments.reduce(
     (acc, inv) => {
       const val = getInvestmentValueAtDate(inv, asOfDate);
@@ -269,7 +247,7 @@ export function calculateSnapshotAsOfDate(
 
   const loanBreakdown = filteredLoans.reduce(
     (acc, loan) => {
-      const val = getLoanOutstandingAtDate(loan, asOfDate);
+      const val = getLoanOutstandingAtDate(userId, loan, asOfDate);
       acc[loan.type] = (acc[loan.type] || 0) + val;
       return acc;
     },
@@ -315,9 +293,6 @@ export function calculateSnapshotAsOfDate(
   };
 }
 
-/**
- * Validate snapshot column consistency (totalFixedAssets + totalLiquidAssets - totalLoans ≈ netWorth)
- */
 export function validateSnapshot(snapshot: FinancialSnapshot): {
   valid: boolean;
   errors: string[];

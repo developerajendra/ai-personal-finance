@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PortfolioCategory } from "@/core/types";
+import { getSession } from "@/core/auth/getSession";
 import { loadFromJson, saveToJson, initializeStorage, updateInJson, deleteFromJson } from "@/core/services/jsonStorageService";
 
 export async function GET(
@@ -7,8 +8,14 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
-    const categories = loadFromJson<PortfolioCategory>("portfolioCategories");
+    const categories = loadFromJson<PortfolioCategory>("portfolioCategories", userId);
     const category = categories.find((cat) => cat.id === params.id);
 
     if (!category) {
@@ -32,12 +39,17 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
     const body = await request.json();
     const { name, slug, icon, href, type, description } = body;
 
-    // Get existing category
-    const categories = loadFromJson<PortfolioCategory>("portfolioCategories");
+    const categories = loadFromJson<PortfolioCategory>("portfolioCategories", userId);
     const existingCategory = categories.find((cat) => cat.id === params.id);
 
     if (!existingCategory) {
@@ -47,7 +59,6 @@ export async function PUT(
       );
     }
 
-    // Check if slug is being changed and if it conflicts with another category
     if (slug && slug !== existingCategory.slug) {
       if (categories.some((cat) => cat.slug === slug && cat.id !== params.id)) {
         return NextResponse.json(
@@ -57,7 +68,6 @@ export async function PUT(
       }
     }
 
-    // Validate type if provided
     if (type) {
       const validTypes = ["investment", "loan", "property", "bank-balance"];
       if (!validTypes.includes(type)) {
@@ -68,7 +78,6 @@ export async function PUT(
       }
     }
 
-    // Update category
     const updates: Partial<PortfolioCategory> = {
       ...(name && { name }),
       ...(slug && { slug }),
@@ -82,7 +91,8 @@ export async function PUT(
     const updatedCategory = updateInJson<PortfolioCategory>(
       "portfolioCategories",
       params.id,
-      updates
+      updates,
+      userId
     );
 
     if (!updatedCategory) {
@@ -106,10 +116,17 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
     const deleted = deleteFromJson<PortfolioCategory>(
       "portfolioCategories",
-      params.id
+      params.id,
+      userId
     );
 
     if (!deleted) {

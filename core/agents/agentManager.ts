@@ -2,15 +2,15 @@ import { MainOrchestratorAgent } from './MainOrchestratorAgent';
 
 let orchestratorInstance: MainOrchestratorAgent | null = null;
 
-export function getMainOrchestrator(): MainOrchestratorAgent {
+export function getMainOrchestrator(userId: string): MainOrchestratorAgent {
   if (!orchestratorInstance) {
-    orchestratorInstance = new MainOrchestratorAgent();
+    orchestratorInstance = new MainOrchestratorAgent(userId);
   }
   return orchestratorInstance;
 }
 
-export async function initializeAgents(): Promise<void> {
-  const orchestrator = getMainOrchestrator();
+export async function initializeAgents(userId: string): Promise<void> {
+  const orchestrator = getMainOrchestrator(userId);
   await orchestrator.start();
   console.log('[Agent Manager] All agents initialized');
 }
@@ -22,7 +22,3 @@ export async function shutdownAgents(): Promise<void> {
   }
   console.log('[Agent Manager] All agents shut down');
 }
-
-// Note: Agents should be initialized explicitly via API route or server startup
-// Not automatically on module load to avoid issues with Next.js edge runtime
-

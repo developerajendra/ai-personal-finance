@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchStocks, getMockStocks } from "@/core/services/zerodhaService";
 import { loadStocks, saveStocks } from "@/core/services/jsonStorageService";
 import { cookies } from "next/headers";
+import { getSession } from "@/core/auth/getSession";
 
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.userId;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const refresh = searchParams.get("refresh") === "true" || searchParams.get("sync") === "true";
@@ -13,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     // Try to load from JSON first (unless refresh is requested)
     if (!refresh) {
-      const cachedStocks = loadStocks();
+      const cachedStocks = loadStocks(userId);
       if (cachedStocks.length > 0) {
         return NextResponse.json({ 
           stocks: cachedStocks, 
@@ -26,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // If not authenticated, return mock or cached data
     if (!accessToken) {
-      const cachedStocks = loadStocks();
+      const cachedStocks = loadStocks(userId);
       if (cachedStocks.length > 0) {
         return NextResponse.json({ 
           stocks: cachedStocks, 
@@ -38,7 +45,7 @@ export async function GET(request: NextRequest) {
       
       // Return mock data if no cache
       const stocks = getMockStocks();
-      saveStocks(stocks); // Save mock data for future use
+      saveStocks(userId, stocks); // Save mock data for future use
       return NextResponse.json({ 
         stocks, 
         isAuthenticated: false,
@@ -50,7 +57,7 @@ export async function GET(request: NextRequest) {
     // Fetch from API and update cache
     try {
       const stocks = await fetchStocks(accessToken);
-      saveStocks(stocks); // Save to JSON cache
+      saveStocks(userId, stocks); // Save to JSON cache
       return NextResponse.json({ 
         stocks, 
         isAuthenticated: true,
@@ -61,7 +68,7 @@ export async function GET(request: NextRequest) {
       console.error("Error fetching from Zerodha API:", apiError);
       
       // Fallback to cached data if API fails
-      const cachedStocks = loadStocks();
+      const cachedStocks = loadStocks(userId);
       if (cachedStocks.length > 0) {
         return NextResponse.json({ 
           stocks: cachedStocks, 
@@ -75,7 +82,7 @@ export async function GET(request: NextRequest) {
       // Return mock data on error in development
       if (process.env.NODE_ENV === "development") {
         const stocks = getMockStocks();
-        saveStocks(stocks);
+        saveStocks(userId, stocks);
         return NextResponse.json({ 
           stocks, 
           isAuthenticated: false,
@@ -90,7 +97,7 @@ export async function GET(request: NextRequest) {
     console.error("Error in stocks route:", error);
     
     // Last resort: try to return cached data
-    const cachedStocks = loadStocks();
+    const cachedStocks = loadStocks(userId);
     if (cachedStocks.length > 0) {
       return NextResponse.json({ 
         stocks: cachedStocks, 

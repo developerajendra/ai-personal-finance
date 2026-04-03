@@ -1,29 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Property } from "@/core/types";
 import { paginate, PaginationParams } from "@/core/services/scalabilityService";
-import { properties } from "@/core/dataStore";
+import { getSession } from "@/core/auth/getSession";
 import { loadFromJson, saveToJson, initializeStorage } from "@/core/services/jsonStorageService";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
-    const jsonData = loadFromJson<Property>("properties");
-    // Ensure isPublished field exists (default to false for backward compatibility)
+    const jsonData = loadFromJson<Property>("properties", userId);
     const normalizedData = jsonData.map(prop => ({
       ...prop,
       isPublished: prop.isPublished ?? false
     }));
-    properties.splice(0, properties.length, ...normalizedData);
     
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "100");
     
-    // Filter by isPublished if specified
-    let filteredData = properties;
+    let filteredData = normalizedData;
     if (searchParams.has("isPublished")) {
       const isPublished = searchParams.get("isPublished") === "true";
-      filteredData = properties.filter(p => (p.isPublished ?? false) === isPublished);
+      filteredData = normalizedData.filter(p => (p.isPublished ?? false) === isPublished);
     }
 
     if (searchParams.has("page") || searchParams.has("pageSize")) {
@@ -42,20 +45,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
-    const jsonData = loadFromJson<Property>("properties");
-    // Ensure isPublished field exists (default to false for backward compatibility)
+    const jsonData = loadFromJson<Property>("properties", userId);
     const normalizedData = jsonData.map(prop => ({
       ...prop,
       isPublished: prop.isPublished ?? false
     }));
-    properties.splice(0, properties.length, ...normalizedData);
     
     const property: Property = await request.json();
-    // Ensure isPublished is set (default to true for manually created items)
     const propertyToAdd = { ...property, isPublished: property.isPublished ?? true };
-    properties.push(propertyToAdd);
-    saveToJson("properties", properties);
+    const updatedData = [...normalizedData, propertyToAdd];
+    saveToJson("properties", updatedData, userId);
     
     return NextResponse.json(propertyToAdd, { status: 201 });
   } catch (error) {
@@ -65,4 +71,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

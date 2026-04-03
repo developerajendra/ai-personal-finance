@@ -5,10 +5,17 @@ import {
   calculateSnapshotAsOfDate,
   validateSnapshot,
 } from "@/core/services/snapshotCalculatorService";
+import { getSession } from "@/core/auth/getSession";
 
 // POST: Create snapshot with date-accurate historical calculation
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     const body = await request.json().catch(() => ({}));
     const { year, month } = body;
 
@@ -25,7 +32,7 @@ export async function POST(request: Request) {
       ? undefined
       : snapshotMonth ?? (snapshotYear === 2025 ? 12 : currentMonth);
 
-    const snapshotData = calculateSnapshotAsOfDate(snapshotYear, finalMonth);
+    const snapshotData = calculateSnapshotAsOfDate(userId, snapshotYear, finalMonth);
 
     // Create snapshot date (end of month for monthly, end of year for yearly)
     let snapshotDate: string;
@@ -75,7 +82,7 @@ export async function POST(request: Request) {
       console.warn("Snapshot validation issues:", validation.errors);
     }
 
-    const saved = saveSnapshot(snapshot);
+    const saved = saveSnapshot(userId, snapshot);
 
     return NextResponse.json(
       {

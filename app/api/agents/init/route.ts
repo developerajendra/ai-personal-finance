@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import { initializeAgents } from '@/core/agents/agentManager';
+import { getSession } from "@/core/auth/getSession";
 
 export async function POST() {
   try {
-    await initializeAgents();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
+    await initializeAgents(userId);
     return NextResponse.json({
       success: true,
       message: 'Agents initialized successfully',

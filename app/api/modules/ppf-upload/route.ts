@@ -3,10 +3,9 @@ import pdfParse from "pdf-parse";
 import { generateJsonContent } from "@/core/services/ollamaService";
 import {
   savePPFAccount,
-  savePDFExtractionData,
   PPFAccount,
-  loadPPFAccounts,
 } from "@/core/services/ppfStorageService";
+import { getSession } from "@/core/auth/getSession";
 import fs from "fs";
 import path from "path";
 
@@ -21,6 +20,12 @@ function ensurePfDataDir() {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     ensurePfDataDir();
 
     const formData = await request.formData();
@@ -220,14 +225,6 @@ export async function POST(request: NextRequest) {
       // Keep default values
     }
 
-    // Save raw extraction data
-    savePDFExtractionData(file.name, {
-      filename: file.name,
-      extractedAt: new Date().toISOString(),
-      rawText: pdfText,
-      extractedData,
-    });
-
     // Create PPF account object
     const accountId = `ppf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const ppfAccount: PPFAccount = {
@@ -247,8 +244,7 @@ export async function POST(request: NextRequest) {
       rawData: extractedData,
     };
 
-    // Save PPF account
-    savePPFAccount(ppfAccount);
+    savePPFAccount(userId, ppfAccount);
 
     return NextResponse.json({
       success: true,

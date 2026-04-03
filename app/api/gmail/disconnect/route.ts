@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { getSession } from '@/core/auth/getSession';
 
 export async function POST(request: NextRequest) {
   try {
-    // Delete cookies
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     const cookieStore = await cookies();
     cookieStore.delete('gmail_access_token');
     cookieStore.delete('gmail_refresh_token');
 
-    // Clear tokens from portfolio agent's memory
     try {
       const { getMainOrchestrator } = await import('@/core/agents/agentManager');
-      const orchestrator = getMainOrchestrator();
+      const orchestrator = getMainOrchestrator(userId);
       const portfolioAgent = orchestrator.getPortfolioAgent();
       portfolioAgent.clearTokens();
     } catch (error) {
       console.error('[Gmail Disconnect] Error clearing agent tokens:', error);
-      // Non-critical
     }
-
-    // Note: Environment variables should be cleared manually if needed
 
     return NextResponse.json({
       success: true,

@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendChatMessage } from "@/core/services/geminiService";
 import { ChatContext } from "@/core/services/geminiService";
 import { loadAllPortfolioData, loadStocks, loadMutualFunds } from "@/core/services/jsonStorageService";
-import { initializeStorage } from "@/core/services/jsonStorageService";
 import { detectAuditIntent, callAuditAgent, extractAuditUrl, auditScrapedPageData, auditWithScreenshot } from "@/core/services/mcpAuditService";
+import { getSession } from "@/core/auth/getSession";
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     const body = await request.json();
     const { message, agent, context, currentPage, pageData, screenshot } = body;
 
@@ -63,13 +69,10 @@ User's original message: "${message}"`;
       }
     }
 
-    // Initialize storage and load all portfolio data from JSON files
-    initializeStorage();
-    const portfolioData = loadAllPortfolioData();
+    const portfolioData = loadAllPortfolioData(userId);
     
-    // Load stocks and mutual funds from JSON cache
-    const stocks = loadStocks();
-    const mutualFunds = loadMutualFunds();
+    const stocks = loadStocks(userId);
+    const mutualFunds = loadMutualFunds(userId);
 
     // Filter to only published items for dashboard/analytics (chatbot should use published data)
     const publishedInvestments = (portfolioData.investments || []).filter((inv: any) => inv.isPublished === true);
@@ -194,18 +197,11 @@ User's original message: "${message}"`;
             updatedAt: new Date().toISOString()
           };
 
-          // Save to storage
           const { saveToJson, loadFromJson } = await import("@/core/services/jsonStorageService");
-          const { investments } = await import("@/core/dataStore");
 
-          // Reload latest data to ensure no conflicts
-          initializeStorage();
-          const currentInvestments = loadFromJson("investments");
+          const currentInvestments = loadFromJson<{ id: string }>("investments", userId);
           currentInvestments.push(newInvestment);
-          saveToJson("investments", currentInvestments);
-
-          // Update in-memory store
-          investments.push(newInvestment);
+          saveToJson("investments", currentInvestments, userId);
 
           console.log("[Chatbot] ✅ Created draft investment:", newInvestment.id, newInvestment.name, `Rs ${newInvestment.amount}`);
           
@@ -222,10 +218,8 @@ User's original message: "${message}"`;
 
           // Load all investments (including drafts) to find the one to update
           const { saveToJson, loadFromJson } = await import("@/core/services/jsonStorageService");
-          const { investments } = await import("@/core/dataStore");
 
-          initializeStorage();
-          const allInvestments = loadFromJson("investments");
+          const allInvestments = loadFromJson("investments", userId);
           
           // Find investment by name (case-insensitive partial match)
           const investmentName = actionJson.data.investmentName?.toLowerCase() || "";
@@ -269,13 +263,7 @@ User's original message: "${message}"`;
 
           // Update in array
           allInvestments[investmentIndex] = updatedInvestment;
-          saveToJson("investments", allInvestments);
-
-          // Update in-memory store
-          const memIndex = investments.findIndex((inv: any) => inv.id === investment.id);
-          if (memIndex !== -1) {
-            investments[memIndex] = updatedInvestment;
-          }
+          saveToJson("investments", allInvestments as { id: string }[], userId);
 
           console.log("[Chatbot] ✅ Updated investment:", updatedInvestment.id, updatedInvestment.name);
           

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMainOrchestrator } from '@/core/agents/agentManager';
 import { cookies } from 'next/headers';
+import { getSession } from "@/core/auth/getSession";
 import { fetchEmails } from '@/core/services/gmailService';
 import { detectLoanEmail, extractInterestRateChange } from '@/core/services/loanEmailParserService';
 import { GmailEmail } from '@/core/services/gmailService';
@@ -8,7 +9,13 @@ import { getEnabledPatterns } from '@/core/services/loanEmailPatternService';
 
 export async function POST(request: NextRequest) {
   try {
-    const orchestrator = getMainOrchestrator();
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
+    const orchestrator = getMainOrchestrator(userId);
     const loanAgent = orchestrator.getLoanAgent();
 
     // Try to load tokens from cookies

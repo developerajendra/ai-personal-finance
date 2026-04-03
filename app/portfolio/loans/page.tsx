@@ -1,12 +1,10 @@
 import { Sidebar } from "@/shared/components/Sidebar";
 import { LoansDetailView } from "@/modules/portfolio/components/LoansDetailView";
 import { LoanAnalyticsModule } from "@/modules/portfolio/components/LoanAnalyticsModule";
-import { GmailLoginGate } from "@/shared/components/GmailLoginGate";
 
 export default function LoansPage() {
   return (
-    <GmailLoginGate>
-      <div className="flex h-screen">
+    <div className="flex h-screen">
         <Sidebar />
         <main className="flex-1 overflow-auto">
           <div className="p-6 space-y-6">
@@ -22,8 +20,7 @@ export default function LoansPage() {
             <LoanAnalyticsModule />
           </div>
         </main>
-      </div>
-    </GmailLoginGate>
+    </div>
   );
 }
 

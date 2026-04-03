@@ -1,30 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Loan } from "@/core/types";
-import { loans } from "@/core/dataStore";
-import { loadFromJson, updateInJson, deleteFromJson, initializeStorage } from "@/core/services/jsonStorageService";
+import { getSession } from "@/core/auth/getSession";
+import { updateInJson, deleteFromJson, initializeStorage } from "@/core/services/jsonStorageService";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
-    const jsonData = loadFromJson<Loan>("loans");
-    loans.splice(0, loans.length, ...jsonData);
-    
     const loan: Loan = await request.json();
-    const updated = updateInJson<Loan>("loans", params.id, loan);
+    const updated = updateInJson<Loan>("loans", params.id, loan, userId);
 
     if (!updated) {
       return NextResponse.json(
         { error: "Loan not found" },
         { status: 404 }
       );
-    }
-
-    const index = loans.findIndex((l) => l.id === params.id);
-    if (index !== -1) {
-      loans[index] = updated;
     }
 
     return NextResponse.json(updated);
@@ -41,22 +39,20 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = session.userId;
+
     initializeStorage();
-    const jsonData = loadFromJson<Loan>("loans");
-    loans.splice(0, loans.length, ...jsonData);
-    
-    const deleted = deleteFromJson<Loan>("loans", params.id);
+    const deleted = deleteFromJson<Loan>("loans", params.id, userId);
     
     if (!deleted) {
       return NextResponse.json(
         { error: "Loan not found" },
         { status: 404 }
       );
-    }
-
-    const index = loans.findIndex((loan) => loan.id === params.id);
-    if (index !== -1) {
-      loans.splice(index, 1);
     }
 
     return NextResponse.json({ success: true });
