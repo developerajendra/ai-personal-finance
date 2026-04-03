@@ -422,18 +422,18 @@ export class LoanManagementAgent extends BaseAgent {
         await saveToJson('loans', currentLoans, this.userId);
       }
 
-      const allSnapshots = getLoanSnapshots(this.userId, loan.id);
-      
+      const allSnapshots = await getLoanSnapshots(this.userId, loan.id);
+
       let updatedSnapshotsCount = 0;
       for (const snapshot of allSnapshots) {
         const snapshotDate = new Date(snapshot.year, snapshot.month, 0);
         snapshotDate.setHours(0, 0, 0, 0);
-        
+
         if (snapshotDate >= effectiveDate) {
           const oldRate = snapshot.interestRate;
           snapshot.interestRate = extractedData.newRate;
           snapshot.updatedAt = new Date().toISOString();
-          saveLoanMonthlySnapshot(this.userId, snapshot);
+          await saveLoanMonthlySnapshot(this.userId, snapshot);
           updatedSnapshotsCount++;
           console.log(`[Loan Agent] Updated snapshot ${snapshot.year}-${snapshot.month}: ${oldRate}% -> ${extractedData.newRate}%`);
         }
