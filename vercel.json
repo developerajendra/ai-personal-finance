@@ -3,6 +3,7 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "regions": ["bom1"],
+  "alias": ["rajendra-finance-ai.vercel.app"],
   "functions": {
     "app/api/**": {
       "maxDuration": 60
