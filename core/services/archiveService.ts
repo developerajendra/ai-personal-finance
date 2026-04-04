@@ -74,9 +74,9 @@ export async function calculateGrowthMetrics(
 export async function getPreviousSnapshot(userId: string, snapshot: FinancialSnapshot): Promise<FinancialSnapshot | null> {
   if (snapshot.month !== undefined) {
     if (snapshot.month > 1) {
-      return getSnapshot(userId, snapshot.year, snapshot.month - 1);
+      return await getSnapshot(userId, snapshot.year, snapshot.month - 1);
     }
-    return getSnapshot(userId, snapshot.year - 1, 12);
+    return await getSnapshot(userId, snapshot.year - 1, 12);
   }
-  return getSnapshot(userId, snapshot.year - 1);
+  return await getSnapshot(userId, snapshot.year - 1);
 }

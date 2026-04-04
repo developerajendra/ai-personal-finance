@@ -113,8 +113,8 @@ export async function getPreviousLoanSnapshot(
   const all = await loanSnapshotRepo.findByLoanId(userId, snapshot.loanId);
   const idx = all.findIndex((s) => s.year === snapshot.year && s.month === snapshot.month);
   if (idx > 0) return all[idx - 1];
-  if (snapshot.month > 1) return loanSnapshotRepo.findByLoanAndMonth(userId, snapshot.loanId, snapshot.year, snapshot.month - 1);
-  return loanSnapshotRepo.findByLoanAndMonth(userId, snapshot.loanId, snapshot.year - 1, 12);
+  if (snapshot.month > 1) return await loanSnapshotRepo.findByLoanAndMonth(userId, snapshot.loanId, snapshot.year, snapshot.month - 1);
+  return await loanSnapshotRepo.findByLoanAndMonth(userId, snapshot.loanId, snapshot.year - 1, 12);
 }
 
 export async function generateMissingMonthlySnapshots(

@@ -3,7 +3,7 @@ import { getZerodhaLoginUrl } from "@/core/services/zerodhaService";
 
 export async function GET(request: NextRequest) {
   try {
-    const loginUrl = getZerodhaLoginUrl();
+    const loginUrl = await getZerodhaLoginUrl();
     return NextResponse.json({ loginUrl });
   } catch (error: any) {
     console.error("Error generating login URL:", error);

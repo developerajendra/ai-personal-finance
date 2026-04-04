@@ -7,17 +7,17 @@ import { KiteConnect } from "kiteconnect";
 import crypto from "crypto";
 import * as userConfigRepo from "@/core/db/repositories/userConfigRepository";
 
-function getZerodhaApiKey(userId?: string): string {
+async function getZerodhaApiKey(userId?: string): Promise<string> {
   if (userId) {
-    const key = userConfigRepo.getConfig(userId, "zerodha", "api_key");
+    const key = await userConfigRepo.getConfig(userId, "zerodha", "api_key");
     if (key) return key;
   }
   return process.env.ZERODHA_API_KEY || "";
 }
 
-function getZerodhaApiSecret(userId?: string): string {
+async function getZerodhaApiSecret(userId?: string): Promise<string> {
   if (userId) {
-    const secret = userConfigRepo.getConfig(userId, "zerodha", "api_secret");
+    const secret = await userConfigRepo.getConfig(userId, "zerodha", "api_secret");
     if (secret) return secret;
   }
   return process.env.ZERODHA_API_SECRET || "";
@@ -58,10 +58,10 @@ export interface ZerodhaPortfolio {
 /**
  * Get Zerodha Kite Connect login URL
  */
-export function getZerodhaLoginUrl(userId?: string): string {
+export async function getZerodhaLoginUrl(userId?: string): Promise<string> {
   const baseUrl = "https://kite.zerodha.com/connect/login";
   const params = new URLSearchParams({
-    api_key: getZerodhaApiKey(userId),
+    api_key: await getZerodhaApiKey(userId),
     v: "3",
   });
   return `${baseUrl}?${params.toString()}`;
@@ -80,8 +80,8 @@ function generateChecksum(apiKey: string, requestToken: string, apiSecret: strin
  */
 export async function exchangeAuthCode(requestToken: string, userId?: string): Promise<string> {
   try {
-    const apiKey = getZerodhaApiKey(userId);
-    const apiSecret = getZerodhaApiSecret(userId);
+    const apiKey = await getZerodhaApiKey(userId);
+    const apiSecret = await getZerodhaApiSecret(userId);
     if (!apiKey || !apiSecret) {
       throw new Error("Zerodha API credentials not configured");
     }
@@ -122,7 +122,7 @@ export async function exchangeAuthCode(requestToken: string, userId?: string): P
  */
 export async function fetchStocks(accessToken: string, userId?: string): Promise<ZerodhaStock[]> {
   try {
-    const apiKey = getZerodhaApiKey(userId);
+    const apiKey = await getZerodhaApiKey(userId);
     if (!apiKey || !accessToken) {
       throw new Error("Zerodha API not configured or not authenticated");
     }
@@ -181,7 +181,7 @@ export async function fetchStocks(accessToken: string, userId?: string): Promise
  */
 export async function fetchMutualFunds(accessToken: string, userId?: string): Promise<ZerodhaMutualFund[]> {
   try {
-    const apiKey = getZerodhaApiKey(userId);
+    const apiKey = await getZerodhaApiKey(userId);
     if (!apiKey || !accessToken) {
       throw new Error("Zerodha API not configured or not authenticated");
     }
