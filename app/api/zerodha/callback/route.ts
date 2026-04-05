@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeAuthCode } from "@/core/services/zerodhaService";
+import { getSession } from "@/core/auth/getSession";
 import { cookies } from "next/headers";
 
 export async function GET(request: NextRequest) {
@@ -9,8 +10,10 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
 
     if (status === "success" && requestToken) {
-      // Exchange request token for access token
-      const accessToken = await exchangeAuthCode(requestToken);
+      // Exchange request token for access token using user's saved API credentials
+      const session = await getSession();
+      const userId = session?.userId;
+      const accessToken = await exchangeAuthCode(requestToken, userId);
       
       // Store access token in httpOnly cookie (secure)
       cookies().set("zerodha_access_token", accessToken, {

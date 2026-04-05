@@ -9,6 +9,15 @@ import bcrypt from "bcryptjs";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
+  debug: process.env.NODE_ENV !== "production",
+  logger: {
+    error: (error) => {
+      console.error("[NextAuth][Error]", error);
+    },
+    warn: (code) => {
+      console.warn("[NextAuth][Warn]", code);
+    },
+  },
   // Map our Drizzle table names (users, accounts, …) — default adapter uses user, account, session, …
   adapter: DrizzleAdapter(db, {
     usersTable: users,
