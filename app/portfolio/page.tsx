@@ -4,6 +4,7 @@ import { Sidebar } from "@/shared/components/Sidebar";
 import { PortfolioGrid } from "@/modules/portfolio/components/PortfolioGrid";
 import Link from "next/link";
 import { TrendingUp, PieChart, ArrowRight, CreditCard, Home, Wallet } from "lucide-react";
+import { ExportPortfolioButton } from "@/modules/portfolio/components/ExportPortfolioButton";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Investment, Loan, Property, BankBalance } from "@/core/types";
@@ -88,6 +89,7 @@ export default function PortfolioPage() {
                   Manage your investments, loans, properties, and bank balances
                 </p>
               </div>
+              <ExportPortfolioButton />
             </div>
           </div>
 

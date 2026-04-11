@@ -4,7 +4,7 @@ const nextConfig = {
 
   // Next.js 14 syntax for external server packages (moved to top-level in v15)
   experimental: {
-    serverComponentsExternalPackages: ["@libsql/client", "better-sqlite3", "pdf-parse"],
+    serverComponentsExternalPackages: ["@libsql/client", "better-sqlite3", "pdf-parse", "exceljs"],
   },
 
   webpack: (config, { dev, isServer }) => {
