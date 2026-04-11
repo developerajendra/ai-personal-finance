@@ -3,7 +3,8 @@
 import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import { Transaction } from "@/core/types";
 import { useState } from "react";
-import { Edit2, Trash2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Edit2, Trash2, X, Check } from "lucide-react";
 import { ButtonLoader, Loader } from "@/shared/components/Loader";
 import { CategoryCombobox } from "@/modules/expenses/components/CategoryCombobox";
 
@@ -13,71 +14,97 @@ interface DataGridProps {
   emptyMessage?: string;
 }
 
+const FREQ_STYLES: Record<string, string> = {
+  daily:    "bg-purple-100 text-purple-700",
+  monthly:  "bg-blue-100 text-blue-700",
+  yearly:   "bg-orange-100 text-orange-700",
+  "one-time": "bg-gray-100 text-gray-600",
+};
+
 export function DataGrid({
   transactions: propTransactions,
   isLoading: propLoading,
   emptyMessage = "No transactions found.",
 }: DataGridProps = {}) {
   const { transactions: hookTransactions, isLoading: hookLoading } = useFinancialData();
+  const queryClient = useQueryClient();
 
   const transactions = propTransactions ?? hookTransactions;
   const isLoading = propLoading ?? hookLoading;
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editedTransaction, setEditedTransaction] = useState<Transaction | null>(null);
+  const [editedTx, setEditedTx] = useState<Transaction | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState("");
 
-  const handleEdit = (transaction: Transaction) => {
-    setEditingId(transaction.id);
-    setEditedTransaction({ ...transaction });
-  };
+  function startEdit(tx: Transaction) {
+    setEditingId(tx.id);
+    setEditedTx({ ...tx });
+    setSaveError("");
+  }
 
-  const handleSave = async () => {
-    if (!editedTransaction) return;
+  function cancelEdit() {
+    setEditingId(null);
+    setEditedTx(null);
+    setSaveError("");
+  }
+
+  function patch(updates: Partial<Transaction>) {
+    if (!editedTx) return;
+    setEditedTx({ ...editedTx, ...updates });
+  }
+
+  async function handleSave() {
+    if (!editedTx) return;
+    if (!editedTx.description.trim()) { setSaveError("Description is required."); return; }
+    if (!editedTx.category) { setSaveError("Category is required."); return; }
+    if (!editedTx.amount || editedTx.amount <= 0) { setSaveError("Amount must be greater than 0."); return; }
 
     setIsSaving(true);
+    setSaveError("");
     try {
-      const response = await fetch(`/api/transactions/${editedTransaction.id}`, {
+      const res = await fetch(`/api/transactions/${editedTx.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editedTransaction),
+        body: JSON.stringify(editedTx),
       });
 
-      if (response.ok) {
+      if (res.ok) {
         setEditingId(null);
-        setEditedTransaction(null);
-        window.location.reload();
+        setEditedTx(null);
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setSaveError(json.error ?? "Failed to save. Please try again.");
       }
-    } catch (error) {
-      console.error("Error saving transaction:", error);
+    } catch {
+      setSaveError("Network error. Please try again.");
     } finally {
       setIsSaving(false);
     }
-  };
+  }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this transaction?")) return;
-
-    setIsDeleting(id);
+  async function handleDelete(id: string) {
+    if (!confirm("Delete this transaction? This cannot be undone.")) return;
+    setDeletingId(id);
     try {
-      const response = await fetch(`/api/transactions/${id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        window.location.reload();
+      const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
       }
-    } catch (error) {
-      console.error("Error deleting transaction:", error);
+    } catch {
+      // silently fail — user can retry
     } finally {
-      setIsDeleting(null);
+      setDeletingId(null);
     }
-  };
+  }
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 border border-gray-200 flex justify-center py-16">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex justify-center py-16">
         <Loader />
       </div>
     );
@@ -85,191 +112,155 @@ export function DataGrid({
 
   if (transactions.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">{emptyMessage}</p>
-          <p className="text-sm text-gray-400">
-            Add an expense above or upload files in the Data tab.
-          </p>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="text-center py-16">
+          <p className="text-gray-500 mb-1">{emptyMessage}</p>
+          <p className="text-sm text-gray-400">Use "Add Expense" or import an Excel file to get started.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-200">
-      <div className="p-4 border-b">
-        <span className="text-sm text-gray-500">{transactions.length} transactions</span>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <span className="text-sm text-gray-500 font-medium">{transactions.length} transactions</span>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Description
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Category
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Type
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Amount
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
+              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
+              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
+              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</th>
+              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Frequency</th>
+              <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
+              <th className="px-5 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {transactions.map((transaction) => (
-              <tr key={transaction.id} className="hover:bg-gray-50">
-                {editingId === transaction.id && editedTransaction ? (
+          <tbody className="divide-y divide-gray-100">
+            {transactions.map((tx) => (
+              <tr key={tx.id} className={`hover:bg-gray-50 transition-colors ${editingId === tx.id ? "bg-blue-50" : ""}`}>
+                {editingId === tx.id && editedTx ? (
+                  /* ── EDIT ROW ── */
                   <>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <input
                         type="date"
-                        value={editedTransaction.date}
-                        onChange={(e) =>
-                          setEditedTransaction({
-                            ...editedTransaction,
-                            date: e.target.value,
-                          })
-                        }
-                        className="px-2 py-1 border rounded"
+                        value={editedTx.date}
+                        onChange={(e) => patch({ date: e.target.value })}
+                        className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-36"
                       />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <input
                         type="text"
-                        value={editedTransaction.description}
-                        onChange={(e) =>
-                          setEditedTransaction({
-                            ...editedTransaction,
-                            description: e.target.value,
-                          })
-                        }
-                        className="px-2 py-1 border rounded w-full"
+                        value={editedTx.description}
+                        onChange={(e) => patch({ description: e.target.value })}
+                        className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full min-w-[180px]"
                       />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <CategoryCombobox
-                        value={editedTransaction.category}
-                        onChange={(val) =>
-                          setEditedTransaction({ ...editedTransaction, category: val })
-                        }
+                        value={editedTx.category}
+                        onChange={(val) => patch({ category: val })}
                       />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3">
                       <select
-                        value={editedTransaction.type}
-                        onChange={(e) =>
-                          setEditedTransaction({
-                            ...editedTransaction,
-                            type: e.target.value as "debit" | "credit",
-                          })
-                        }
-                        className="px-2 py-1 border rounded"
+                        value={editedTx.frequency ?? "one-time"}
+                        onChange={(e) => patch({ frequency: e.target.value as Transaction["frequency"] })}
+                        className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                       >
-                        <option value="debit">Debit</option>
-                        <option value="credit">Credit</option>
+                        <option value="daily">Daily</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="one-time">One-time</option>
                       </select>
                     </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="number"
-                        value={editedTransaction.amount}
-                        onChange={(e) =>
-                          setEditedTransaction({
-                            ...editedTransaction,
-                            amount: parseFloat(e.target.value),
-                          })
-                        }
-                        className="px-2 py-1 border rounded"
-                      />
+                    <td className="px-5 py-3 text-right">
+                      <div className="flex items-center justify-end">
+                        <span className="text-gray-400 mr-1">₹</span>
+                        <input
+                          type="number"
+                          value={editedTx.amount}
+                          onChange={(e) => patch({ amount: parseFloat(e.target.value) || 0 })}
+                          min="0"
+                          step="0.01"
+                          className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-28 text-right"
+                        />
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleSave}
-                          disabled={isSaving}
-                          className="text-green-600 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                        >
-                          {isSaving ? (
-                            <>
-                              <ButtonLoader />
-                              Saving...
-                            </>
-                          ) : (
-                            "Save"
-                          )}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingId(null);
-                            setEditedTransaction(null);
-                          }}
-                          disabled={isSaving}
-                          className="text-gray-600 hover:text-gray-700 disabled:opacity-50"
-                        >
-                          Cancel
-                        </button>
+                    <td className="px-5 py-3">
+                      <div className="flex flex-col gap-1 items-center">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            title="Save"
+                            className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isSaving ? <ButtonLoader /> : <Check className="w-3.5 h-3.5" />}
+                            {isSaving ? "Saving" : "Save"}
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            disabled={isSaving}
+                            title="Cancel"
+                            className="p-1.5 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        {saveError && (
+                          <span className="text-xs text-red-600 text-center max-w-[140px]">{saveError}</span>
+                        )}
                       </div>
                     </td>
                   </>
                 ) : (
+                  /* ── READ ROW ── */
                   <>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {new Date(transaction.date).toLocaleDateString()}
+                    <td className="px-5 py-3 whitespace-nowrap text-gray-600">
+                      {new Date(tx.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                     </td>
-                    <td className="px-6 py-4 text-sm">{transaction.description}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
-                        {transaction.category
-                          .split("-")
-                          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                          .join(" ")}
+                    <td className="px-5 py-3 text-gray-800 max-w-xs truncate" title={tx.description}>
+                      {tx.description}
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
+                        {tx.category.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          transaction.type === "credit"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {transaction.type}
-                      </span>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      {tx.frequency ? (
+                        <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${FREQ_STYLES[tx.frequency] ?? "bg-gray-100 text-gray-600"}`}>
+                          {tx.frequency.charAt(0).toUpperCase() + tx.frequency.slice(1)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                      ₹{transaction.amount.toLocaleString()}
+                    <td className="px-5 py-3 whitespace-nowrap text-right font-semibold text-gray-800">
+                      ₹{tx.amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex gap-2">
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <div className="flex gap-2 justify-center">
                         <button
-                          onClick={() => handleEdit(transaction)}
-                          className="text-blue-600 hover:text-blue-700"
+                          onClick={() => startEdit(tx)}
                           title="Edit"
+                          className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(transaction.id)}
-                          disabled={isDeleting === transaction.id}
-                          className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => handleDelete(tx.id)}
+                          disabled={deletingId === tx.id}
                           title="Delete"
+                          className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-40 transition-colors"
                         >
-                          {isDeleting === transaction.id ? (
-                            <ButtonLoader />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
+                          {deletingId === tx.id ? <ButtonLoader /> : <Trash2 className="w-4 h-4" />}
                         </button>
                       </div>
                     </td>

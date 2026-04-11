@@ -5,6 +5,7 @@ export interface Transaction {
   description: string;
   category: string;
   type: "debit" | "credit";
+  frequency?: "daily" | "monthly" | "yearly" | "one-time";
   balance?: number;
   account?: string;
   source: "excel" | "ocr" | "kite" | "google-drive";

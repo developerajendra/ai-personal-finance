@@ -162,6 +162,7 @@ export const transactions = sqliteTable("transactions", {
   description: text("description").notNull(),
   category: text("category").notNull(),
   type: text("type").notNull(),
+  frequency: text("frequency"),
   balance: real("balance"),
   account: text("account"),
   source: text("source").notNull(),

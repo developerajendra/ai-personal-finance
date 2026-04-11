@@ -13,6 +13,7 @@ function toAppModel(row: TransactionRow): Transaction {
     description: row.description,
     category: row.category,
     type: row.type as Transaction["type"],
+    frequency: (row.frequency as Transaction["frequency"]) ?? undefined,
     balance: row.balance ?? undefined,
     account: row.account ?? undefined,
     source: row.source as Transaction["source"],
