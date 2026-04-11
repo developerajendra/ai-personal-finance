@@ -3,11 +3,26 @@
 import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import { Transaction } from "@/core/types";
 import { useState } from "react";
-import { Edit2, Trash2, Plus } from "lucide-react";
+import { Edit2, Trash2 } from "lucide-react";
 import { ButtonLoader, Loader } from "@/shared/components/Loader";
+import { CategoryCombobox } from "@/modules/expenses/components/CategoryCombobox";
 
-export function DataGrid() {
-  const { transactions } = useFinancialData();
+interface DataGridProps {
+  transactions?: Transaction[];
+  isLoading?: boolean;
+  emptyMessage?: string;
+}
+
+export function DataGrid({
+  transactions: propTransactions,
+  isLoading: propLoading,
+  emptyMessage = "No transactions found.",
+}: DataGridProps = {}) {
+  const { transactions: hookTransactions, isLoading: hookLoading } = useFinancialData();
+
+  const transactions = propTransactions ?? hookTransactions;
+  const isLoading = propLoading ?? hookLoading;
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedTransaction, setEditedTransaction] = useState<Transaction | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -32,7 +47,6 @@ export function DataGrid() {
       if (response.ok) {
         setEditingId(null);
         setEditedTransaction(null);
-        // Refresh data
         window.location.reload();
       }
     } catch (error) {
@@ -52,7 +66,6 @@ export function DataGrid() {
       });
 
       if (response.ok) {
-        // Refresh data
         window.location.reload();
       }
     } catch (error) {
@@ -62,13 +75,21 @@ export function DataGrid() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6 border border-gray-200 flex justify-center py-16">
+        <Loader />
+      </div>
+    );
+  }
+
   if (transactions.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
         <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">No transactions found.</p>
+          <p className="text-gray-500 mb-4">{emptyMessage}</p>
           <p className="text-sm text-gray-400">
-            Upload files in the Upload Files tab to get started.
+            Add an expense above or upload files in the Data tab.
           </p>
         </div>
       </div>
@@ -77,12 +98,8 @@ export function DataGrid() {
 
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200">
-      <div className="p-6 border-b flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Financial Data</h2>
-        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          <Plus className="w-4 h-4" />
-          Add Transaction
-        </button>
+      <div className="p-4 border-b">
+        <span className="text-sm text-gray-500">{transactions.length} transactions</span>
       </div>
 
       <div className="overflow-x-auto">
@@ -141,16 +158,11 @@ export function DataGrid() {
                       />
                     </td>
                     <td className="px-6 py-4">
-                      <input
-                        type="text"
+                      <CategoryCombobox
                         value={editedTransaction.category}
-                        onChange={(e) =>
-                          setEditedTransaction({
-                            ...editedTransaction,
-                            category: e.target.value,
-                          })
+                        onChange={(val) =>
+                          setEditedTransaction({ ...editedTransaction, category: val })
                         }
-                        className="px-2 py-1 border rounded"
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -217,7 +229,12 @@ export function DataGrid() {
                     </td>
                     <td className="px-6 py-4 text-sm">{transaction.description}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {transaction.category}
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
+                        {transaction.category
+                          .split("-")
+                          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                          .join(" ")}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span
@@ -266,4 +283,3 @@ export function DataGrid() {
     </div>
   );
 }
-

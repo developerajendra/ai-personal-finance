@@ -27,6 +27,7 @@ import {
   X,
   Archive,
   Settings,
+  Receipt,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { cn } from '@/shared/utils/cn';
@@ -48,6 +49,7 @@ const iconMap: Record<string, LucideIcon> = {
   Sparkles,
   Mail,
   Archive,
+  Receipt,
   // Add more icons as needed
 };
 
@@ -90,14 +92,11 @@ const baseNavigation = [
     ],
   },
   {
-    name: 'Transactions',
-    href: '/transactions',
-    icon: Database,
-    defaultHref: '/transactions',
-    submenu: [
-      { name: 'All Transactions', href: '/transactions', icon: Database },
-      { name: 'Categories', href: '/transactions/categories', icon: Tag },
-    ],
+    name: 'Expenses',
+    href: '/expenses',
+    icon: Receipt,
+    defaultHref: '/expenses',
+    submenu: [],
   },
   {
     name: 'Data',
