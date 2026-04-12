@@ -1,45 +1,112 @@
 'use client';
 
-import { useFinancialData } from '@/shared/hooks/useFinancialData';
-import { FinancialCharts } from './FinancialCharts';
-import { TransactionTable } from './TransactionTable';
-import { PortfolioAnalytics } from '@/modules/portfolio/components/PortfolioAnalytics';
-import { Loader } from '@/shared/components/Loader';
+import { useDashboardData } from '@/shared/hooks/useDashboardData';
+import { NetWorthHero } from './NetWorthHero';
+import { KPICards } from './KPICards';
+import { CashFlowChart } from './CashFlowChart';
+import { AssetAllocationChart } from './AssetAllocationChart';
+import { InvestmentBreakdownChart } from './InvestmentBreakdownChart';
+import { LoanHealthWidget } from './LoanHealthWidget';
+import { FinancialRatiosWidget } from './FinancialRatiosWidget';
+import { RecentTransactionsWidget } from './RecentTransactionsWidget';
+import { QuickActionsPanel } from './QuickActionsPanel';
 
 export function DashboardModule() {
-  const { transactions, summary, isLoading } = useFinancialData();
+  const data = useDashboardData();
 
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-gray-600 mt-1">
-            View your financial overview and insights
-          </p>
-        </div>
-        <div className="mt-8">
-          <Loader text="Loading dashboard data..." size="lg" />
-        </div>
-      </div>
-    );
-  }
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const lastUpdated = now.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-gray-600 mt-1">
-          View your financial overview and insights
-        </p>
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Financial Dashboard</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{todayStr}</p>
+        </div>
+        <p className="text-xs text-gray-300 mt-1.5">Updated {lastUpdated}</p>
       </div>
 
-      <PortfolioAnalytics />
+      {/* Net Worth Hero */}
+      <NetWorthHero
+        netWorth={data.netWorth}
+        totalFixedAssets={data.totalFixedAssets}
+        totalLiquidAssets={data.totalLiquidAssets}
+        totalLoans={data.totalLoans}
+        totalAssets={data.totalAssets}
+        isLoading={data.isLoading}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <FinancialCharts transactions={transactions} summary={summary} />
-        <TransactionTable transactions={transactions} />
+      {/* KPI Cards — current month */}
+      <KPICards
+        currentMonthIncome={data.currentMonthIncome}
+        currentMonthExpenses={data.currentMonthExpenses}
+        savingsRate={data.savingsRate}
+        currentMonthCashFlow={data.currentMonthCashFlow}
+        prevMonthIncome={data.prevMonthIncome}
+        prevMonthExpenses={data.prevMonthExpenses}
+        isLoading={data.isLoading}
+      />
+
+      {/* Row 2: Cash Flow Trend (2/3) + Asset Allocation (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <CashFlowChart
+            monthlyTrend={data.monthlyTrend}
+            isLoading={data.isLoading}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <AssetAllocationChart
+            assetAllocation={data.assetAllocation}
+            totalAssets={data.totalAssets}
+            isLoading={data.isLoading}
+          />
+        </div>
       </div>
+
+      {/* Row 3: Investment Breakdown + Loan Health + Financial Ratios */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <InvestmentBreakdownChart
+          investmentBreakdown={data.investmentBreakdown}
+          isLoading={data.isLoading}
+        />
+        <LoanHealthWidget
+          loanHealth={data.loanHealth}
+          isLoading={data.isLoading}
+        />
+        <FinancialRatiosWidget
+          debtToAssetRatio={data.debtToAssetRatio}
+          liquidityRatio={data.liquidityRatio}
+          savingsRate={data.savingsRate}
+          isLoading={data.isLoading}
+        />
+      </div>
+
+      {/* Row 4: Recent Transactions (2/3) + Quick Actions (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <RecentTransactionsWidget
+            transactions={data.recentTransactions}
+            isLoading={data.isLoading}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <QuickActionsPanel />
+        </div>
+      </div>
+
     </div>
   );
 }
