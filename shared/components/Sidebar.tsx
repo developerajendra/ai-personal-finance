@@ -92,6 +92,13 @@ const baseNavigation = [
     ],
   },
   {
+    name: 'Income',
+    href: '/income',
+    icon: TrendingUp,
+    defaultHref: '/income',
+    submenu: [],
+  },
+  {
     name: 'Expenses',
     href: '/expenses',
     icon: Receipt,
@@ -99,21 +106,15 @@ const baseNavigation = [
     submenu: [],
   },
   {
-    name: 'Data',
-    href: '/data',
-    icon: Upload,
-    defaultHref: '/data/upload',
-    submenu: [
-      { name: 'Upload Files', href: '/data/upload', icon: Upload },
-      { name: 'AI Analysis', href: '/data/analysis', icon: Sparkles },
-    ],
-  },
-  {
     name: 'Settings',
     href: '/settings',
     icon: Settings,
     defaultHref: '/settings',
-    submenu: [],
+    submenu: [
+      { name: 'Data', isSectionLabel: true },
+      { name: 'Upload Files', href: '/data/upload', icon: Upload },
+      { name: 'AI Analysis', href: '/data/analysis', icon: Sparkles },
+    ],
   },
 ];
 
@@ -503,6 +504,17 @@ export function Sidebar() {
                 {hoveredItem === menu.name && menuOpen && (
                   <div className="absolute left-full ml-2 top-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 min-w-[200px] z-50">
                     {menu.submenu?.map((item: any) => {
+                      if (item.isSectionLabel) {
+                        return (
+                          <div
+                            key={item.name}
+                            className="px-4 py-2 first:pt-1 border-b border-gray-700/50 mb-1">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              {item.name}
+                            </span>
+                          </div>
+                        );
+                      }
                       const itemActive = isActive(item.href);
                       const isDynamic = item.isDynamic;
                       const isDeletable =
@@ -583,6 +595,15 @@ export function Sidebar() {
               {menuOpen && menu.submenu && (
                 <div className="ml-6 mt-1 space-y-0.5 border-l-2 border-gray-700 pl-3">
                   {menu.submenu.map((item: any) => {
+                    if (item.isSectionLabel) {
+                      return (
+                        <div key={item.name} className="px-3 pt-2 pb-1 mt-1 first:mt-0 first:pt-0">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            {item.name}
+                          </span>
+                        </div>
+                      );
+                    }
                     const itemActive = isActive(item.href);
                     const isDynamic = item.isDynamic;
                     const isDeletable =

@@ -1,7 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, TrendingDown, Percent, ArrowRightLeft, ChevronDown, ChevronUp, Landmark } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Percent,
+  ArrowRightLeft,
+  ChevronDown,
+  ChevronUp,
+  Landmark,
+  PiggyBank,
+  CalendarRange,
+} from "lucide-react";
 import { formatIndianNumber } from "@/core/services/currencyService";
 import { InvestmentIncomeItem } from "@/shared/hooks/useDashboardData";
 
@@ -9,11 +19,21 @@ interface KPICardsProps {
   currentMonthIncome: number;
   currentMonthExpenses: number;
   savingsRate: number;
-  currentMonthCashFlow: number;
+  /** Salary/other credits + estimated investment accrual (monthly) */
+  totalMonthlyIncomeForSurplus: number;
+  /** After monthly expenses: total income − expenses */
+  monthlyNetSavings: number;
   prevMonthIncome: number;
   prevMonthExpenses: number;
   monthlyInvestmentIncome: number;
   investmentIncomeBreakdown: InvestmentIncomeItem[];
+  /** Indian FY YTD from transaction ledger */
+  fyYtd: {
+    fyLabel: string;
+    fyIncome: number;
+    fyExpenses: number;
+    fyNetSavings: number;
+  };
   isLoading: boolean;
 }
 
@@ -110,11 +130,13 @@ export function KPICards({
   currentMonthIncome,
   currentMonthExpenses,
   savingsRate,
-  currentMonthCashFlow,
+  totalMonthlyIncomeForSurplus,
+  monthlyNetSavings,
   prevMonthIncome,
   prevMonthExpenses,
   monthlyInvestmentIncome,
   investmentIncomeBreakdown,
+  fyYtd,
   isLoading,
 }: KPICardsProps) {
   const now = new Date();
@@ -130,14 +152,27 @@ export function KPICards({
           <CardSkeleton />
           <CardSkeleton />
         </div>
+        <p className="text-xs text-gray-400 uppercase tracking-wide mb-3 mt-8">
+          Financial year (YTD)
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+        <div className="mt-4">
+          <CardSkeleton />
+        </div>
       </div>
     );
   }
 
   const incomeChange = pctChange(currentMonthIncome, prevMonthIncome);
   const expenseChange = pctChange(currentMonthExpenses, prevMonthExpenses);
-  const cashFlowPositive = currentMonthCashFlow >= 0;
-  const totalMonthlyIncome = currentMonthIncome + monthlyInvestmentIncome;
+  const surplusPositive = monthlyNetSavings >= 0;
+  const totalMonthlyIncome = totalMonthlyIncomeForSurplus;
+  const { fyLabel, fyIncome, fyExpenses, fyNetSavings } = fyYtd;
+  const fySurplusPositive = fyNetSavings >= 0;
 
   const savingsColor =
     savingsRate >= 20 ? "text-emerald-600" : savingsRate >= 10 ? "text-amber-600" : "text-red-600";
@@ -253,36 +288,96 @@ export function KPICards({
 
       </div>
 
-      {/* Cash flow — full width row below */}
+      {/* Financial year to date (India: Apr–Mar) — ledger cash basis */}
+      <div className="mt-8">
+        <div className="flex items-center gap-2 mb-3">
+          <CalendarRange className="w-4 h-4 text-gray-400" />
+          <p className="text-xs text-gray-400 uppercase tracking-wide">
+            Financial year to date · {fyLabel}
+          </p>
+        </div>
+        <p className="text-xs text-gray-500 mb-3">
+          Income and expenses below are sums of recorded transactions from 1 Apr through today. Investment accrual is
+          reflected in the monthly cards above, not duplicated here.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white rounded-xl border border-emerald-100 shadow-sm p-5">
+            <div className="flex items-start justify-between">
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">FY income (YTD)</p>
+              <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-emerald-700 mt-2">₹{formatIndianNumber(fyIncome)}</p>
+            <p className="text-xs text-gray-400 mt-1">All credits in {fyLabel} to date</p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-red-100 shadow-sm p-5">
+            <div className="flex items-start justify-between">
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">FY expenses (YTD)</p>
+              <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
+                <TrendingDown className="w-4 h-4 text-red-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-red-700 mt-2">₹{formatIndianNumber(fyExpenses)}</p>
+            <p className="text-xs text-gray-400 mt-1">All debits in {fyLabel} to date</p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-indigo-100 shadow-sm p-5">
+            <div className="flex items-start justify-between">
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">FY net savings (YTD)</p>
+              <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                <PiggyBank className="w-4 h-4 text-indigo-600" />
+              </div>
+            </div>
+            <p
+              className={`text-2xl font-bold mt-2 ${
+                fySurplusPositive ? "text-emerald-700" : "text-red-700"
+              }`}
+            >
+              {fySurplusPositive ? "+" : "−"}₹{formatIndianNumber(Math.abs(fyNetSavings))}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              FY income − FY expenses (cash / recorded activity)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly surplus — full width row */}
       <div className="mt-4 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div
               className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                cashFlowPositive ? "bg-emerald-50" : "bg-red-50"
+                surplusPositive ? "bg-emerald-50" : "bg-red-50"
               }`}
             >
               <ArrowRightLeft
-                className={`w-4 h-4 ${cashFlowPositive ? "text-emerald-600" : "text-red-600"}`}
+                className={`w-4 h-4 ${surplusPositive ? "text-emerald-600" : "text-red-600"}`}
               />
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Net Cash Flow</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Monthly surplus</p>
               <p className="text-xs text-gray-400">
-                Income (₹{formatIndianNumber(totalMonthlyIncome)}) − Expenses (₹{formatIndianNumber(currentMonthExpenses)})
+                Total income (₹{formatIndianNumber(totalMonthlyIncome)}) − Monthly expenses (₹
+                {formatIndianNumber(currentMonthExpenses)})
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Total income includes salary/other credits plus estimated investment yield (FD, PPF, etc.).
               </p>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             <p
               className={`text-2xl font-bold ${
-                cashFlowPositive ? "text-emerald-600" : "text-red-600"
+                surplusPositive ? "text-emerald-600" : "text-red-600"
               }`}
             >
-              {cashFlowPositive ? "+" : "-"}₹{formatIndianNumber(Math.abs(currentMonthCashFlow + monthlyInvestmentIncome))}
+              {surplusPositive ? "+" : "−"}₹{formatIndianNumber(Math.abs(monthlyNetSavings))}
             </p>
             <p className="text-xs text-gray-400">
-              {cashFlowPositive ? "Surplus this month" : "Deficit this month"}
+              {surplusPositive ? "Surplus after this month’s expenses" : "Shortfall after this month’s expenses"}
             </p>
           </div>
         </div>

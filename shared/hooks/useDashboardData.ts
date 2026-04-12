@@ -9,6 +9,25 @@ import { getCurrentInvestmentValue } from "@/core/utils/investmentValueCalculato
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/**
+ * Indian financial year: 1 Apr → 31 Mar (e.g. FY 2025-26).
+ * Returns FY start (midnight local) and a short label for UI.
+ */
+function getIndianFinancialYearStart(reference: Date): { start: Date; label: string } {
+  const y = reference.getFullYear();
+  const m = reference.getMonth();
+  if (m >= 3) {
+    return {
+      start: new Date(y, 3, 1),
+      label: `FY ${y}-${String(y + 1).slice(-2)}`,
+    };
+  }
+  return {
+    start: new Date(y - 1, 3, 1),
+    label: `FY ${y - 1}-${String(y).slice(-2)}`,
+  };
+}
+
 function monthKey(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`;
 }
@@ -141,12 +160,47 @@ export function useDashboardData() {
     [investmentIncomeBreakdown]
   );
 
+  /** Recorded credits + estimated monthly investment accrual (same basis as savings rate) */
+  const totalMonthlyIncomeForSurplus = useMemo(
+    () => currentMonthIncome + monthlyInvestmentIncome,
+    [currentMonthIncome, monthlyInvestmentIncome]
+  );
+
+  /** Monthly surplus after expenses: total income − expenses */
+  const monthlyNetSavings = useMemo(
+    () => totalMonthlyIncomeForSurplus - currentMonthExpenses,
+    [totalMonthlyIncomeForSurplus, currentMonthExpenses]
+  );
+
+  /**
+   * Indian FY year-to-date (1 Apr–today): cash-basis from recorded transactions only.
+   * Investment accruals are not in the ledger; see monthly cards for imputed yield.
+   */
+  const fyYtdFromTransactions = useMemo(() => {
+    const ref = new Date();
+    const { start, label } = getIndianFinancialYearStart(ref);
+    let income = 0;
+    let expenses = 0;
+    for (const tx of transactions) {
+      const d = new Date(tx.date);
+      if (d < start || d > ref) continue;
+      if (tx.type === "credit") income += tx.amount;
+      else expenses += tx.amount;
+    }
+    return {
+      fyLabel: label,
+      fyIncome: income,
+      fyExpenses: expenses,
+      fyNetSavings: income - expenses,
+    };
+  }, [transactions]);
+
   const savingsRate = useMemo(() => {
-    const totalMonthlyIncome = currentMonthIncome + monthlyInvestmentIncome;
+    const totalMonthlyIncome = totalMonthlyIncomeForSurplus;
     return totalMonthlyIncome > 0
       ? ((totalMonthlyIncome - currentMonthExpenses) / totalMonthlyIncome) * 100
       : 0;
-  }, [currentMonthIncome, monthlyInvestmentIncome, currentMonthExpenses]);
+  }, [totalMonthlyIncomeForSurplus, currentMonthExpenses]);
 
   const totalAssets = portfolio.totalFixedAssets + portfolio.totalLiquidAssets;
 
@@ -482,9 +536,14 @@ export function useDashboardData() {
     currentMonthIncome,
     currentMonthExpenses,
     currentMonthCashFlow,
+    totalMonthlyIncomeForSurplus,
+    monthlyNetSavings,
     savingsRate,
     prevMonthIncome,
     prevMonthExpenses,
+
+    // Indian FY YTD (transaction ledger)
+    fyYtdFromTransactions,
 
     // Investment income (FD, bonds, PPF)
     monthlyInvestmentIncome,

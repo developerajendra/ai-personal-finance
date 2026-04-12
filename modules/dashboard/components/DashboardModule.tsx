@@ -71,11 +71,13 @@ export function DashboardModule() {
         currentMonthIncome={data.currentMonthIncome}
         currentMonthExpenses={data.currentMonthExpenses}
         savingsRate={data.savingsRate}
-        currentMonthCashFlow={data.currentMonthCashFlow}
+        totalMonthlyIncomeForSurplus={data.totalMonthlyIncomeForSurplus}
+        monthlyNetSavings={data.monthlyNetSavings}
         prevMonthIncome={data.prevMonthIncome}
         prevMonthExpenses={data.prevMonthExpenses}
         monthlyInvestmentIncome={data.monthlyInvestmentIncome}
         investmentIncomeBreakdown={data.investmentIncomeBreakdown}
+        fyYtd={data.fyYtdFromTransactions}
         isLoading={data.isLoading}
       />
 
