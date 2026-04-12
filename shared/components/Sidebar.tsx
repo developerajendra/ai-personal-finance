@@ -200,9 +200,9 @@ export function Sidebar() {
     return baseNavigation.map((menu) => {
       if (menu.name === 'Portfolio') {
         // Sort dynamic categories alphabetically by name
-        const sortedCategories = [...portfolioCategories].sort((a, b) =>
-          a.name.localeCompare(b.name),
-        );
+        const sortedCategories = [...portfolioCategories]
+          .filter((cat) => cat.slug !== 'receivables')
+          .sort((a, b) => a.name.localeCompare(b.name));
 
         // Add dynamic categories to Portfolio submenu with full category data
         const dynamicSubmenu = sortedCategories.map((cat) => ({

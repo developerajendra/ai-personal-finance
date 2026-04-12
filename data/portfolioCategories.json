@@ -1,13 +1,1 @@
-[
-  {
-    "id": "cat-receivables-001",
-    "name": "Receivables",
-    "slug": "receivables",
-    "icon": "FileText",
-    "href": "/portfolio/receivables",
-    "type": "bank-balance",
-    "description": "Track money owed to you",
-    "createdAt": "2026-01-27T00:00:00.000Z",
-    "updatedAt": "2026-01-27T00:00:00.000Z"
-  }
-]
+[]

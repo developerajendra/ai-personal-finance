@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useDashboardData } from '@/shared/hooks/useDashboardData';
 import { NetWorthHero } from './NetWorthHero';
 import { KPICards } from './KPICards';
@@ -10,9 +11,13 @@ import { LoanHealthWidget } from './LoanHealthWidget';
 import { FinancialRatiosWidget } from './FinancialRatiosWidget';
 import { RecentTransactionsWidget } from './RecentTransactionsWidget';
 import { QuickActionsPanel } from './QuickActionsPanel';
+import { AssetBreakdownModal } from './AssetBreakdownModal';
+
+type ModalType = 'fixed' | 'liquid' | 'loans' | null;
 
 export function DashboardModule() {
   const data = useDashboardData();
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const now = new Date();
   const todayStr = now.toLocaleDateString('en-IN', {
@@ -28,6 +33,18 @@ export function DashboardModule() {
 
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+
+      {/* Asset Breakdown Modal */}
+      <AssetBreakdownModal
+        open={activeModal}
+        onClose={() => setActiveModal(null)}
+        fixedAssetItems={data.fixedAssetItems}
+        liquidAssetItems={data.liquidAssetItems}
+        loans={data.loans as any}
+        totalFixedAssets={data.totalFixedAssets}
+        totalLiquidAssets={data.totalLiquidAssets}
+        totalLoans={data.totalLoans}
+      />
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -46,6 +63,7 @@ export function DashboardModule() {
         totalLoans={data.totalLoans}
         totalAssets={data.totalAssets}
         isLoading={data.isLoading}
+        onCardClick={setActiveModal}
       />
 
       {/* KPI Cards — current month */}
@@ -56,6 +74,8 @@ export function DashboardModule() {
         currentMonthCashFlow={data.currentMonthCashFlow}
         prevMonthIncome={data.prevMonthIncome}
         prevMonthExpenses={data.prevMonthExpenses}
+        monthlyInvestmentIncome={data.monthlyInvestmentIncome}
+        investmentIncomeBreakdown={data.investmentIncomeBreakdown}
         isLoading={data.isLoading}
       />
 
