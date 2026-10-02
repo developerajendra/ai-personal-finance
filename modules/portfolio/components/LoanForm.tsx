@@ -61,7 +61,7 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Loan Name *
           </label>
           <input
@@ -70,12 +70,12 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="e.g., House Loan, Car Loan"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Loan Type *
           </label>
           <select
@@ -87,7 +87,7 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
                 type: e.target.value as Loan["type"],
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           >
             <option value="home-loan">Home Loan</option>
             <option value="car-loan">Car Loan</option>
@@ -98,7 +98,7 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Principal Amount (₹) *
           </label>
           <input
@@ -113,12 +113,12 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
                 principalAmount: parseFloat(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Outstanding Amount (₹) *
           </label>
           <input
@@ -133,12 +133,12 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
                 outstandingAmount: parseFloat(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Interest Rate (%) *
           </label>
           <input
@@ -154,12 +154,12 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
                 interestRate: parseFloat(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             EMI Amount (₹) *
           </label>
           <input
@@ -174,12 +174,12 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
                 emiAmount: parseFloat(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             EMI Date (Day of Month) *
           </label>
           <input
@@ -194,12 +194,12 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
                 emiDate: parseInt(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Tenure (Months) *
           </label>
           <input
@@ -213,12 +213,12 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
                 tenureMonths: parseInt(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Start Date *
           </label>
           <input
@@ -228,12 +228,12 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
             onChange={(e) =>
               setFormData({ ...formData, startDate: e.target.value })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             End Date (Optional)
           </label>
           <input
@@ -245,12 +245,12 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
                 endDate: e.target.value || undefined,
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Status *
           </label>
           <select
@@ -262,7 +262,7 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
                 status: e.target.value as Loan["status"],
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           >
             <option value="active">Active</option>
             <option value="closed">Closed</option>
@@ -272,7 +272,7 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-neutral-800 mb-1">
           Description (Optional)
         </label>
         <textarea
@@ -281,7 +281,7 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
             setFormData({ ...formData, description: e.target.value })
           }
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
         />
       </div>
 
@@ -289,7 +289,7 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+          className="px-4 py-2 border border-divider rounded-lg hover:bg-tile flex items-center gap-2"
         >
           <X className="w-4 h-4" />
           Cancel
@@ -297,7 +297,7 @@ export function LoanForm({ loan, onSave, onCancel, isSaving = false }: LoanFormP
         <button
           type="submit"
           disabled={isSaving}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-accent text-white hover:bg-accent-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-pill font-medium"
         >
           {isSaving ? (
             <>

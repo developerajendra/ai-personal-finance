@@ -548,19 +548,19 @@ export function ChatbotBoard() {
 
   if (isMinimized) {
     return (
-      <div className="fixed bottom-6 right-6 w-80 bg-white rounded-lg shadow-2xl border border-gray-200 z-50">
+      <div className="dialog fixed bottom-[104px] right-4 z-50 w-80 md:bottom-7 md:right-7">
         <div className="flex items-center justify-between p-3 border-b">
-          <h3 className="font-semibold">AI Assistant</h3>
+          <h3 className="text-[15px] font-semibold">Ask Ledger AI</h3>
           <div className="flex gap-2">
             <button
               onClick={expandChatbot}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
             >
               <Maximize2 className="w-4 h-4" />
             </button>
             <button
               onClick={closeChatbot}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
             >
               <X className="w-4 h-4" />
             </button>
@@ -571,10 +571,10 @@ export function ChatbotBoard() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 z-50 flex flex-col overflow-hidden">
+    <div className="dialog fixed bottom-[104px] right-4 z-50 flex h-[min(600px,70vh)] w-[min(400px,calc(100vw-32px))] flex-col overflow-hidden md:bottom-7 md:right-7">
       {/* Voice Mode Overlay - shows within popup */}
       {isVoiceMode && (
-        <div className="absolute inset-0 z-50 bg-gradient-to-br from-slate-900 via-purple-900 to-blue-900 flex flex-col rounded-lg">
+        <div className="absolute inset-0 z-50 flex flex-col rounded-dialog bg-gradient-to-br from-accent-900 via-accent-700 to-accent">
           <VoiceModeView
             isListening={isListening}
             transcript={currentTranscript}
@@ -590,25 +590,25 @@ export function ChatbotBoard() {
         <>
       <div className="p-3 border-b">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-lg">AI Financial Assistant</h3>
+          <h3 className="text-[16px] font-semibold">Ask Ledger AI</h3>
           <div className="flex gap-1.5">
             <button
               onClick={minimizeChatbot}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
               title="Minimize"
             >
               <Minimize2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => router.push("/chatbot")}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
               title="Full Screen"
             >
               <Maximize2 className="w-4 h-4" />
             </button>
             <button
               onClick={closeChatbot}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
               title="Close"
             >
               <X className="w-4 h-4" />
@@ -620,14 +620,14 @@ export function ChatbotBoard() {
             value={selectedAgent}
             onChange={(e) => handleAgentChange(e.target.value as "ask" | "audit-finance")}
             disabled={isLoading || agentStatus === "connecting"}
-            className={`flex-1 px-2.5 py-1.5 text-xs font-medium border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+            className={`flex-1 px-2.5 py-1.5 text-xs font-medium border rounded-md focus:outline-none focus:ring-2 focus:ring-accent transition-colors ${
               selectedAgent === "audit-finance"
                 ? agentStatus === "connected"
-                  ? "bg-green-50 border-green-400 text-green-800"
+                  ? "bg-gain-bg border-gain text-gain"
                   : agentStatus === "failed"
-                    ? "bg-red-50 border-red-400 text-red-800"
-                    : "bg-amber-50 border-amber-300 text-amber-800"
-                : "bg-white border-gray-300 text-gray-700"
+                    ? "bg-loss-bg border-loss text-loss"
+                    : "bg-warn-bg border-warn text-warn"
+                : "bg-panel border-divider text-neutral-800"
             } disabled:opacity-50`}
           >
             <option value="ask">Ask (Default)</option>
@@ -636,13 +636,13 @@ export function ChatbotBoard() {
           {selectedAgent === "audit-finance" && (
             <span className="flex-shrink-0">
               {agentStatus === "connecting" && (
-                <span className="inline-block w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                <span className="inline-block w-3 h-3 border-2 border-warn border-t-transparent rounded-full animate-spin" />
               )}
               {agentStatus === "connected" && (
-                <span className="inline-block w-3 h-3 bg-green-500 rounded-full" title="MCP Connected" />
+                <span className="inline-block w-3 h-3 bg-gain rounded-full" title="MCP Connected" />
               )}
               {agentStatus === "failed" && (
-                <span className="inline-block w-3 h-3 bg-red-500 rounded-full" title="MCP Connection Failed" />
+                <span className="inline-block w-3 h-3 bg-loss rounded-full" title="MCP Connection Failed" />
               )}
             </span>
           )}
@@ -651,7 +651,7 @@ export function ChatbotBoard() {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
-          <div className="text-center text-gray-500 mt-8">
+          <div className="text-center text-muted mt-8">
             <p>Ask me anything about your finances!</p>
             <p className="text-sm mt-2">Try: "Give me a financial summary" or "What are my investments?"</p>
           </div>
@@ -664,10 +664,10 @@ export function ChatbotBoard() {
             }`}
           >
             <div
-              className={`max-w-[80%] rounded-lg p-3 ${
+              className={`max-w-[80%] rounded-[18px] px-3.5 py-2.5 ${
                 message.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-900"
+                  ? "bg-accent text-white"
+                  : "bg-tile text-ink"
               }`}
             >
               {message.role === "assistant" ? (
@@ -788,11 +788,11 @@ export function ChatbotBoard() {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg p-3">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150" />
+            <div className="bg-tile rounded-[18px] px-3.5 py-3">
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 bg-neutral-500 rounded-full [animation:lgDot_1.2s_infinite]" />
+                <div className="w-2 h-2 bg-neutral-500 rounded-full [animation:lgDot_1.2s_.2s_infinite]" />
+                <div className="w-2 h-2 bg-neutral-500 rounded-full [animation:lgDot_1.2s_.4s_infinite]" />
               </div>
             </div>
           </div>
@@ -810,7 +810,7 @@ export function ChatbotBoard() {
                 setInput("");
               }}
               disabled={isLoading || isListening}
-              className="px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary btn-sm"
             >
               + Create
             </button>
@@ -820,7 +820,7 @@ export function ChatbotBoard() {
                 setInput("");
               }}
               disabled={isLoading || isListening}
-              className="px-2.5 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary btn-sm"
             >
               ✏️ Update
             </button>
@@ -830,7 +830,7 @@ export function ChatbotBoard() {
                 setInput("show me my portfolio summary");
               }}
               disabled={isLoading || isListening}
-              className="px-2.5 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary btn-sm"
             >
               📊 Summary
             </button>
@@ -840,7 +840,7 @@ export function ChatbotBoard() {
                 setInput("show me a chart of my investments");
               }}
               disabled={isLoading || isListening}
-              className="px-2.5 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full hover:bg-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary btn-sm"
             >
               📈 Chart
             </button>
@@ -850,21 +850,21 @@ export function ChatbotBoard() {
           <div className="relative flex-1">
             {operationPrefix && (
               <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 z-10">
-                <span className="px-2 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded border border-blue-200 flex items-center gap-1">
+                <span className="tag tag-accent font-semibold">
                   {operationPrefix}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setOperationPrefix("");
                     }}
-                    className="hover:bg-blue-200 rounded p-0.5 transition-colors"
+                    className="hover:bg-accent-200 rounded p-0.5 transition-colors"
                     title="Remove operation"
                   >
                     <X className="w-2.5 h-2.5" />
                   </button>
                 </span>
-                <span className="w-px h-3 bg-gray-300"></span>
-                <span className="w-0.5 h-3 bg-blue-600 animate-pulse"></span>
+                <span className="w-px h-3 bg-neutral-300"></span>
+                <span className="w-0.5 h-3 bg-accent animate-pulse"></span>
               </div>
             )}
             <input
@@ -880,17 +880,17 @@ export function ChatbotBoard() {
                 }
               }}
               placeholder={operationPrefix ? "Enter details..." : selectedAgent === "audit-finance" ? "Ask to audit your data or paste a calculator URL..." : "Ask about your finances or click mic to speak..."}
-              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${operationPrefix ? 'pl-28' : ''}`}
+              className={`input ${operationPrefix ? '!pl-36' : ''}`}
               disabled={isLoading || isListening}
             />
           </div>
           <button
             onClick={isListening || isVoiceMode ? stopListening : startListening}
             disabled={isLoading}
-            className={`px-3 py-2 rounded-lg transition-colors ${
+            className={`grid h-[38px] w-[38px] flex-none place-items-center rounded-full text-white transition-colors ${
               isListening || isVoiceMode
-                ? "bg-red-600 text-white hover:bg-red-700 animate-pulse"
-                : "bg-purple-600 text-white hover:bg-purple-700"
+                ? "bg-loss animate-pulse"
+                : "bg-[var(--logo-bg)] hover:opacity-90"
             } disabled:opacity-50 disabled:cursor-not-allowed`}
             title={isListening || isVoiceMode ? "Stop Talk Mode" : "Start Talk Mode - Speak naturally"}
           >
@@ -899,7 +899,7 @@ export function ChatbotBoard() {
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn btn-primary"
           >
             Send
           </button>

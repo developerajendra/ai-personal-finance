@@ -98,7 +98,7 @@ export function VoiceModeView({
   }, [isListening]);
 
   return (
-    <div className="w-full h-full bg-gradient-to-br from-slate-900 via-purple-900 to-blue-900 flex flex-col relative">
+    <div className="w-full h-full bg-gradient-to-br from-accent-900 via-accent-700 to-accent flex flex-col relative">
       {/* Background wave patterns */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute inset-0" style={{
@@ -130,7 +130,7 @@ export function VoiceModeView({
       <div className="flex-1 flex flex-col items-center justify-center px-4 relative z-10 overflow-y-auto">
         {/* Greeting */}
         <div className="text-center mb-4">
-          <p className="text-gray-300 text-xs mb-1">Hi, {userName}</p>
+          <p className="text-white/70 text-xs mb-1">Hi, {userName}</p>
           <h1 className="text-white text-xl font-bold mb-2">
             How can I help you? 👋
           </h1>
@@ -158,7 +158,7 @@ export function VoiceModeView({
         {/* Listening indicator */}
         {isListening && !transcript && (
           <div className="mt-4">
-            <p className="text-gray-300 text-xs animate-pulse">Listening...</p>
+            <p className="text-white/70 text-xs animate-pulse">Listening...</p>
           </div>
         )}
       </div>
@@ -176,14 +176,14 @@ export function VoiceModeView({
         <button
           className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
             isListening
-              ? "bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 shadow-xl shadow-purple-500/50 scale-110"
-              : "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 shadow-lg"
+              ? "bg-gradient-to-br from-loss via-accent-500 to-accent-700 shadow-lg shadow-purple-500/50 scale-110"
+              : "bg-gradient-to-br from-accent via-accent-500 to-loss shadow-lg"
           }`}
         >
           <div className="relative">
             <div className="absolute inset-0 rounded-full bg-white/30 animate-ping" />
             <div className="relative w-6 h-6 bg-white rounded-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-gradient-to-br from-pink-500 to-purple-500 rounded-full" />
+              <div className="w-2 h-2 bg-gradient-to-br from-loss to-accent-700 rounded-full" />
             </div>
           </div>
         </button>

@@ -18,14 +18,14 @@ export function Loader({ size = "md", className = "", text, fullScreen = false }
 
   const loader = (
     <div className={`flex flex-col items-center justify-center gap-2 ${className}`}>
-      <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-600`} />
-      {text && <p className="text-sm text-gray-600">{text}</p>}
+      <Loader2 className={`${sizeClasses[size]} animate-spin text-accent-700`} />
+      {text && <p className="text-sm text-muted">{text}</p>}
     </div>
   );
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-panel flex items-center justify-center z-50">
         {loader}
       </div>
     );
@@ -41,8 +41,8 @@ interface InlineLoaderProps {
 export function InlineLoader({ className = "" }: InlineLoaderProps) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-      <span className="text-sm text-gray-600">Loading...</span>
+      <Loader2 className="w-4 h-4 animate-spin text-accent-700" />
+      <span className="text-sm text-muted">Loading...</span>
     </div>
   );
 }

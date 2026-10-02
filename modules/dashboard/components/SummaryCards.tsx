@@ -14,66 +14,66 @@ export function SummaryCards({ summary, netWorth, isLoadingNetWorth }: SummaryCa
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       {/* Net Worth - First Card */}
-      <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+      <div className="panel p-6">
         {isLoadingNetWorth ? (
           <Loader text="Loading..." size="sm" />
         ) : (
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Net Worth</p>
+              <p className="text-sm text-muted">Net Worth</p>
               <p
                 className={`text-2xl font-bold mt-2 ${
-                  (netWorth ?? 0) >= 0 ? "text-green-600" : "text-red-600"
+                  (netWorth ?? 0) >= 0 ? "text-gain" : "text-loss"
                 }`}
               >
                 ₹{(netWorth ?? 0).toLocaleString()}
               </p>
             </div>
-            <Wallet className="w-8 h-8 text-purple-600" />
+            <Wallet className="w-8 h-8 text-accent-700" />
           </div>
         )}
       </div>
 
       {/* Total Income */}
-      <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+      <div className="panel p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-600">Total Income</p>
-            <p className="text-2xl font-bold text-green-600 mt-2">
+            <p className="text-sm text-muted">Total Income</p>
+            <p className="text-2xl font-bold text-gain mt-2">
               ₹{summary.totalIncome.toLocaleString()}
             </p>
           </div>
-          <TrendingUp className="w-8 h-8 text-green-600" />
+          <TrendingUp className="w-8 h-8 text-gain" />
         </div>
       </div>
 
       {/* Total Expenses */}
-      <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+      <div className="panel p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-600">Total Expenses</p>
-            <p className="text-2xl font-bold text-red-600 mt-2">
+            <p className="text-sm text-muted">Total Expenses</p>
+            <p className="text-2xl font-bold text-loss mt-2">
               ₹{summary.totalExpenses.toLocaleString()}
             </p>
           </div>
-          <TrendingDown className="w-8 h-8 text-red-600" />
+          <TrendingDown className="w-8 h-8 text-loss" />
         </div>
       </div>
 
       {/* Net Balance */}
-      <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+      <div className="panel p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-600">Net Balance</p>
+            <p className="text-sm text-muted">Net Balance</p>
             <p
               className={`text-2xl font-bold mt-2 ${
-                summary.netBalance >= 0 ? "text-green-600" : "text-red-600"
+                summary.netBalance >= 0 ? "text-gain" : "text-loss"
               }`}
             >
               ₹{summary.netBalance.toLocaleString()}
             </p>
           </div>
-          <Wallet className="w-8 h-8 text-blue-600" />
+          <Wallet className="w-8 h-8 text-accent-700" />
         </div>
       </div>
     </div>

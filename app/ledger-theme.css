@@ -1,0 +1,484 @@
+/*
+ * Ledger design tokens (source: design/Ledger Finance v7.dc.html + design/handoff/ledger-theme.css).
+ *
+ * Set on <html>:
+ *   data-theme="apple|private"                      structural family (radii, type)
+ *   data-skin="apple|midnight|sand|mint|private"    surface palette
+ *   data-accent="teal|blue|indigo|graphite|purple|navy|orange|pink"
+ * Default: apple / apple / teal (also applied on :root so the page never renders untokened).
+ *
+ * Tailwind maps these variables in tailwind.config.ts (bg-panel, text-muted, bg-accent, text-gain …).
+ */
+
+/* ---------- Apple (default) ---------- */
+:root,
+html[data-skin="apple"] {
+  --color-bg: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-text: #1d1d1f;
+  --color-divider: rgba(0, 0, 0, 0.1);
+  --color-neutral-100: #f5f5f7;
+  --color-neutral-200: #e8e8ed;
+  --color-neutral-300: #d2d2d7;
+  --color-neutral-400: #aeaeb2;
+  --color-neutral-500: #8e8e93;
+  --color-neutral-600: #6e6e73;
+  --color-neutral-700: #6e6e73;
+  --color-neutral-800: #424245;
+  --color-neutral-900: #1d1d1f;
+
+  --color-accent-2: #ff2d55;
+  --color-accent-2-100: #ffeef2;
+  --color-accent-2-200: #ffd6df;
+  --color-accent-2-300: #ffadbf;
+  --color-accent-2-400: #ff7595;
+  --color-accent-2-500: #ff2d55;
+  --color-accent-2-600: #e0244a;
+  --color-accent-2-700: #c2183c;
+  --color-accent-2-800: #8f1230;
+  --color-accent-2-900: #5c0c20;
+
+  /* Radii & elevation */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-panel: 18px;
+  --radius-dialog: 20px;
+  --radius-btn: 980px;
+  --radius-input: 10px;
+  --radius-seg: 9px;
+  --radius-seg-opt: 7px;
+  --radius-tag: 980px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.18);
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+  --shadow-lift: 0 6px 20px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+  --panel-border: 0 solid transparent;
+
+  /* Finance semantics */
+  --fin-gain: #1d8a3a;
+  --fin-loss: #d70015;
+  --fin-warn: #b25000;
+  --fin-warn-bg: #fff4e5;
+
+  /* Surfaces */
+  --panel-bg: #ffffff;
+  --tile-bg: #f5f5f7;
+  --search-bg: rgba(118, 118, 128, 0.12);
+  --input-bg: #ffffff;
+  --input-border: rgba(0, 0, 0, 0.12);
+  --btn2-bg: rgba(0, 0, 0, 0.05);
+  --btn2-hover: rgba(0, 0, 0, 0.09);
+  --btn2-border: transparent;
+  --seg-bg: rgba(118, 118, 128, 0.12);
+  --seg-on: #ffffff;
+  --seg-on-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  --tabbar-bg: rgba(255, 255, 255, 0.84);
+  --dialog-bg: #ffffff;
+
+  /* Sidebar */
+  --side-bg: rgba(246, 246, 248, 0.8);
+  --side-fg: #1d1d1f;
+  --side-muted: #6e6e73;
+  --side-rule: rgba(0, 0, 0, 0.08);
+  --side-edge: inset -0.5px 0 0 rgba(0, 0, 0, 0.14);
+  --nav-hover: rgba(0, 0, 0, 0.05);
+  --nav-sel: rgba(0, 0, 0, 0.075);
+  --nav-sel-fg: #1d1d1f;
+  --logo-bg: #1d1d1f;
+
+  /* Asset-class colours (stock / fund / dep follow the accent) */
+  --c-stock: #0071e3;
+  --c-fund: #4a9af0;
+  --c-dep: #9cc3f5;
+  --c-cash: #1d1d1f;
+  --c-ret: #8e8e93;
+  --c-prop: #c7c7cc;
+  --c-recv: #e3e3e8;
+  --c-recv-fg: #1d1d1f;
+  --c-loan: #ff3b30;
+
+  /* Liquidity ladder */
+  --lad-1: #1d1d1f;
+  --lad-2: #0071e3;
+  --lad-3: #4a9af0;
+  --lad-4: #9cc3f5;
+  --lad-5: #aeaeb2;
+  --lad-6: #d1d1d6;
+  --lad-7: #f0c36b;
+
+  /* Type */
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-heading: var(--font-body);
+  --heading-weight: 700;
+  --heading-tracking: -0.025em;
+}
+
+/* ---------- Accents (also set as default teal on :root) ---------- */
+:root,
+html[data-accent="teal"] {
+  --color-accent: #0e8a9b;
+  --color-accent-100: #e6f5f7;
+  --color-accent-200: #c7e9ee;
+  --color-accent-300: #94d4de;
+  --color-accent-400: #57b8c8;
+  --color-accent-500: #2a9fb2;
+  --color-accent-600: #0e8a9b;
+  --color-accent-700: #0b7584;
+  --color-accent-800: #095c68;
+  --color-accent-900: #06414a;
+  --c-stock: #0e8a9b;
+  --c-fund: #57b8c8;
+  --c-dep: #a9dde5;
+  --lad-2: #0e8a9b;
+  --lad-3: #57b8c8;
+  --lad-4: #a9dde5;
+}
+html[data-accent="blue"] {
+  --color-accent: #0071e3;
+  --color-accent-100: #e8f1fc;
+  --color-accent-200: #cfe3fa;
+  --color-accent-300: #9cc7f5;
+  --color-accent-400: #5aa4ec;
+  --color-accent-500: #2a8ae6;
+  --color-accent-600: #0077ed;
+  --color-accent-700: #0066cc;
+  --color-accent-800: #0053a6;
+  --color-accent-900: #003b75;
+  --c-stock: #0071e3;
+  --c-fund: #4a9af0;
+  --c-dep: #9cc3f5;
+  --lad-2: #0071e3;
+  --lad-3: #4a9af0;
+  --lad-4: #9cc3f5;
+}
+html[data-accent="indigo"] {
+  --color-accent: #5856d6;
+  --color-accent-100: #efeffc;
+  --color-accent-200: #dcdcf7;
+  --color-accent-300: #b8b7ef;
+  --color-accent-400: #8e8ce4;
+  --color-accent-500: #6d6bdb;
+  --color-accent-600: #4b49c4;
+  --color-accent-700: #4240b0;
+  --color-accent-800: #33318a;
+  --color-accent-900: #232161;
+  --c-stock: #5856d6;
+  --c-fund: #8e8ce4;
+  --c-dep: #c3c2f2;
+  --lad-2: #5856d6;
+  --lad-3: #8e8ce4;
+  --lad-4: #c3c2f2;
+}
+html[data-accent="graphite"] {
+  --color-accent: #3a3a3c;
+  --color-accent-100: #f0f0f2;
+  --color-accent-200: #e0e0e4;
+  --color-accent-300: #c7c7cc;
+  --color-accent-400: #a1a1a6;
+  --color-accent-500: #6e6e73;
+  --color-accent-600: #48484a;
+  --color-accent-700: #3a3a3c;
+  --color-accent-800: #2c2c2e;
+  --color-accent-900: #1c1c1e;
+  --c-stock: #3a3a3c;
+  --c-fund: #8e8e93;
+  --c-dep: #c7c7cc;
+  --c-cash: #000000;
+  --lad-1: #000000;
+  --lad-2: #3a3a3c;
+  --lad-3: #8e8e93;
+  --lad-4: #c7c7cc;
+}
+html[data-accent="purple"] {
+  --color-accent: #8944ab;
+  --color-accent-100: #f5ecf9;
+  --color-accent-200: #e8d4f1;
+  --color-accent-300: #d0a9e3;
+  --color-accent-400: #b47ad1;
+  --color-accent-500: #9c56c0;
+  --color-accent-600: #8944ab;
+  --color-accent-700: #743894;
+  --color-accent-800: #5a2b73;
+  --color-accent-900: #3e1d50;
+  --c-stock: #8944ab;
+  --c-fund: #b47ad1;
+  --c-dep: #dcbfea;
+  --lad-2: #8944ab;
+  --lad-3: #b47ad1;
+  --lad-4: #dcbfea;
+}
+html[data-accent="navy"] {
+  --color-accent: #1d3d8f;
+  --color-accent-100: #eaeef8;
+  --color-accent-200: #d0daf0;
+  --color-accent-300: #a3b5e0;
+  --color-accent-400: #6f8bcb;
+  --color-accent-500: #4466b3;
+  --color-accent-600: #2a4ea0;
+  --color-accent-700: #1d3d8f;
+  --color-accent-800: #172f6e;
+  --color-accent-900: #10214d;
+  --c-stock: #1d3d8f;
+  --c-fund: #6f8bcb;
+  --c-dep: #b6c5e8;
+  --lad-2: #1d3d8f;
+  --lad-3: #6f8bcb;
+  --lad-4: #b6c5e8;
+}
+html[data-accent="orange"] {
+  --color-accent: #e8590c;
+  --color-accent-100: #fff0e6;
+  --color-accent-200: #ffdcc4;
+  --color-accent-300: #ffb98a;
+  --color-accent-400: #ff914d;
+  --color-accent-500: #f97316;
+  --color-accent-600: #e8590c;
+  --color-accent-700: #c2410c;
+  --color-accent-800: #9a3412;
+  --color-accent-900: #6c250d;
+  --c-stock: #e8590c;
+  --c-fund: #ff914d;
+  --c-dep: #ffc9a3;
+  --lad-2: #e8590c;
+  --lad-3: #ff914d;
+  --lad-4: #ffc9a3;
+}
+html[data-accent="pink"] {
+  --color-accent: #d6336c;
+  --color-accent-100: #fdecf2;
+  --color-accent-200: #f9d2e0;
+  --color-accent-300: #f2a5c1;
+  --color-accent-400: #e8729b;
+  --color-accent-500: #df4e82;
+  --color-accent-600: #d6336c;
+  --color-accent-700: #b4255a;
+  --color-accent-800: #8a1c45;
+  --color-accent-900: #5f1330;
+  --c-stock: #d6336c;
+  --c-fund: #e8729b;
+  --c-dep: #f4bcd0;
+  --lad-2: #d6336c;
+  --lad-3: #e8729b;
+  --lad-4: #f4bcd0;
+}
+
+/* ---------- Midnight (dark) ---------- */
+html[data-skin="midnight"] {
+  color-scheme: dark;
+  --color-bg: #111113;
+  --color-surface: #1c1c1e;
+  --color-text: #f5f5f7;
+  --color-divider: rgba(255, 255, 255, 0.12);
+  --color-neutral-100: #1c1c1e;
+  --color-neutral-200: #2c2c2e;
+  --color-neutral-300: #3a3a3c;
+  --color-neutral-400: #636366;
+  --color-neutral-500: #8e8e93;
+  --color-neutral-600: #aeaeb2;
+  --color-neutral-700: #a1a1a6;
+  --color-neutral-800: #d1d1d6;
+  --color-neutral-900: #f5f5f7;
+  --color-accent-100: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  --color-accent-200: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  --color-accent-300: color-mix(in srgb, var(--color-accent) 55%, white);
+  --color-accent-700: color-mix(in srgb, var(--color-accent) 70%, white);
+  --color-accent-800: color-mix(in srgb, var(--color-accent) 55%, white);
+  --panel-bg: #1c1c1e;
+  --tile-bg: #2c2c2e;
+  --search-bg: rgba(255, 255, 255, 0.08);
+  --input-bg: #2c2c2e;
+  --input-border: rgba(255, 255, 255, 0.12);
+  --btn2-bg: rgba(255, 255, 255, 0.09);
+  --btn2-hover: rgba(255, 255, 255, 0.14);
+  --seg-bg: rgba(118, 118, 128, 0.28);
+  --seg-on: #636366;
+  --tabbar-bg: rgba(28, 28, 30, 0.88);
+  --dialog-bg: #1c1c1e;
+  --shadow-panel: 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  --shadow-lift: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --nav-hover: rgba(255, 255, 255, 0.06);
+  --nav-sel: rgba(255, 255, 255, 0.11);
+  --nav-sel-fg: #ffffff;
+  --side-bg: rgba(28, 28, 30, 0.88);
+  --side-fg: #f5f5f7;
+  --side-muted: #98989d;
+  --side-rule: rgba(255, 255, 255, 0.08);
+  --side-edge: inset -0.5px 0 0 rgba(255, 255, 255, 0.1);
+  --fin-gain: #30d158;
+  --fin-loss: #ff453a;
+  --fin-warn: #ffb340;
+  --fin-warn-bg: rgba(255, 159, 10, 0.14);
+  --c-cash: #f5f5f7;
+  --c-ret: #8e8e93;
+  --c-prop: #48484a;
+  --c-recv: #3a3a3c;
+  --c-recv-fg: #f5f5f7;
+  --lad-1: #f5f5f7;
+  --lad-5: #636366;
+  --lad-6: #48484a;
+  --logo-bg: #2c2c2e;
+}
+
+/* ---------- Sand ---------- */
+html[data-skin="sand"] {
+  --color-bg: #f4efe8;
+  --color-surface: #fbf8f3;
+  --color-text: #2b2118;
+  --color-divider: rgba(43, 33, 24, 0.12);
+  --color-neutral-100: #f4efe8;
+  --color-neutral-200: #e9e1d5;
+  --color-neutral-300: #d8ccbc;
+  --color-neutral-400: #bcae9c;
+  --color-neutral-500: #9a8b7a;
+  --color-neutral-600: #7a6d5f;
+  --color-neutral-700: #6b5e50;
+  --color-neutral-800: #463b30;
+  --color-neutral-900: #2b2118;
+  --panel-bg: #fffdf9;
+  --tile-bg: #f1ebe2;
+  --search-bg: rgba(43, 33, 24, 0.07);
+  --input-bg: #fffdf9;
+  --dialog-bg: #fffdf9;
+  --shadow-panel: 0 1px 2px rgba(43, 33, 24, 0.05), 0 0 0 0.5px rgba(43, 33, 24, 0.07);
+  --nav-hover: rgba(43, 33, 24, 0.05);
+  --nav-sel: rgba(43, 33, 24, 0.085);
+  --nav-sel-fg: #2b2118;
+  --side-bg: rgba(237, 229, 217, 0.88);
+  --side-fg: #2b2118;
+  --side-muted: #7a6d5f;
+  --side-rule: rgba(43, 33, 24, 0.1);
+  --seg-on: #fffdf9;
+  --c-cash: #2b2118;
+  --c-ret: #9a8b7a;
+  --c-prop: #cdbfae;
+  --c-recv: #e8dccb;
+  --c-recv-fg: #2b2118;
+  --lad-1: #2b2118;
+  --lad-5: #b0a291;
+  --lad-6: #d8ccbc;
+  --logo-bg: #2b2118;
+}
+
+/* ---------- Mint ---------- */
+html[data-skin="mint"] {
+  --color-bg: #eef4f2;
+  --color-surface: #f7fbfa;
+  --color-text: #10241f;
+  --color-divider: rgba(16, 36, 31, 0.11);
+  --color-neutral-100: #eef4f2;
+  --color-neutral-200: #dde9e5;
+  --color-neutral-300: #c4d6d0;
+  --color-neutral-400: #9fb6af;
+  --color-neutral-500: #7b938c;
+  --color-neutral-600: #5f756f;
+  --color-neutral-700: #52665f;
+  --color-neutral-800: #2f413b;
+  --color-neutral-900: #10241f;
+  --panel-bg: #ffffff;
+  --tile-bg: #e8f1ee;
+  --search-bg: rgba(16, 36, 31, 0.06);
+  --shadow-panel: 0 1px 2px rgba(16, 36, 31, 0.05), 0 0 0 0.5px rgba(16, 36, 31, 0.06);
+  --nav-hover: rgba(16, 36, 31, 0.05);
+  --nav-sel: rgba(16, 36, 31, 0.08);
+  --nav-sel-fg: #10241f;
+  --side-bg: rgba(224, 236, 232, 0.88);
+  --side-fg: #10241f;
+  --side-muted: #5f756f;
+  --side-rule: rgba(16, 36, 31, 0.09);
+  --seg-on: #ffffff;
+  --c-cash: #10241f;
+  --c-ret: #7b938c;
+  --c-prop: #c4d6d0;
+  --c-recv: #dde9e5;
+  --c-recv-fg: #10241f;
+  --lad-1: #10241f;
+  --lad-5: #9fb6af;
+  --lad-6: #c4d6d0;
+  --logo-bg: #10241f;
+}
+
+/* ---------- Private (navy sidebar, serif headings, square corners) ---------- */
+html[data-theme="private"] {
+  --color-bg: #f6f4f0;
+  --color-surface: #ffffff;
+  --color-text: #14213d;
+  --color-divider: rgba(20, 33, 61, 0.14);
+  --color-neutral-100: #f6f4f0;
+  --color-neutral-200: #ebe7e0;
+  --color-neutral-300: #d9d3c9;
+  --color-neutral-400: #bdb5a8;
+  --color-neutral-500: #9a9184;
+  --color-neutral-600: #776f63;
+  --color-neutral-700: #5f584e;
+  --color-neutral-800: #3f3a33;
+  --color-neutral-900: #1f1c18;
+  --color-accent-2: #9b6a3c;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-panel: 6px;
+  --radius-dialog: 6px;
+  --radius-btn: 3px;
+  --radius-input: 3px;
+  --radius-seg: 3px;
+  --radius-seg-opt: 2px;
+  --radius-tag: 2px;
+  --shadow-sm: 0 1px 2px rgba(20, 33, 61, 0.06);
+  --shadow-md: 0 4px 14px rgba(20, 33, 61, 0.08);
+  --shadow-lg: 0 20px 48px rgba(11, 35, 64, 0.2);
+  --shadow-panel: none;
+  --shadow-lift: none;
+  --panel-border: 1px solid rgba(20, 33, 61, 0.09);
+  --fin-gain: #1e6b45;
+  --fin-loss: #a3302a;
+  --fin-warn: #8a5a00;
+  --fin-warn-bg: #fbf3e4;
+  --panel-bg: #ffffff;
+  --tile-bg: #f6f4f0;
+  --search-bg: rgba(255, 255, 255, 0.08);
+  --input-border: rgba(20, 33, 61, 0.2);
+  --btn2-bg: #ffffff;
+  --btn2-hover: #f6f4f0;
+  --btn2-border: rgba(20, 33, 61, 0.22);
+  --seg-bg: #ffffff;
+  --seg-on: var(--color-accent);
+  --seg-on-shadow: none;
+  --nav-hover: rgba(255, 255, 255, 0.07);
+  --nav-sel: rgba(255, 255, 255, 0.12);
+  --nav-sel-fg: #ffffff;
+  --side-bg: #0b2340;
+  --side-fg: rgba(255, 255, 255, 0.88);
+  --side-muted: rgba(255, 255, 255, 0.58);
+  --side-rule: rgba(255, 255, 255, 0.1);
+  --side-edge: none;
+  --logo-bg: #9b6a3c;
+  --c-stock: #12315a;
+  --c-fund: #3e6ea8;
+  --c-dep: #8fa9cc;
+  --c-cash: #9b6a3c;
+  --c-ret: #776f63;
+  --c-prop: #bdb5a8;
+  --c-recv: #d9c3a5;
+  --c-recv-fg: #14213d;
+  --c-loan: #a3302a;
+  --lad-1: #9b6a3c;
+  --lad-2: #12315a;
+  --lad-3: #3e6ea8;
+  --lad-4: #8fa9cc;
+  --lad-5: #bdb5a8;
+  --lad-6: #5f584e;
+  --lad-7: #d9c3a5;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-heading: "Source Serif 4", Georgia, serif;
+  --heading-weight: 600;
+  --heading-tracking: -0.015em;
+}
+
+/* Derived tints — computed from the semantic colours so every skin gets them for free */
+:root {
+  --fin-gain-bg: color-mix(in srgb, var(--fin-gain) 12%, transparent);
+  --fin-loss-bg: color-mix(in srgb, var(--fin-loss) 10%, transparent);
+}

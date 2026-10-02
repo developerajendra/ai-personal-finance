@@ -1,21 +1,12 @@
-import { Sidebar } from "@/shared/components/Sidebar";
+import { AppShell } from "@/shared/components/AppShell";
+import { ClassHeader } from "@/modules/portfolio/components/ClassPages";
 import { ProvidentFundDetailView } from "@/modules/portfolio/components/ProvidentFundDetailView";
 
-export default function ProvidentFundPage() {
+export default function Page() {
   return (
-    <div className="flex h-screen">
-        <Sidebar />
-        <main className="flex-1 overflow-auto">
-          <div className="p-6 space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold">Provident Fund</h1>
-              <p className="text-gray-600 mt-1">
-                View and manage your PPF (Public Provident Fund) account details
-              </p>
-            </div>
-            <ProvidentFundDetailView />
-          </div>
-        </main>
-    </div>
+    <AppShell>
+      <ClassHeader classKey="pf" />
+      <ProvidentFundDetailView />
+    </AppShell>
   );
 }

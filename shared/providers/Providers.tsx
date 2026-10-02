@@ -7,6 +7,7 @@ import { ChatbotProvider } from "@/modules/chatbot/hooks/useChatbot";
 import { ChatbotIcon } from "@/modules/chatbot/components/ChatbotIcon";
 import { ChatbotBoard } from "@/modules/chatbot/components/ChatbotBoard";
 import { SessionGate } from "@/shared/components/SessionGate";
+import { ThemeProvider } from "@/shared/providers/ThemeProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -24,13 +25,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <QueryClientProvider client={queryClient}>
-        <ChatbotProvider>
-          <SessionGate>
-            {children}
-            <ChatbotIcon />
-            <ChatbotBoard />
-          </SessionGate>
-        </ChatbotProvider>
+        <ThemeProvider>
+          <ChatbotProvider>
+            <SessionGate>
+              {children}
+              <ChatbotIcon />
+              <ChatbotBoard />
+            </SessionGate>
+          </ChatbotProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </SessionProvider>
   );

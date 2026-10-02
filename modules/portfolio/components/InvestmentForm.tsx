@@ -335,7 +335,7 @@ export function InvestmentForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Investment Name *
           </label>
           <input
@@ -352,12 +352,12 @@ export function InvestmentForm({
               });
             }}
             placeholder="e.g., PPF, FD, Mutual Fund"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Type *
           </label>
           <select
@@ -372,7 +372,7 @@ export function InvestmentForm({
                 assetType: getDefaultAssetType(formData.name || '', newType),
               });
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]">
             <option value="ppf">PPF</option>
             <option value="fd">Fixed Deposit</option>
             <option value="mutual-fund">Mutual Fund</option>
@@ -383,7 +383,7 @@ export function InvestmentForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Asset Type *
           </label>
           <select
@@ -395,14 +395,14 @@ export function InvestmentForm({
                 assetType: e.target.value as 'fixed' | 'liquid',
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]">
             <option value="liquid">Liquid Asset</option>
             <option value="fixed">Fixed Asset</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Amount ({getCurrencySymbol(selectedCurrency)}) *
           </label>
           <div className="relative">
@@ -413,28 +413,28 @@ export function InvestmentForm({
               step="0.01"
               value={inputAmount}
               onChange={(e) => handleAmountChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-20"
+              className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent pr-20 bg-[var(--input-bg)]"
             />
             {conversionRateText && (
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-200 whitespace-nowrap">
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted bg-tile px-2 py-1 rounded border border-divider whitespace-nowrap">
                 ≈ ₹{inrConvertedValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             )}
           </div>
           {conversionRateText && (
-            <p className="text-xs text-gray-500 mt-1" title={conversionRateText}>
+            <p className="text-xs text-muted mt-1" title={conversionRateText}>
               {conversionRateText}
             </p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Currency *</label>
+          <label className="block text-sm font-medium text-neutral-800 mb-1">Currency *</label>
           <select
             required
             value={selectedCurrency}
             onChange={(e) => handleCurrencyChange(e.target.value as Currency)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]">
             <option value="INR">INR (Indian Rupee)</option>
             <option value="NPR">NPR (Nepalese Rupee)</option>
             <option value="USD">USD (US Dollar)</option>
@@ -442,7 +442,7 @@ export function InvestmentForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Start Date *
           </label>
           <input
@@ -452,12 +452,12 @@ export function InvestmentForm({
             onChange={(e) =>
               setFormData({ ...formData, startDate: e.target.value })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Maturity Date (Optional)
           </label>
           <input
@@ -469,16 +469,16 @@ export function InvestmentForm({
                 maturityDate: e.target.value || undefined,
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         {formData.maturityDate && expectedMaturityValue && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-neutral-800 mb-1">
               Maturity Amount ({getCurrencySymbol(selectedCurrency)})
               {expectedMaturityValue.isCalculated && (
-                <span className="text-xs text-gray-500 font-normal ml-2">
+                <span className="text-xs text-muted font-normal ml-2">
                   (Calculated from formula)
                 </span>
               )}
@@ -495,22 +495,22 @@ export function InvestmentForm({
                     originalMaturityAmount: value,
                   });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-20"
+                className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent pr-20 bg-[var(--input-bg)]"
                 placeholder="0.00"
               />
               {(inputMaturityAmount !== undefined || expectedMaturityValue) && selectedCurrency !== 'INR' && (
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-200 whitespace-nowrap">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted bg-tile px-2 py-1 rounded border border-divider whitespace-nowrap">
                   ≈ ₹{(inrConvertedMaturityValue ?? expectedMaturityValue.inr).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               )}
             </div>
             {selectedCurrency !== 'INR' && (
-              <p className="text-xs text-gray-500 mt-1" title={conversionRateText || undefined}>
+              <p className="text-xs text-muted mt-1" title={conversionRateText || undefined}>
                 {conversionRateText}
               </p>
             )}
             {expectedMaturityValue.isCalculated && (
-              <p className="text-xs text-blue-600 mt-1">
+              <p className="text-xs text-accent-700 mt-1">
                 💡 Auto-calculated. You can override by entering a different value.
               </p>
             )}
@@ -518,7 +518,7 @@ export function InvestmentForm({
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             End Date (Optional)
           </label>
           <input
@@ -530,12 +530,12 @@ export function InvestmentForm({
                 endDate: e.target.value || undefined,
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Interest Rate (%) (Optional)
           </label>
           <input
@@ -552,12 +552,12 @@ export function InvestmentForm({
                   : undefined,
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Status *
           </label>
           <select
@@ -569,7 +569,7 @@ export function InvestmentForm({
                 status: e.target.value as Investment['status'],
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]">
             <option value="active">Active</option>
             <option value="matured">Matured</option>
             <option value="closed">Closed</option>
@@ -577,7 +577,7 @@ export function InvestmentForm({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Rule Label (Optional)
           </label>
           <input
@@ -587,12 +587,12 @@ export function InvestmentForm({
               setFormData({ ...formData, ruleLabel: e.target.value })
             }
             placeholder="e.g., 5x in 12 Years"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Rule Formula (Optional)
           </label>
           <div className="flex gap-2">
@@ -603,13 +603,13 @@ export function InvestmentForm({
                 setFormData({ ...formData, ruleFormula: e.target.value })
               }
               placeholder="e.g., principal * Math.pow(5, (yearsElapsed / 12))"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
             />
             <button
               type="button"
               onClick={handleGenerateFormula}
               disabled={isGeneratingFormula || !formData.ruleLabel}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-accent text-white hover:bg-accent-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-pill font-medium"
               title="Generate formula using AI">
               {isGeneratingFormula ? (
                 <>
@@ -624,7 +624,7 @@ export function InvestmentForm({
               )}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-muted mt-1">
             Available variables: principal, amount, daysElapsed, yearsElapsed, monthsElapsed
           </p>
         </div>
@@ -632,16 +632,16 @@ export function InvestmentForm({
 
       {/* Display calculated value if rule formula exists - Always show if formula exists */}
       {formData.ruleFormula && formData.startDate && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-accent-100 border border-accent-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900">Calculated Current Value</p>
+              <p className="text-sm font-medium text-accent-800">Calculated Current Value</p>
               {calculatedValue !== null ? (
-                <p className="text-lg font-bold text-blue-700 mt-1">
+                <p className="text-lg font-bold text-accent-700 mt-1">
                   {selectedCurrency !== 'INR' ? (
                     <>
                       {getCurrencySymbol(selectedCurrency)}{calculatedValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
-                      <span className="text-xs text-gray-500 ml-1">
+                      <span className="text-xs text-muted ml-1">
                         (₹{convertToINR(calculatedValue, selectedCurrency).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                       </span>
                     </>
@@ -650,9 +650,9 @@ export function InvestmentForm({
                   )}
                 </p>
               ) : (
-                <p className="text-sm text-red-600 mt-1">Error calculating value. Please check your formula.</p>
+                <p className="text-sm text-loss mt-1">Error calculating value. Please check your formula.</p>
               )}
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Updates automatically based on current date and formula
               </p>
             </div>
@@ -662,18 +662,18 @@ export function InvestmentForm({
 
       {/* Display expected maturity value - Always show if maturity date or maturity amount exists */}
       {(formData.maturityDate || inputMaturityAmount !== undefined) && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="bg-gain-bg border border-divider rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-green-900">
+              <p className="text-sm font-medium text-gain">
                 {formData.maturityDate ? 'Expected Maturity Value (at Maturity Date)' : 'Expected Maturity Value'}
               </p>
               {expectedMaturityValue !== null ? (
-                <p className="text-lg font-bold text-green-700 mt-1">
+                <p className="text-lg font-bold text-gain mt-1">
                   {selectedCurrency !== 'INR' ? (
                     <>
                       {getCurrencySymbol(selectedCurrency)}{expectedMaturityValue.original.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
-                      <span className="text-xs text-gray-500 ml-1">
+                      <span className="text-xs text-muted ml-1">
                         (₹{expectedMaturityValue.inr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                       </span>
                     </>
@@ -682,9 +682,9 @@ export function InvestmentForm({
                   )}
                 </p>
               ) : formData.maturityDate && formData.ruleFormula ? (
-                <p className="text-sm text-gray-600 mt-1">Calculating from formula...</p>
+                <p className="text-sm text-muted mt-1">Calculating from formula...</p>
               ) : (
-                <p className="text-sm text-gray-600 mt-1">Enter maturity amount or ensure formula is set</p>
+                <p className="text-sm text-muted mt-1">Enter maturity amount or ensure formula is set</p>
               )}
             </div>
           </div>
@@ -692,7 +692,7 @@ export function InvestmentForm({
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-neutral-800 mb-1">
           Description (Optional)
         </label>
         <textarea
@@ -701,7 +701,7 @@ export function InvestmentForm({
             setFormData({ ...formData, description: e.target.value })
           }
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
         />
       </div>
 
@@ -709,14 +709,14 @@ export function InvestmentForm({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+          className="px-4 py-2 border border-divider rounded-lg hover:bg-tile flex items-center gap-2">
           <X className="w-4 h-4" />
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSaving}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          className="px-4 py-2 bg-accent text-white hover:bg-accent-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-pill font-medium">
           {isSaving ? (
             <>
               <ButtonLoader />

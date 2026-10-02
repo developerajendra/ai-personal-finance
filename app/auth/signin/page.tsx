@@ -51,42 +51,42 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-lg w-full mx-4 border border-gray-100">
+    <div className="flex h-screen items-center justify-center bg-gradient-to-br from-tile via-accent-500 to-accent-700 p-4">
+      <div className="bg-panel rounded-2xl shadow-2xl p-10 max-w-lg w-full mx-4 border border-divider">
         <div className="text-center mb-8">
           <div className="relative inline-block mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+            <div className="w-20 h-20 bg-gradient-to-br from-accent to-accent-700 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
               <LogIn className="w-10 h-10 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-ink mb-3 bg-gradient-to-r from-accent to-accent-700 bg-clip-text text-transparent">
             Sign In
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-muted text-lg">
             Access your personal finance dashboard
           </p>
         </div>
 
         <div className="space-y-3 mb-8">
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
-            <TrendingUp className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-accent to-accent-700 border border-accent-200">
+            <TrendingUp className="w-5 h-5 text-accent-700 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-gray-900">Auto-sync Investments</p>
-              <p className="text-xs text-gray-600">Automatically extract investment data from emails</p>
+              <p className="text-sm font-semibold text-ink">Auto-sync Investments</p>
+              <p className="text-xs text-muted">Automatically extract investment data from emails</p>
             </div>
           </div>
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100">
-            <Zap className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-gain to-gain border border-divider">
+            <Zap className="w-5 h-5 text-gain mt-0.5 flex-shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-gray-900">Real-time Updates</p>
-              <p className="text-xs text-gray-600">Keep your portfolio updated automatically</p>
+              <p className="text-sm font-semibold text-ink">Real-time Updates</p>
+              <p className="text-xs text-muted">Keep your portfolio updated automatically</p>
             </div>
           </div>
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100">
-            <Shield className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-accent to-loss border border-accent-200">
+            <Shield className="w-5 h-5 text-accent-700 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-gray-900">Secure & Private</p>
-              <p className="text-xs text-gray-600">Your data is encrypted and secure</p>
+              <p className="text-sm font-semibold text-ink">Secure & Private</p>
+              <p className="text-xs text-muted">Your data is encrypted and secure</p>
             </div>
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function SignInPage() {
         <button
           onClick={handleGoogleSignIn}
           disabled={isGoogleLoading}
-          className="w-full group relative overflow-hidden flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg transition-all duration-300 mb-4"
+          className="w-full group relative overflow-hidden flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-loss via-warn to-gain text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg transition-all duration-300 mb-4"
         >
           {isGoogleLoading ? (
             <>
@@ -111,42 +111,42 @@ export default function SignInPage() {
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
+            <div className="w-full border-t border-divider" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-4 text-gray-500">or sign in with email</span>
+            <span className="bg-panel px-4 text-muted">or sign in with email</span>
           </div>
         </div>
 
         <form onSubmit={handleCredentialsSubmit} noValidate={DEV_AUTH_BYPASS} className="space-y-4">
           {DEV_AUTH_BYPASS && (
-            <div className="bg-amber-50 text-amber-800 text-sm p-3 rounded-lg border border-amber-200">
+            <div className="bg-warn-bg text-warn text-sm p-3 rounded-lg border border-divider">
               Development mode: login is bypassed — just click Sign In.
             </div>
           )}
           {error && (
-            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-200">
+            <div className="bg-loss-bg text-loss text-sm p-3 rounded-lg border border-divider">
               {error}
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-neutral-800 mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 border border-divider rounded-xl focus:ring-2 focus:ring-accent focus:border-transparent outline-none transition-all"
               placeholder="you@example.com"
               required={!DEV_AUTH_BYPASS}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-neutral-800 mb-1">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 border border-divider rounded-xl focus:ring-2 focus:ring-accent focus:border-transparent outline-none transition-all"
               placeholder="Enter your password"
               required={!DEV_AUTH_BYPASS}
             />
@@ -154,7 +154,7 @@ export default function SignInPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300"
+            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-accent to-accent-700 text-white rounded-xl hover:from-accent hover:to-accent-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg shadow-blue-500/30 transition-all duration-300"
           >
             {isLoading ? (
               <>
@@ -167,9 +167,9 @@ export default function SignInPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-muted mt-6">
           Don&apos;t have an account?{" "}
-          <Link href="/auth/register" className="text-blue-600 hover:text-blue-700 font-medium">
+          <Link href="/auth/register" className="text-accent-700 hover:text-accent-700 font-medium">
             Create one
           </Link>
         </p>

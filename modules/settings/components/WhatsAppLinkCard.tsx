@@ -54,49 +54,49 @@ export function WhatsAppLinkCard() {
   };
 
   return (
-    <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+    <section id="whatsapp" className="panel px-6 py-[22px]">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <MessageCircle className="w-5 h-5 text-green-600" />
-          <h2 className="text-xl font-semibold text-gray-900">WhatsApp</h2>
+          <MessageCircle className="w-5 h-5 text-accent-700" />
+          <h2 className="text-[19px] text-ink">WhatsApp</h2>
         </div>
         {status?.status === "verified" && (
-          <span className="flex items-center gap-1.5 text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full">
-            <CheckCircle className="w-4 h-4" /> Linked +{status.phoneNumber}
+          <span className="tag tag-gain font-semibold">
+            <CheckCircle className="w-3.5 h-3.5" /> Linked +{status.phoneNumber}
           </span>
         )}
       </div>
-      <p className="text-gray-600 text-sm mb-4">
+      <p className="text-muted text-[13.5px] mb-4">
         Link your WhatsApp number to log expenses, add investments and ask questions by message.
       </p>
 
       {status?.status !== "verified" && (
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp number (with country code)</label>
+          <label className="field-label">WhatsApp number (with country code)</label>
           <input
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+            className="input"
             placeholder="+91 98765 43210"
           />
         </div>
       )}
 
       {pendingCode && status?.status === "pending" && (
-        <div className="mb-4 p-3 bg-green-50 rounded-lg text-sm text-green-800">
-          <div className="font-mono text-lg font-semibold mb-1">LINK {pendingCode.code}</div>
+        <div className="mb-4 rounded-[12px] bg-tile p-4 text-[13.5px] text-muted">
+          <div className="mb-1 font-mono text-[19px] font-semibold text-ink">LINK {pendingCode.code}</div>
           {pendingCode.instructions}
         </div>
       )}
-      {error && <div className="mb-4 p-3 bg-red-50 rounded-lg text-sm text-red-700">{error}</div>}
+      {error && <div className="mb-4 rounded-[12px] bg-loss-bg p-3 text-[13.5px] text-loss" role="alert">{error}</div>}
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-2">
         {status?.status !== "verified" && (
           <button
             onClick={startLink}
             disabled={busy || phone.trim().length < 8}
-            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 text-sm font-medium disabled:opacity-50"
+            className="btn btn-primary"
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
             {status?.status === "pending" ? "Get a new code" : "Get link code"}
@@ -106,7 +106,7 @@ export function WhatsAppLinkCard() {
           <button
             onClick={unlink}
             disabled={busy}
-            className="flex items-center gap-2 px-4 py-2.5 text-red-600 border border-red-200 rounded-xl hover:bg-red-50 text-sm font-medium"
+            className="btn btn-danger"
           >
             <Trash2 className="w-4 h-4" />
             Unlink

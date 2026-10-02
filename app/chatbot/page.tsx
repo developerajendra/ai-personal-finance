@@ -1,14 +1,10 @@
 import { ChatbotPage } from "@/modules/chatbot/components/ChatbotPage";
-import { Sidebar } from "@/shared/components/Sidebar";
+import { AppShell } from "@/shared/components/AppShell";
 
 export default function ChatbotFullPage() {
   return (
-    <div className="flex h-screen">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
-        <ChatbotPage />
-      </main>
-    </div>
+    <AppShell>
+      <ChatbotPage />
+    </AppShell>
   );
 }
-

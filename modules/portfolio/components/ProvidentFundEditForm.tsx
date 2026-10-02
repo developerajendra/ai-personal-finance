@@ -78,7 +78,7 @@ export function ProvidentFundEditForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Member ID
           </label>
           <input
@@ -86,12 +86,12 @@ export function ProvidentFundEditForm({
             value={formData.memberId ?? ''}
             onChange={(e) => setFormData({ ...formData, memberId: e.target.value })}
             placeholder="e.g., MRNOI00540970000010276"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Member Name
           </label>
           <input
@@ -99,12 +99,12 @@ export function ProvidentFundEditForm({
             value={formData.memberName ?? ''}
             onChange={(e) => setFormData({ ...formData, memberName: e.target.value })}
             placeholder="e.g., RAJENDRA PRASAD"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Establishment ID
           </label>
           <input
@@ -112,12 +112,12 @@ export function ProvidentFundEditForm({
             value={formData.establishmentId ?? ''}
             onChange={(e) => setFormData({ ...formData, establishmentId: e.target.value })}
             placeholder="e.g., MRNOI0054097000/TO"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Establishment Name
           </label>
           <input
@@ -125,12 +125,12 @@ export function ProvidentFundEditForm({
             value={formData.establishmentName ?? ''}
             onChange={(e) => setFormData({ ...formData, establishmentName: e.target.value })}
             placeholder="e.g., INTELLIGRAPE SOFTWARE"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Deposit - Employee Share (₹)
           </label>
           <input
@@ -144,12 +144,12 @@ export function ProvidentFundEditForm({
                 depositEmployeeShare: parseNum(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Deposit - Employer Share (₹)
           </label>
           <input
@@ -163,12 +163,12 @@ export function ProvidentFundEditForm({
                 depositEmployerShare: parseNum(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Withdraw - Employee Share (₹)
           </label>
           <input
@@ -182,12 +182,12 @@ export function ProvidentFundEditForm({
                 withdrawEmployeeShare: parseNum(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Withdraw - Employer Share (₹)
           </label>
           <input
@@ -201,12 +201,12 @@ export function ProvidentFundEditForm({
                 withdrawEmployerShare: parseNum(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Pension Contribution (₹)
           </label>
           <input
@@ -220,15 +220,15 @@ export function ProvidentFundEditForm({
                 pensionContribution: parseNum(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Grand Total (₹) <span className="text-gray-400 font-normal">(auto-calculated)</span>
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
+            Grand Total (₹) <span className="text-neutral-500 font-normal">(auto-calculated)</span>
           </label>
-          <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 font-semibold">
+          <div className="w-full px-3 py-2 border border-divider rounded-lg bg-tile text-ink font-semibold">
             ₹{grandTotal.toLocaleString('en-IN')}
           </div>
         </div>
@@ -238,7 +238,7 @@ export function ProvidentFundEditForm({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+          className="px-4 py-2 border border-divider rounded-lg hover:bg-tile flex items-center gap-2"
         >
           <X className="w-4 h-4" />
           Cancel
@@ -246,7 +246,7 @@ export function ProvidentFundEditForm({
         <button
           type="submit"
           disabled={isSaving}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-accent text-white hover:bg-accent-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-pill font-medium"
         >
           {isSaving ? (
             <>

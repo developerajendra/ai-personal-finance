@@ -15,7 +15,7 @@ export function AdminPanelModule() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Admin Panel</h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted mt-1">
           Upload Excel files and let AI automatically extract, categorize, and organize your financial data
         </p>
       </div>

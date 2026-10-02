@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 
 interface TabsContextType {
@@ -28,7 +28,7 @@ export function Tabs({
 
 export function TabsList({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn("inline-flex h-10 items-center justify-center rounded-md bg-gray-100 p-1 text-gray-500", className)}>
+    <div className={cn("seg", className)} role="tablist">
       {children}
     </div>
   );
@@ -48,13 +48,12 @@ export function TabsTrigger({
 
   return (
     <button
+      type="button"
+      role="tab"
+      aria-selected={isActive}
+      aria-pressed={isActive}
       onClick={() => context.onValueChange(value)}
-      className={cn(
-        'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-        isActive
-          ? 'bg-white text-gray-950 shadow-sm'
-          : 'text-gray-600 hover:text-gray-900',
-      )}>
+      className="seg-opt">
       {children}
     </button>
   );

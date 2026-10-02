@@ -24,13 +24,13 @@ export function SessionGate({ children }: SessionGateProps) {
 
   if (status === "loading") {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-tile via-accent-500 to-accent-700">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+          <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
             <LogIn className="w-8 h-8 text-white" />
           </div>
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-3" />
-          <p className="text-gray-600 font-medium">Checking authentication...</p>
+          <Loader2 className="w-6 h-6 animate-spin text-accent-700 mx-auto mb-3" />
+          <p className="text-muted font-medium">Checking authentication...</p>
         </div>
       </div>
     );

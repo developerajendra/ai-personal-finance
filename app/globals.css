@@ -1,28 +1,338 @@
+@import "./ledger-theme.css";
+
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
 
+/* Legacy aliases kept for any code still reading them */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    background: var(--color-bg);
+  }
+  body {
+    color: var(--color-text);
+    background: var(--color-bg);
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums lining-nums;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1,
+  h2 {
+    font-family: var(--font-heading);
+    letter-spacing: var(--heading-tracking);
+  }
+  h1 {
+    font-weight: var(--heading-weight);
+  }
+  h2 {
+    font-weight: 650;
+  }
+  a {
+    color: inherit;
+  }
+  button:focus-visible,
+  select:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-accent-200);
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
+
+/* Ledger component classes. Kept outside @layer so Tailwind never purges classes that are
+   composed dynamically (e.g. `tag-${tone}`), and placed before utilities so utilities still win. */
+
+  /* Panel: the one boxed surface. Padding comes from the caller (default p-[22px_24px]). */
+  .panel {
+    background: var(--panel-bg);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+    border: var(--panel-border);
+  }
+  .panel-lift {
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .panel-lift:hover {
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-1px);
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 16px;
+    border-radius: var(--radius-btn);
+    border: 1px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, opacity 0.15s;
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-sm {
+    min-height: 30px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .btn-lg {
+    min-height: 42px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
+  .btn-primary {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-accent-700);
+  }
+  .btn-secondary {
+    background: var(--btn2-bg);
+    border-color: var(--btn2-border);
+    color: var(--color-text);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--btn2-hover);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-accent-700);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-accent-100);
+  }
+  .btn-danger {
+    background: var(--fin-loss-bg);
+    color: var(--fin-loss);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--fin-loss) 18%, transparent);
+  }
+  .btn-icon {
+    width: 36px;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  /* Inputs */
+  .input {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 12px;
+    border-radius: var(--radius-input);
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--color-text);
+    font-size: 14px;
+  }
+  .input::placeholder {
+    color: var(--color-neutral-500);
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-100);
+  }
+  .field-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--color-neutral-600);
+  }
+
+  /* Segmented control */
+  .seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--radius-seg);
+    background: var(--seg-bg);
+  }
+  html[data-theme="private"] .seg {
+    border: 1px solid rgba(20, 33, 61, 0.22);
+  }
+  .seg-opt {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 4px 14px;
+    border-radius: var(--radius-seg-opt);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text);
+    background: transparent;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .seg-opt[aria-pressed="true"] {
+    background: var(--seg-on);
+    box-shadow: var(--seg-on-shadow);
+  }
+  html[data-theme="private"] .seg-opt[aria-pressed="true"] {
+    color: #fff;
+  }
+
+  /* Tags / pills */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 9px;
+    border-radius: var(--radius-tag);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 18px;
+    white-space: nowrap;
+    background: var(--tile-bg);
+    color: var(--color-neutral-700);
+  }
+  .tag-gain {
+    background: var(--fin-gain-bg);
+    color: var(--fin-gain);
+  }
+  .tag-loss {
+    background: var(--fin-loss-bg);
+    color: var(--fin-loss);
+  }
+  .tag-warn {
+    background: var(--fin-warn-bg);
+    color: var(--fin-warn);
+  }
+  .tag-accent {
+    background: var(--color-accent-100);
+    color: var(--color-accent-800);
+  }
+
+  /* Eyebrow label (uppercase metadata) */
+  .eyebrow {
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-neutral-600);
+  }
+
+  /* Ledger table */
+  .ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .ledger-table thead th {
+    background: var(--tile-bg);
+    color: var(--color-neutral-600);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 12px 16px;
+    white-space: nowrap;
+  }
+  .ledger-table tbody td {
+    padding: 14px 16px;
+    border-top: 1px solid var(--color-divider);
+    vertical-align: middle;
+  }
+  .ledger-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--tile-bg) 60%, transparent);
+  }
+  .ledger-table .num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Dialog */
+  .dialog {
+    background: var(--dialog-bg);
+    border-radius: var(--radius-dialog);
+    box-shadow: var(--shadow-lg);
+    color: var(--color-text);
+  }
+
+  /* Glass surfaces */
+  .glass-side {
+    background: var(--side-bg);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    box-shadow: var(--side-edge);
+  }
+  .glass-tabbar {
+    background: var(--tabbar-bg);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    box-shadow: 0 -0.5px 0 rgba(0, 0, 0, 0.16);
+  }
+
+@tailwind utilities;
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
+@keyframes lgOrb {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+@keyframes lgBar {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes lgDot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

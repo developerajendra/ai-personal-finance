@@ -279,13 +279,13 @@ export function BankBalanceForm({
               title={conversionRateText || undefined}
             />
             {conversionRateText && (
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-200 whitespace-nowrap">
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted bg-tile px-2 py-1 rounded border border-divider whitespace-nowrap">
                 ≈ ₹{inrConvertedValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             )}
           </div>
           {conversionRateText && (
-            <p className="text-xs text-gray-500 mt-1" title={conversionRateText}>
+            <p className="text-xs text-muted mt-1" title={conversionRateText}>
               {conversionRateText}
             </p>
           )}
@@ -390,17 +390,17 @@ export function BankBalanceForm({
 
             {/* Display calculated interest and expected total */}
             {interestCalculation && (
-              <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-                <h4 className="font-semibold text-sm text-blue-900">
+              <div className="col-span-2 bg-accent-100 border border-accent-200 rounded-lg p-4 space-y-2">
+                <h4 className="font-semibold text-sm text-accent-800">
                   {interestCalculation.hasInterest ? 'Interest Calculation' : 'Amount Summary'}
                 </h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-gray-600">Amount Given:</span>
+                    <span className="text-muted">Amount Given:</span>
                     {interestCalculation.currency !== 'INR' ? (
                       <span className="ml-2 font-medium">
                         {getCurrencySymbol(interestCalculation.currency)}{interestCalculation.principalOriginal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
-                        <span className="text-xs text-gray-500 ml-1">
+                        <span className="text-xs text-muted ml-1">
                           (₹{interestCalculation.principal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                         </span>
                       </span>
@@ -411,47 +411,47 @@ export function BankBalanceForm({
                   {interestCalculation.hasInterest && (
                     <>
                       <div>
-                        <span className="text-gray-600">Interest Rate:</span>
+                        <span className="text-muted">Interest Rate:</span>
                         <span className="ml-2 font-medium">{interestCalculation.interestRate}% p.a.</span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Days Elapsed:</span>
+                        <span className="text-muted">Days Elapsed:</span>
                         <span className="ml-2 font-medium">{interestCalculation.daysDiff} days</span>
                       </div>
                       <div>
-                        <span className="text-gray-600">Time Period:</span>
+                        <span className="text-muted">Time Period:</span>
                         <span className="ml-2 font-medium">{interestCalculation.years.toFixed(4)} years</span>
                       </div>
-                      <div className="col-span-2 border-t border-blue-300 pt-2">
-                        <span className="text-gray-600">Interest Amount:</span>
+                      <div className="col-span-2 border-t border-accent-200 pt-2">
+                        <span className="text-muted">Interest Amount:</span>
                         {interestCalculation.currency !== 'INR' ? (
-                          <span className="ml-2 font-semibold text-green-700">
+                          <span className="ml-2 font-semibold text-gain">
                             {getCurrencySymbol(interestCalculation.currency)}{interestCalculation.interestAmountOriginal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
-                            <span className="text-xs text-gray-500 ml-1">
+                            <span className="text-xs text-muted ml-1">
                               (₹{interestCalculation.interestAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                             </span>
                           </span>
                         ) : (
-                          <span className="ml-2 font-semibold text-green-700">₹{interestCalculation.interestAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span className="ml-2 font-semibold text-gain">₹{interestCalculation.interestAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         )}
                       </div>
                     </>
                   )}
-                  <div className="col-span-2 border-t border-blue-300 pt-2">
-                    <span className="text-gray-600">
+                  <div className="col-span-2 border-t border-accent-200 pt-2">
+                    <span className="text-muted">
                       {interestCalculation.dueDate 
                         ? 'Expected Total (at Due Date):' 
                         : 'Expected Total:'}
                     </span>
                     {interestCalculation.currency !== 'INR' ? (
-                      <span className="ml-2 font-bold text-blue-700">
+                      <span className="ml-2 font-bold text-accent-700">
                         {getCurrencySymbol(interestCalculation.currency)}{interestCalculation.totalWithInterestOriginal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
-                        <span className="text-xs text-gray-500 ml-1">
+                        <span className="text-xs text-muted ml-1">
                           (₹{interestCalculation.totalWithInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                         </span>
                       </span>
                     ) : (
-                      <span className="ml-2 font-bold text-blue-700">₹{interestCalculation.totalWithInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span className="ml-2 font-bold text-accent-700">₹{interestCalculation.totalWithInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     )}
                   </div>
                 </div>
@@ -478,14 +478,14 @@ export function BankBalanceForm({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2">
+          className="px-4 py-2 border rounded-lg hover:bg-tile flex items-center gap-2">
           <X className="w-4 h-4" />
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSaving}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+          className="px-4 py-2 bg-accent text-white hover:bg-accent-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-pill font-medium">
           {isSaving ? (
             <>
               <ButtonLoader />
