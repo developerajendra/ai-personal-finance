@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { loadPPFAccounts } from "@/core/services/ppfStorageService";
-import { getSession } from "@/core/auth/getSession";
+import { loadPPFAccounts } from "@/server/finance/provident-fund/ppfStorage";
+import { getSession } from "@/server/auth/session";
 
 export async function GET() {
   try {

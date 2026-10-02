@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getGmailAuthUrl } from '@/core/services/gmailService';
+import { getGmailAuthUrl } from '@/server/integrations/gmail/gmailService';
 
 export async function GET() {
   try {

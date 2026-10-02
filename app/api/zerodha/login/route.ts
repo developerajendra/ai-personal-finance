@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getZerodhaLoginUrl } from "@/core/services/zerodhaService";
-import { getSession } from "@/core/auth/getSession";
+import { getZerodhaLoginUrl } from "@/server/integrations/kite/zerodhaService";
+import { getSession } from "@/server/auth/session";
 
 export async function GET(request: NextRequest) {
   try {

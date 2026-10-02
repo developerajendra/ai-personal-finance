@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FinancialSnapshot, ArchiveGrowthMetrics } from "@/core/types";
-import { formatIndianNumber } from "@/core/services/currencyService";
+import { FinancialSnapshot, ArchiveGrowthMetrics } from "@/shared/types";
+import { formatIndianNumber } from "@/shared/utils/currency";
 import {
   TrendingUp,
   TrendingDown,

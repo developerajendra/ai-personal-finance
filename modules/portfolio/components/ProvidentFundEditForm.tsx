@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { PPFAccount } from '@/core/services/ppfStorageService';
+import type { PPFAccount } from "@/shared/types";
 import { Save, X } from 'lucide-react';
 import { ButtonLoader } from '@/shared/components/Loader';
 

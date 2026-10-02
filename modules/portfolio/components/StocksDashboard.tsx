@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ZerodhaStock } from "@/core/services/zerodhaService";
+import type { ZerodhaStock } from "@/shared/types";
 import { Loader } from "@/shared/components/Loader";
 import { TrendingUp, TrendingDown, RefreshCw, Link as LinkIcon, LogOut, AlertCircle } from "lucide-react";
 import { useState } from "react";

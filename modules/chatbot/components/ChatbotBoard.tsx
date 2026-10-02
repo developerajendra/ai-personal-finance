@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useChatbot } from "../hooks/useChatbot";
 import { X, Minimize2, Maximize2, Mic, MicOff } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
-import { ChatMessage } from "@/core/types";
-import { sendChatMessage } from "@/core/services/geminiService";
+import { ChatMessage } from "@/shared/types";
 import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -26,6 +25,12 @@ export function ChatbotBoard() {
     pendingAuditData,
     clearPendingAuditData,
   } = useChatbot();
+  // Server-side conversation id so follow-up answers (e.g. a missing amount)
+  // resolve against the same thread; reset when the chat is cleared.
+  const conversationIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (messages.length === 0) conversationIdRef.current = null;
+  }, [messages.length]);
   const router = useRouter();
   const pathname = usePathname();
   const [input, setInput] = useState("");
@@ -89,6 +94,7 @@ export function ChatbotBoard() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+          conversationId: conversationIdRef.current,
             message: pendingAuditData.message,
             agent: "audit-finance",
             currentPage: pathname,
@@ -109,6 +115,7 @@ export function ChatbotBoard() {
         });
 
         const data = await response.json();
+      if (data.conversationId) conversationIdRef.current = data.conversationId;
         const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -356,6 +363,7 @@ export function ChatbotBoard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          conversationId: conversationIdRef.current,
           message: transcript,
           agent: selectedAgent,
           currentPage: pathname,
@@ -369,6 +377,7 @@ export function ChatbotBoard() {
       });
 
       const data = await response.json();
+      if (data.conversationId) conversationIdRef.current = data.conversationId;
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -461,6 +470,7 @@ export function ChatbotBoard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          conversationId: conversationIdRef.current,
           message: messageToSend,
           agent: selectedAgent,
           currentPage: pathname,
@@ -474,6 +484,7 @@ export function ChatbotBoard() {
       });
 
       const data = await response.json();
+      if (data.conversationId) conversationIdRef.current = data.conversationId;
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),

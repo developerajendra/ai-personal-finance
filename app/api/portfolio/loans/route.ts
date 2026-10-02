@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Loan } from "@/core/types";
-import { paginate, PaginationParams } from "@/core/services/scalabilityService";
-import { getSession } from "@/core/auth/getSession";
-import { loadFromJson, saveToJson, initializeStorage } from "@/core/services/jsonStorageService";
-import { getEffectiveOutstandingAmount } from "@/core/services/loanAnalyticsService";
+import { Loan } from "@/shared/types";
+import { paginate } from "@/shared/utils/pagination";
+import { getSession } from "@/server/auth/session";
+import { loanService } from "@/server/finance/loans/service";
+import { errorResponse } from "@/server/http/errors";
+import { getEffectiveOutstandingAmount } from "@/server/finance/loans/loanAnalytics";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,8 +14,7 @@ export async function GET(request: NextRequest) {
     }
     const userId = session.userId;
 
-    initializeStorage();
-    const jsonData = await loadFromJson<Loan>("loans", userId);
+    const jsonData = await loanService.list(userId);
 
     const normalizedData = await Promise.all(
       jsonData.map(async (loan) => ({
@@ -56,23 +56,10 @@ export async function POST(request: NextRequest) {
     }
     const userId = session.userId;
 
-    initializeStorage();
-    const jsonData = await loadFromJson<Loan>("loans", userId);
-    const normalizedData = jsonData.map(loan => ({
-      ...loan,
-      isPublished: loan.isPublished ?? false
-    }));
-
-    const loan: Loan = await request.json();
-    const loanToAdd = { ...loan, isPublished: loan.isPublished ?? true };
-    const updatedData = [...normalizedData, loanToAdd];
-    await saveToJson("loans", updatedData, userId);
-
-    return NextResponse.json(loanToAdd, { status: 201 });
+    const body = await request.json();
+    const created = await loanService.create(userId, body, { isPublished: body?.isPublished ?? true });
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to create loan" },
-      { status: 500 }
-    );
+    return errorResponse(error, "Failed to create loan");
   }
 }

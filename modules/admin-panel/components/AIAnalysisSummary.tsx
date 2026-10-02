@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Investment, Loan, Property } from "@/core/types";
+import { Investment, Loan, Property } from "@/shared/types";
 import { TrendingUp, TrendingDown, Home, CheckCircle, AlertCircle } from "lucide-react";
 import { Loader } from "@/shared/components/Loader";
 

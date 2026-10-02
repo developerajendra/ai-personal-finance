@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LoanMonthlySnapshot, Loan } from '@/core/types';
-import { formatIndianNumber } from '@/core/services/currencyService';
+import { LoanMonthlySnapshot, Loan } from '@/shared/types';
+import { formatIndianNumber } from '@/shared/utils/currency';
 import {
   TrendingUp,
   TrendingDown,

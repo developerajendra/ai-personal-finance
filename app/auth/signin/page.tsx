@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mail, Loader2, Shield, TrendingUp, Zap, LogIn } from "lucide-react";
 
+// Development-only: the server must also have DEV_AUTH_BYPASS=true, otherwise
+// the "dev-bypass" provider doesn't exist and sign-in fails safely.
+const DEV_AUTH_BYPASS = process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true";
+
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -20,11 +24,13 @@ export default function SignInPage() {
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
+      const result = DEV_AUTH_BYPASS
+        ? await signIn("dev-bypass", { redirect: false })
+        : await signIn("credentials", {
+            email,
+            password,
+            redirect: false,
+          });
 
       if (result?.error) {
         setError("Invalid email or password");
@@ -112,7 +118,12 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+        <form onSubmit={handleCredentialsSubmit} noValidate={DEV_AUTH_BYPASS} className="space-y-4">
+          {DEV_AUTH_BYPASS && (
+            <div className="bg-amber-50 text-amber-800 text-sm p-3 rounded-lg border border-amber-200">
+              Development mode: login is bypassed — just click Sign In.
+            </div>
+          )}
           {error && (
             <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-200">
               {error}
@@ -126,7 +137,7 @@ export default function SignInPage() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
               placeholder="you@example.com"
-              required
+              required={!DEV_AUTH_BYPASS}
             />
           </div>
           <div>
@@ -137,7 +148,7 @@ export default function SignInPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
               placeholder="Enter your password"
-              required
+              required={!DEV_AUTH_BYPASS}
             />
           </div>
           <button

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { ChatMessage } from "@/core/types";
+import { ChatMessage } from "@/shared/types";
 import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -15,6 +15,12 @@ import { capturePageScreenshot } from "../utils/captureScreenshot";
 export function ChatbotPage() {
   const pathname = usePathname();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Server-side conversation id so follow-up answers (e.g. a missing amount)
+  // resolve against the same thread; reset when the chat is cleared.
+  const conversationIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (messages.length === 0) conversationIdRef.current = null;
+  }, [messages.length]);
   const [input, setInput] = useState("");
   const [operationPrefix, setOperationPrefix] = useState<string>(""); // Track selected operation
   const [selectedAgent, setSelectedAgent] = useState<"ask" | "audit-finance">("ask"); // Agent selector
@@ -269,6 +275,7 @@ export function ChatbotPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          conversationId: conversationIdRef.current,
           message: transcript,
           agent: selectedAgent,
           currentPage: pathname,
@@ -282,6 +289,7 @@ export function ChatbotPage() {
       });
 
       const data = await response.json();
+      if (data.conversationId) conversationIdRef.current = data.conversationId;
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -374,6 +382,7 @@ export function ChatbotPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          conversationId: conversationIdRef.current,
           message: messageToSend,
           agent: selectedAgent,
           currentPage: pathname,
@@ -387,6 +396,7 @@ export function ChatbotPage() {
       });
 
       const data = await response.json();
+      if (data.conversationId) conversationIdRef.current = data.conversationId;
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),

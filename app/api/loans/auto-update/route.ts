@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   loadLoanSnapshots,
   generateMissingMonthlySnapshots,
-} from '@/core/services/loanAnalyticsService';
-import { loadFromJson } from '@/core/services/jsonStorageService';
-import { Loan, LoanMonthlySnapshot } from '@/core/types';
-import { getSession } from "@/core/auth/getSession";
+} from '@/server/finance/loans/loanAnalytics';
+import { loanService } from '@/server/finance/loans/service';
+import { getSession } from "@/server/auth/session";
 
 const PAYMENT_DAY = 4; // Loan payment happens on the 4th of every month
 
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Load all loans
-    const allLoansData = await loadFromJson<Loan>('loans', userId);
+    const allLoansData = await loanService.list(userId);
     const loans = allLoansData.filter((l) => l.isPublished);
     if (loans.length === 0) {
       return NextResponse.json({

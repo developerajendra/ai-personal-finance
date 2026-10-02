@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getSession } from '@/core/auth/getSession';
+import { getSession } from '@/server/auth/session';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     cookieStore.delete('gmail_refresh_token');
 
     try {
-      const { getMainOrchestrator } = await import('@/core/agents/agentManager');
+      const { getMainOrchestrator } = await import('@/server/integrations/gmail/agents/agentManager');
       const orchestrator = getMainOrchestrator(userId);
       const portfolioAgent = orchestrator.getPortfolioAgent();
       portfolioAgent.clearTokens();

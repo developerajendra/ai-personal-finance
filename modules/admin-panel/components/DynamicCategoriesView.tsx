@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { DynamicCategory, CategoryLearning } from "@/core/types";
+import { DynamicCategory, CategoryLearning } from "@/shared/types";
 import { TrendingUp, Brain, RefreshCw } from "lucide-react";
 import { Loader } from "@/shared/components/Loader";
 

@@ -6,8 +6,8 @@ import {
   getAvailableMonths,
   calculateGrowthMetrics,
   getPreviousSnapshot,
-} from "@/core/services/archiveService";
-import { getSession } from "@/core/auth/getSession";
+} from "@/server/finance/reports/archiveService";
+import { getSession } from "@/server/auth/session";
 
 // GET: Fetch archive data
 export async function GET(request: NextRequest) {

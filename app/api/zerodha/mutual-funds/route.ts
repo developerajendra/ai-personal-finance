@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchMutualFunds, getMockMutualFunds } from "@/core/services/zerodhaService";
-import { loadMutualFunds, saveMutualFunds } from "@/core/services/jsonStorageService";
+import { fetchMutualFunds, getMockMutualFunds } from "@/server/integrations/kite/zerodhaService";
+import { loadMutualFunds, saveMutualFunds } from "@/server/finance/portfolio/service";
 import { cookies } from "next/headers";
-import { getSession } from "@/core/auth/getSession";
+import { getSession } from "@/server/auth/session";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();

@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { BankBalance } from '@/core/types';
+import { BankBalance } from '@/shared/types';
 import { Save, X } from 'lucide-react';
 import { ButtonLoader } from '@/shared/components/Loader';
-import { convertToINR, convertFromINR, getConversionRateText, getCurrencySymbol, type Currency } from '@/core/services/currencyService';
+import { convertToINR, convertFromINR, getConversionRateText, getCurrencySymbol, type Currency } from '@/shared/utils/currency';
 
 interface BankBalanceFormProps {
   initialData?: BankBalance;

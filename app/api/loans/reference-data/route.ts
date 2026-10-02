@@ -4,7 +4,7 @@ import {
   updateReferenceDataKey,
   deleteReferenceDataKey,
   setGlobalReferenceData,
-} from '@/core/services/loanReferenceDataService';
+} from '@/server/integrations/gmail/loans/loanReferenceData';
 
 export async function GET() {
   try {

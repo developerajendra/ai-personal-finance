@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BankBalance } from "@/core/types";
-import { paginate, PaginationParams } from "@/core/services/scalabilityService";
-import { getSession } from "@/core/auth/getSession";
-import { loadFromJson, saveToJson, initializeStorage } from "@/core/services/jsonStorageService";
+import { BankBalance } from "@/shared/types";
+import { paginate } from "@/shared/utils/pagination";
+import { getSession } from "@/server/auth/session";
+import { bankBalanceService } from "@/server/finance/accounts/service";
+import { errorResponse } from "@/server/http/errors";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +13,7 @@ export async function GET(request: NextRequest) {
     }
     const userId = session.userId;
 
-    initializeStorage();
-    const jsonData = await loadFromJson<BankBalance>("bankBalances", userId);
+    const jsonData = await bankBalanceService.list(userId);
     const normalizedData = jsonData.map(bb => ({
       ...bb,
       isPublished: bb.isPublished ?? false
@@ -51,23 +51,10 @@ export async function POST(request: NextRequest) {
     }
     const userId = session.userId;
 
-    initializeStorage();
-    const jsonData = await loadFromJson<BankBalance>("bankBalances", userId);
-    const normalizedData = jsonData.map(bb => ({
-      ...bb,
-      isPublished: bb.isPublished ?? false
-    }));
-
-    const bankBalance: BankBalance = await request.json();
-    const bankBalanceToAdd = { ...bankBalance, isPublished: bankBalance.isPublished ?? true };
-    const updatedData = [...normalizedData, bankBalanceToAdd];
-    await saveToJson("bankBalances", updatedData, userId);
-
-    return NextResponse.json(bankBalanceToAdd, { status: 201 });
+    const body = await request.json();
+    const created = await bankBalanceService.create(userId, body, { isPublished: body?.isPublished ?? true });
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to create bank balance" },
-      { status: 500 }
-    );
+    return errorResponse(error, "Failed to create bank balance");
   }
 }

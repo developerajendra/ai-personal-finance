@@ -1,6 +1,6 @@
 "use client";
 
-import { FinancialSummary } from "@/core/types";
+import { FinancialSummary } from "@/shared/types";
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { Loader } from "@/shared/components/Loader";
 

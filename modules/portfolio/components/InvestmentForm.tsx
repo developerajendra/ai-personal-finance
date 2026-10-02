@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Investment } from '@/core/types';
+import { Investment } from '@/shared/types';
 import { Save, X, Sparkles } from 'lucide-react';
 import { ButtonLoader } from '@/shared/components/Loader';
-import { convertToINR, convertFromINR, getConversionRateText, getCurrencySymbol, type Currency } from '@/core/services/currencyService';
+import { convertToINR, convertFromINR, getConversionRateText, getCurrencySymbol, type Currency } from '@/shared/utils/currency';
 
 interface InvestmentFormProps {
   investment?: Investment;

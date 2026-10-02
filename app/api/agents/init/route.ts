@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { initializeAgents } from '@/core/agents/agentManager';
-import { getSession } from "@/core/auth/getSession";
+import { initializeAgents } from '@/server/integrations/gmail/agents/agentManager';
+import { getSession } from "@/server/auth/session";
 
 export async function POST() {
   try {

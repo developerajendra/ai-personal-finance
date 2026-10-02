@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Transaction, FinancialSummary } from "@/core/types";
+import { Transaction, FinancialSummary } from "@/shared/types";
 import {
   PieChart,
   Pie,

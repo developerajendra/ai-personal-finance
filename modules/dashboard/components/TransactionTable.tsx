@@ -1,6 +1,6 @@
 "use client";
 
-import { Transaction } from "@/core/types";
+import { Transaction } from "@/shared/types";
 import { ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 
 interface TransactionTableProps {

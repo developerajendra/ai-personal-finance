@@ -2,10 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { Investment, Loan, Property, BankBalance } from '@/core/types';
-import { PPFAccount } from '@/core/services/ppfStorageService';
-import { formatIndianNumber } from '@/core/services/currencyService';
-import { getCurrentInvestmentValue } from '@/core/utils/investmentValueCalculator';
+import { Investment, Loan, Property, BankBalance } from '@/shared/types';
+import type { PPFAccount } from "@/shared/types";
+import { formatIndianNumber } from '@/shared/utils/currency';
+import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 import {
   PieChart,
   Pie,

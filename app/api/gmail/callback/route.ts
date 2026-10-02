@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exchangeCodeForTokens } from '@/core/services/gmailService';
+import { exchangeCodeForTokens } from '@/server/integrations/gmail/gmailService';
 import { cookies } from 'next/headers';
-import { getSession } from '@/core/auth/getSession';
+import { getSession } from '@/server/auth/session';
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     try {
       if (userId) {
-        const { getMainOrchestrator } = await import('@/core/agents/agentManager');
+        const { getMainOrchestrator } = await import('@/server/integrations/gmail/agents/agentManager');
         const orchestrator = getMainOrchestrator(userId);
         const portfolioAgent = orchestrator.getPortfolioAgent();
         portfolioAgent.setTokens(tokens.access_token, tokens.refresh_token);

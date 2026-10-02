@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { PPFAccount } from '@/core/services/ppfStorageService';
+import type { PPFAccount } from "@/shared/types";
 import {
   PieChart,
   Pie,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { BankBalance } from '@/core/types';
+import { BankBalance } from '@/shared/types';
 import {
   PieChart,
   Pie,
@@ -17,7 +17,7 @@ import {
 } from 'recharts';
 import { Wallet, Building2, TrendingUp, CreditCard, Calendar } from 'lucide-react';
 import { Loader } from '@/shared/components/Loader';
-import { formatIndianNumber } from '@/core/services/currencyService';
+import { formatIndianNumber } from '@/shared/utils/currency';
 
 const COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6'];
 

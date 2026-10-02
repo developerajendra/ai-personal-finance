@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Property } from "@/core/types";
+import { Property } from "@/shared/types";
 import { Save, X } from "lucide-react";
 import { ButtonLoader } from "@/shared/components/Loader";
 

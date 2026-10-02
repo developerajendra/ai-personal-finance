@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Mail, FileText, Calendar, DollarSign, TrendingUp, RefreshCw, AlertCircle } from 'lucide-react';
-import { Investment } from '@/core/types';
+import { Investment } from '@/shared/types';
 
 interface EmailInvestment extends Investment {
   emailSubject?: string;

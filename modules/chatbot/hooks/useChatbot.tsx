@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode } from "react";
-import { ChatMessage } from "@/core/types";
+import { ChatMessage } from "@/shared/types";
 
 export interface AuditData {
   tableHtml: string;

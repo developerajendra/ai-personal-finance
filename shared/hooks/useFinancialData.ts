@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { Transaction, FinancialSummary } from "@/core/types";
+import { Transaction, FinancialSummary } from "@/shared/types";
 
 export function useFinancialData() {
   const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery<Transaction[]>({

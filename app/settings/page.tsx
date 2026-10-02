@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { Sidebar } from "@/shared/components/Sidebar";
+import { WhatsAppLinkCard } from "@/modules/settings/components/WhatsAppLinkCard";
 import {
   Settings,
   Key,
@@ -270,6 +271,9 @@ export default function SettingsPage() {
                   )}
                 </div>
               </section>
+
+              {/* WhatsApp */}
+              <WhatsAppLinkCard />
 
               {/* AI Configuration */}
               <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">

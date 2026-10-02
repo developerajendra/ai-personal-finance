@@ -6,7 +6,7 @@ import Link from "next/link";
 import { TrendingUp, PieChart, ArrowRight, CreditCard, Home, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Investment, Loan, Property, BankBalance } from "@/core/types";
+import { Investment, Loan, Property, BankBalance } from "@/shared/types";
 
 export default function PortfolioPage() {
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Property } from '@/core/types';
+import { Property } from '@/shared/types';
 import {
   PieChart,
   Pie,

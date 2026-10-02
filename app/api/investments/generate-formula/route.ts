@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateChatContent } from "@/core/services/geminiJsonService";
+import { generateChatContent } from "@/server/ai/providers/gemini/client";
 
 export async function POST(request: NextRequest) {
   try {

@@ -15,9 +15,11 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:migrate-data": "npx tsx scripts/migrate-json-to-sqlite.ts",
-    "db:assign-owner": "npx tsx scripts/assign-data-owner-email.ts"
+    "db:assign-owner": "npx tsx scripts/assign-data-owner-email.ts",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@auth/drizzle-adapter": "^1.11.1",
     "@google/generative-ai": "^0.21.0",
     "@libsql/client": "^0.14.0",
@@ -27,6 +29,7 @@
     "@radix-ui/react-select": "^2.0.0",
     "@radix-ui/react-toast": "^1.1.5",
     "@tanstack/react-query": "^5.28.0",
+    "@vercel/functions": "^3.9.9",
     "autoprefixer": "^10.4.19",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.0",
@@ -50,6 +53,7 @@
     "react-markdown": "^9.0.1",
     "recharts": "^2.12.0",
     "remark-gfm": "^4.0.0",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^2.2.1",
     "tailwindcss": "^3.4.0",
     "xlsx": "^0.18.5",
@@ -65,6 +69,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^8.56.0",
     "eslint-config-next": "^14.2.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.9"
   }
 }

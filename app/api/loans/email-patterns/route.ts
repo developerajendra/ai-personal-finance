@@ -6,8 +6,8 @@ import {
   updateLoanEmailPattern,
   deleteLoanEmailPattern,
   getLoanEmailPattern,
-} from '@/core/services/loanEmailPatternService';
-import { LoanEmailPattern } from '@/core/services/loanEmailPatternService';
+} from '@/server/integrations/gmail/loans/loanEmailPatterns';
+import { LoanEmailPattern } from '@/server/integrations/gmail/loans/loanEmailPatterns';
 
 export async function GET() {
   try {

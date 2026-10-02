@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { cn } from '@/shared/utils/cn';
-import { PortfolioCategory } from '@/core/types';
+import { PortfolioCategory } from '@/shared/types';
 
 // Icon mapping for dynamic categories
 const iconMap: Record<string, LucideIcon> = {

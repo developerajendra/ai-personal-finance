@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMainOrchestrator } from '@/core/agents/agentManager';
+import { getMainOrchestrator } from '@/server/integrations/gmail/agents/agentManager';
 import { cookies } from 'next/headers';
-import { getSession } from "@/core/auth/getSession";
-import { fetchEmails } from '@/core/services/gmailService';
-import { detectLoanEmail, extractQuarterlyLoanData } from '@/core/services/loanEmailParserService';
-import { GmailEmail } from '@/core/services/gmailService';
-import { getEnabledPatterns } from '@/core/services/loanEmailPatternService';
+import { getSession } from "@/server/auth/session";
+import { fetchEmails } from '@/server/integrations/gmail/gmailService';
+import { detectLoanEmail, extractQuarterlyLoanData } from '@/server/integrations/gmail/loans/loanEmailParser';
+import { GmailEmail } from '@/server/integrations/gmail/gmailService';
+import { getEnabledPatterns } from '@/server/integrations/gmail/loans/loanEmailPatterns';
 
 export async function POST(request: NextRequest) {
   try {

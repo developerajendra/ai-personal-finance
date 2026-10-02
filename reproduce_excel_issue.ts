@@ -1,5 +1,5 @@
 
-import { generateJsonContent } from "./core/services/ollamaService";
+import { generateJsonContent } from "./server/ai/providers/ollama/client";
 
 // Dummy data simulating Excel rows - increased to 30 rows to stress context window
 const dummyData = Array.from({ length: 30 }, (_, i) => ({

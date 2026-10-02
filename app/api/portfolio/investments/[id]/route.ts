@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Investment } from "@/core/types";
-import { getSession } from "@/core/auth/getSession";
-import { updateInJson, deleteFromJson, initializeStorage } from "@/core/services/jsonStorageService";
+import { getSession } from "@/server/auth/session";
+import { errorResponse } from "@/server/http/errors";
+import { updateInvestment, deleteInvestment } from "@/server/finance/investments/service";
 
 export async function PUT(
   request: NextRequest,
@@ -12,25 +12,10 @@ export async function PUT(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const userId = session.userId;
-
-    initializeStorage();
-    const investment: Investment = await request.json();
-    const updated = await updateInJson<Investment>("investments", params.id, investment, userId);
-
-    if (!updated) {
-      return NextResponse.json(
-        { error: "Investment not found" },
-        { status: 404 }
-      );
-    }
-
+    const updated = await updateInvestment(session.userId, params.id, await request.json());
     return NextResponse.json(updated);
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to update investment" },
-      { status: 500 }
-    );
+    return errorResponse(error, "Failed to update investment");
   }
 }
 
@@ -43,23 +28,9 @@ export async function DELETE(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const userId = session.userId;
-
-    initializeStorage();
-    const deleted = await deleteFromJson<Investment>("investments", params.id, userId);
-
-    if (!deleted) {
-      return NextResponse.json(
-        { error: "Investment not found" },
-        { status: 404 }
-      );
-    }
-
+    await deleteInvestment(session.userId, params.id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to delete investment" },
-      { status: 500 }
-    );
+    return errorResponse(error, "Failed to delete investment");
   }
 }

@@ -9,9 +9,9 @@ import {
   getLoanSnapshot,
   calculateLoanGrowthMetrics,
   getPreviousLoanSnapshot,
-} from '@/core/services/loanAnalyticsService';
-import { LoanMonthlySnapshot } from '@/core/types';
-import { getSession } from "@/core/auth/getSession";
+} from '@/server/finance/loans/loanAnalytics';
+import { LoanMonthlySnapshot } from '@/shared/types';
+import { getSession } from "@/server/auth/session";
 
 export async function GET(request: NextRequest) {
   try {

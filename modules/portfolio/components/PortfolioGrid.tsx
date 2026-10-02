@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/core/types';
+import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/shared/types';
 import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck, Clock, XOctagon, Undo2 } from 'lucide-react';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
@@ -9,7 +9,7 @@ import { PropertyForm } from './PropertyForm';
 import { BankBalanceForm } from './BankBalanceForm';
 import { Loader } from '@/shared/components/Loader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { convertFromINR } from '@/core/services/currencyService';
+import { convertFromINR } from '@/shared/utils/currency';
 import { useChatbot } from '@/modules/chatbot/hooks/useChatbot';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;

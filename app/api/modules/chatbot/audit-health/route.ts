@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkMcpHealth } from "@/core/services/mcpAuditService";
+import { checkMcpHealth } from "@/server/integrations/finance-audit/mcpAuditService";
 
 export async function GET() {
   try {

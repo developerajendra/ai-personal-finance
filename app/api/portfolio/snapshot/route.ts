@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/core/auth/getSession";
-import { loadFromJson, loadStocks, loadMutualFunds } from "@/core/services/jsonStorageService";
-import { loadPPFAccounts } from "@/core/services/ppfStorageService";
-import { Investment, Loan, Property, BankBalance } from "@/core/types";
+import { getSession } from "@/server/auth/session";
+import { loadPortfolio, loadStocks, loadMutualFunds } from "@/server/finance/portfolio/service";
+import { loadPPFAccounts } from "@/server/finance/provident-fund/ppfStorage";
 
 export async function GET() {
   try {
@@ -12,12 +11,12 @@ export async function GET() {
     }
     const userId = session.userId;
 
-    const [rawInvestments, rawLoans, rawProperties, rawBankBalances] = await Promise.all([
-      loadFromJson<Investment>("investments", userId),
-      loadFromJson<Loan>("loans", userId),
-      loadFromJson<Property>("properties", userId),
-      loadFromJson<BankBalance>("bankBalances", userId),
-    ]);
+    const {
+      investments: rawInvestments,
+      loans: rawLoans,
+      properties: rawProperties,
+      bankBalances: rawBankBalances,
+    } = await loadPortfolio(userId);
 
     const investments = rawInvestments
       .map((inv) => ({ ...inv, isPublished: inv.isPublished ?? false }))

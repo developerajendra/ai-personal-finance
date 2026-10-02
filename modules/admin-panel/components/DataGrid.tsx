@@ -1,7 +1,7 @@
 "use client";
 
 import { useFinancialData } from "@/shared/hooks/useFinancialData";
-import { Transaction } from "@/core/types";
+import { Transaction } from "@/shared/types";
 import { useState } from "react";
 import { Edit2, Trash2, Plus } from "lucide-react";
 import { ButtonLoader, Loader } from "@/shared/components/Loader";
