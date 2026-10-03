@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BankBalance } from "@/core/types";
-import { getSession } from "@/core/auth/getSession";
-import { updateInJson, deleteFromJson, initializeStorage } from "@/core/services/jsonStorageService";
+import { getSession } from "@/server/auth/session";
+import { errorResponse } from "@/server/http/errors";
+import { bankBalanceService } from "@/server/finance/accounts/service";
 
 export async function PUT(
   request: NextRequest,
@@ -12,26 +12,10 @@ export async function PUT(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const userId = session.userId;
-
-    initializeStorage();
-    const id = params.id;
-    const updated: BankBalance = await request.json();
-    const result = await updateInJson<BankBalance>("bankBalances", id, updated, userId);
-
-    if (!result) {
-      return NextResponse.json(
-        { error: "Bank balance not found" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(result);
+    const updated = await bankBalanceService.update(session.userId, params.id, await request.json());
+    return NextResponse.json(updated);
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to update bank balance" },
-      { status: 500 }
-    );
+    return errorResponse(error, "Failed to update bank balance");
   }
 }
 
@@ -44,24 +28,9 @@ export async function DELETE(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const userId = session.userId;
-
-    initializeStorage();
-    const id = params.id;
-    const deleted = await deleteFromJson<BankBalance>("bankBalances", id, userId);
-
-    if (!deleted) {
-      return NextResponse.json(
-        { error: "Bank balance not found" },
-        { status: 404 }
-      );
-    }
-
+    await bankBalanceService.remove(session.userId, params.id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to delete bank balance" },
-      { status: 500 }
-    );
+    return errorResponse(error, "Failed to delete bank balance");
   }
 }

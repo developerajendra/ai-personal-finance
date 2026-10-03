@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCacheStats } from "@/core/services/ollamaCacheService";
+import { getCacheStats } from "@/server/ai/providers/ollama/cache";
 
 export async function GET() {
   try {

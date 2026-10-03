@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Property } from "@/core/types";
-import { paginate, PaginationParams } from "@/core/services/scalabilityService";
-import { getSession } from "@/core/auth/getSession";
-import { loadFromJson, saveToJson, initializeStorage } from "@/core/services/jsonStorageService";
+import { Property } from "@/shared/types";
+import { paginate } from "@/shared/utils/pagination";
+import { getSession } from "@/server/auth/session";
+import { propertyService } from "@/server/finance/properties/service";
+import { errorResponse } from "@/server/http/errors";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +13,7 @@ export async function GET(request: NextRequest) {
     }
     const userId = session.userId;
 
-    initializeStorage();
-    const jsonData = await loadFromJson<Property>("properties", userId);
+    const jsonData = await propertyService.list(userId);
     const normalizedData = jsonData.map(prop => ({
       ...prop,
       isPublished: prop.isPublished ?? false
@@ -51,23 +51,10 @@ export async function POST(request: NextRequest) {
     }
     const userId = session.userId;
 
-    initializeStorage();
-    const jsonData = await loadFromJson<Property>("properties", userId);
-    const normalizedData = jsonData.map(prop => ({
-      ...prop,
-      isPublished: prop.isPublished ?? false
-    }));
-
-    const property: Property = await request.json();
-    const propertyToAdd = { ...property, isPublished: property.isPublished ?? true };
-    const updatedData = [...normalizedData, propertyToAdd];
-    await saveToJson("properties", updatedData, userId);
-
-    return NextResponse.json(propertyToAdd, { status: 201 });
+    const body = await request.json();
+    const created = await propertyService.create(userId, body, { isPublished: body?.isPublished ?? true });
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to create property" },
-      { status: 500 }
-    );
+    return errorResponse(error, "Failed to create property");
   }
 }

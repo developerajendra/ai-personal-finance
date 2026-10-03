@@ -1,13 +1,18 @@
 import { ArchiveModule } from "@/modules/dashboard/components/ArchiveModule";
-import { Sidebar } from "@/shared/components/Sidebar";
+import { AppShell } from "@/shared/components/AppShell";
+import { PageHeader } from "@/shared/components/ui";
+import { CashFlowTabs } from "@/shared/components/SectionTabs";
 
 export default function ArchivePage() {
   return (
-    <div className="flex h-screen">
-        <Sidebar />
-        <main className="flex-1 overflow-auto">
-          <ArchiveModule />
-        </main>
-    </div>
+    <AppShell>
+      <PageHeader
+        crumbs={[{ label: "Cash flow", href: "/transactions" }, { label: "Monthly snapshots" }]}
+        title="Cash flow"
+        meta="Month-end snapshots of every asset class"
+      />
+      <CashFlowTabs />
+      <ArchiveModule />
+    </AppShell>
   );
 }

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchStocks, getMockStocks } from "@/core/services/zerodhaService";
-import { loadStocks, saveStocks } from "@/core/services/jsonStorageService";
+import { fetchStocks, getMockStocks } from "@/server/integrations/kite/zerodhaService";
+import { loadStocks, saveStocks } from "@/server/finance/portfolio/service";
 import { cookies } from "next/headers";
-import { getSession } from "@/core/auth/getSession";
+import { getSession } from "@/server/auth/session";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();

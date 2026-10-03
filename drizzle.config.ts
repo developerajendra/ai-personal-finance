@@ -6,7 +6,7 @@ import type { Config } from "drizzle-kit";
  * - Production: TURSO_DATABASE_URL is set → uses Turso cloud database
  */
 export default {
-  schema: "./core/db/schema.ts",
+  schema: "./server/db/schema/index.ts",
   out: "./drizzle",
   dialect: "turso",
   dbCredentials: {

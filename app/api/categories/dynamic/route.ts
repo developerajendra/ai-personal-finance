@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDynamicCategories, getCategoryPatterns } from "@/core/services/categoryLearningService";
+import { getDynamicCategories, getCategoryPatterns } from "@/server/imports/categoryLearning";
 
 export async function GET() {
   try {

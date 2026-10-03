@@ -1,5 +1,5 @@
 
-import { generateJsonContent } from "./core/services/ollamaService";
+import { generateJsonContent } from "./server/ai/providers/ollama/client";
 
 async function testOllama() {
     console.log("Testing Ollama JSON generation...");

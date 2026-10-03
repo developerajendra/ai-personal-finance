@@ -1,15 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/core/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck, Clock, XOctagon, Undo2 } from 'lucide-react';
+import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/shared/types';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck, Clock, XOctagon, Undo2, Search, Download } from 'lucide-react';
+import { UnderlineTabs } from '@/shared/components/ui';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
 import { PropertyForm } from './PropertyForm';
 import { BankBalanceForm } from './BankBalanceForm';
 import { Loader } from '@/shared/components/Loader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { convertFromINR } from '@/core/services/currencyService';
+import { convertFromINR } from '@/shared/utils/currency';
+import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 import { useChatbot } from '@/modules/chatbot/hooks/useChatbot';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
@@ -1016,15 +1018,15 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
   };
 
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-200">
-      <div className="p-6 border-b">
+    <div className="panel overflow-hidden">
+      <div className="px-6 pt-[22px]">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Portfolio Management</h2>
+          <h2 className="text-[19px] text-ink">Portfolio management</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={handleSyncGmail}
               disabled={isSyncingGmail}
-              className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+              className="btn btn-secondary">
               {isSyncingGmail ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1037,34 +1039,38 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                 </>
               )}
             </button>
+            <a href="/api/portfolio/export" className="btn btn-secondary" download>
+              <Download className="w-4 h-4" />
+              Export
+            </a>
           </div>
         </div>
 
         {/* Category Creation Form */}
         {showCategoryForm && (
-          <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+          <div className="mb-4 p-4 bg-accent-100 rounded-lg border border-accent-200">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-purple-900">Create New Portfolio Category</h3>
+              <h3 className="text-lg font-semibold text-accent-800">Create New Portfolio Category</h3>
               {existingCategories.length > 0 && (
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted">
                   {existingCategories.length} categor{existingCategories.length === 1 ? 'y' : 'ies'} exist
                 </div>
               )}
             </div>
             {existingCategories.length > 0 && (
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Existing Categories</h4>
+              <div className="mb-4 p-3 bg-tile rounded-lg border border-divider">
+                <h4 className="text-sm font-semibold text-neutral-800 mb-2">Existing Categories</h4>
                 <div className="space-y-2">
                   {existingCategories.map((cat) => (
-                    <div key={cat.id} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
+                    <div key={cat.id} className="flex items-center justify-between p-2 bg-panel rounded border border-divider">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{cat.name}</span>
-                        <span className="text-xs text-gray-500">({cat.slug})</span>
+                        <span className="text-xs text-muted">({cat.slug})</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleDeleteCategory(cat.id)}
-                        className="px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors">
+                        className="px-2 py-1 text-xs text-loss hover:text-loss hover:bg-loss-bg rounded transition-colors">
                         <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
@@ -1075,7 +1081,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
             <form ref={categoryFormRef} onSubmit={handleCreateCategory} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-800 mb-1">
                     Category Name *
                   </label>
                   <input
@@ -1088,11 +1094,11 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                         setCategorySlug(generateSlug(e.target.value));
                       }
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-divider rounded-md focus:ring-2 focus:ring-accent focus:border-transparent bg-[var(--input-bg)]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-800 mb-1">
                     Slug (URL-friendly) *
                   </label>
                   <input
@@ -1104,26 +1110,26 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                     placeholder="e.g., cryptocurrency"
                     pattern="[a-z0-9-]+"
                     title="Only lowercase letters, numbers, and hyphens allowed"
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                      slugError ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent ${
+                      slugError ? 'border-loss bg-loss-bg' : 'border-divider'
                     }`}
                   />
                   {slugError ? (
-                    <p className="text-xs text-red-600 mt-1">{slugError}</p>
+                    <p className="text-xs text-loss mt-1">{slugError}</p>
                   ) : (
-                    <p className="text-xs text-gray-500 mt-1">Auto-generated from name, but you can edit it</p>
+                    <p className="text-xs text-muted mt-1">Auto-generated from name, but you can edit it</p>
                   )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-800 mb-1">
                     Type *
                   </label>
                   <select
                     name="type"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    className="w-full px-3 py-2 border border-divider rounded-md focus:ring-2 focus:ring-accent focus:border-transparent bg-[var(--input-bg)]">
                     <option value="investment">Investment</option>
                     <option value="loan">Loan</option>
                     <option value="property">Property</option>
@@ -1131,27 +1137,27 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-neutral-800 mb-1">
                     Icon (optional)
                   </label>
                   <input
                     type="text"
                     name="icon"
                     placeholder="e.g., TrendingUp, PieChart, Home"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-divider rounded-md focus:ring-2 focus:ring-accent focus:border-transparent bg-[var(--input-bg)]"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Icon name from lucide-react</p>
+                  <p className="text-xs text-muted mt-1">Icon name from lucide-react</p>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-neutral-800 mb-1">
                   Description (optional)
                 </label>
                 <textarea
                   name="description"
                   rows={2}
                   placeholder="Brief description of this category"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-divider rounded-md focus:ring-2 focus:ring-accent focus:border-transparent bg-[var(--input-bg)]"
                 />
               </div>
               <div className="flex justify-end gap-2">
@@ -1162,13 +1168,13 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                     setCategorySlug('');
                     setSlugError('');
                   }}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                  className="px-4 py-2 text-neutral-800 bg-tile hover:bg-neutral-200 rounded-pill font-medium">
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isCreatingCategory || !!slugError}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  className="px-4 py-2 bg-accent text-white hover:bg-accent-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 rounded-pill font-medium">
                   {isCreatingCategory ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1186,163 +1192,64 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
           </div>
         )}
 
-        <div className="flex gap-2 border-b mb-4">
-          <button
-            onClick={() => handleTabSwitch('investment')}
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${
-              activeTab === 'investment'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}>
-            Investments
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              activeTab === 'investment' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'bg-gray-100 text-gray-700'
-            }`}>
-              {isLoadingCounts ? '...' : tabCounts.investment}
-            </span>
-          </button>
-          <button
-            onClick={() => handleTabSwitch('loan')}
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${
-              activeTab === 'loan'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}>
-            Loans
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              activeTab === 'loan' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'bg-gray-100 text-gray-700'
-            }`}>
-              {isLoadingCounts ? '...' : tabCounts.loan}
-            </span>
-          </button>
-          <button
-            onClick={() => handleTabSwitch('property')}
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${
-              activeTab === 'property'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}>
-            Properties
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              activeTab === 'property' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'bg-gray-100 text-gray-700'
-            }`}>
-              {isLoadingCounts ? '...' : tabCounts.property}
-            </span>
-          </button>
-          <button
-            onClick={() => handleTabSwitch('bank-balance')}
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${
-              activeTab === 'bank-balance'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}>
-            Bank Balance
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              activeTab === 'bank-balance' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'bg-gray-100 text-gray-700'
-            }`}>
-              {isLoadingCounts ? '...' : tabCounts['bank-balance']}
-            </span>
-          </button>
-          <button
-            onClick={() => handleTabSwitch('receivables')}
-            className={`px-4 py-2 font-medium flex items-center gap-2 ${
-              activeTab === 'receivables'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}>
-            Receivables
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              activeTab === 'receivables' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'bg-gray-100 text-gray-700'
-            }`}>
-              {isLoadingCounts ? '...' : tabCounts.receivables}
-            </span>
-          </button>
-          <button
-            onClick={() => setShowCategoryForm(!showCategoryForm)}
-            className="ml-2 px-3 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors flex items-center gap-1">
-            <Tag className="w-4 h-4" />
-            {showCategoryForm ? 'Cancel' : 'Add New Category'}
-          </button>
-        </div>
-
-        {/* Draft/Published Tabs */}
-        <div className="flex gap-2 items-center justify-between">
-          <div className="flex gap-2 items-center flex-1">
-          <button
-            onClick={() => setViewMode('draft')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 ${
-              viewMode === 'draft'
-                ? 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}>
-            <Circle className="w-4 h-4" />
-            Draft
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              viewMode === 'draft' ? 'bg-yellow-200 text-yellow-900' : 'bg-gray-200 text-gray-700'
-            }`}>
-              {isLoadingCounts ? '...' : draftCount}
-            </span>
-          </button>
-          <button
-            onClick={() => setViewMode('published')}
-            className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 ${
-              viewMode === 'published'
-                ? 'bg-green-100 text-green-800 border-2 border-green-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}>
-            <CheckCircle className="w-4 h-4" />
-            Published
-            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-              viewMode === 'published' ? 'bg-green-200 text-green-900' : 'bg-gray-200 text-gray-700'
-            }`}>
-              {isLoadingCounts ? '...' : publishedCount}
-            </span>
-          </button>
-          {activeTab === 'investment' && (
+        <UnderlineTabs<ItemType>
+          className="-mx-6 mb-4 px-6"
+          value={activeTab}
+          onChange={handleTabSwitch}
+          tabs={(['investment', 'loan', 'property', 'bank-balance', 'receivables'] as ItemType[]).map((tab) => ({
+            value: tab,
+            label: tabLabels[tab],
+            count: isLoadingCounts ? '…' : tabCounts[tab],
+          }))}
+          trailing={
             <button
-              onClick={() => setViewMode('matured')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 ${
-                viewMode === 'matured'
-                  ? 'bg-indigo-100 text-indigo-800 border-2 border-indigo-300'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-              title="Investments past maturity date">
-              <Clock className="w-4 h-4" />
-              Matured
-              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                viewMode === 'matured' ? 'bg-indigo-200 text-indigo-900' : 'bg-gray-200 text-gray-700'
-              }`}>
-                {isLoadingCounts ? '...' : maturedCount}
+              onClick={() => setShowCategoryForm(!showCategoryForm)}
+              className="flex items-center gap-1 text-[15px] font-medium text-accent-700 hover:text-accent-800">
+              <Tag className="w-4 h-4" />
+              {showCategoryForm ? 'Cancel' : 'Add new category'}
+            </button>
+          }
+        />
+        {/* Draft/Published Tabs */}
+        <div className="flex flex-wrap gap-3 items-center justify-between pb-4">
+          <div className="flex gap-2 items-center flex-wrap">
+          {([
+            { mode: 'draft', label: 'Draft', count: draftCount, on: 'bg-warn-bg text-warn shadow-[inset_0_0_0_1px_var(--fin-warn)]' },
+            { mode: 'published', label: 'Published', count: publishedCount, on: 'bg-gain-bg text-gain shadow-[inset_0_0_0_1px_var(--fin-gain)]' },
+            ...(activeTab === 'investment'
+              ? [{ mode: 'matured', label: 'Matured', count: maturedCount, on: 'bg-accent-100 text-accent-800 shadow-[inset_0_0_0_1px_var(--color-accent)]' }]
+              : []),
+          ] as { mode: ViewMode; label: string; count: number; on: string }[]).map((chip) => (
+            <button
+              key={chip.mode}
+              onClick={() => setViewMode(chip.mode)}
+              aria-pressed={viewMode === chip.mode}
+              title={chip.mode === 'matured' ? 'Investments past maturity date' : undefined}
+              className={`btn ${viewMode === chip.mode ? chip.on : 'btn-secondary'}`}>
+              {chip.label}
+              <span className="inline-flex min-w-[20px] items-center justify-center rounded-full bg-panel px-1.5 text-[11.5px] font-semibold leading-5 text-ink">
+                {isLoadingCounts ? '…' : chip.count}
               </span>
             </button>
-          )}
+          ))}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
           {(viewMode === 'published' || viewMode === 'matured') && (
-            <div className="flex-1 max-w-xs">
+            <div className="relative w-full sm:w-[340px]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
               <input
                 type="text"
-                placeholder="Search published items..."
+                placeholder={`Search ${viewMode} items…`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input !pl-9"
               />
             </div>
           )}
-          <div className="flex items-center gap-2">
             <button
               onClick={() => handleAdd(activeTab)}
               disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              className="btn btn-primary">
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1351,7 +1258,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               ) : (
                 <>
                   <Plus className="w-4 h-4" />
-                  Add {activeTab === 'bank-balance' ? 'Bank Balance' : activeTab === 'receivables' ? 'Receivables' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                  Add {activeTab === 'bank-balance' ? 'bank balance' : activeTab === 'receivables' ? 'receivable' : activeTab === 'property' ? 'property' : activeTab}
                 </>
               )}
             </button>
@@ -1360,11 +1267,11 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
       </div>
 
       {showForm && (
-        <div className="p-6 border-b bg-gray-50">
+        <div className="p-6 border-t border-divider bg-tile">
           {isSaving && (
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg flex items-center gap-2">
+            <div className="mb-4 p-3 bg-accent-100 rounded-lg flex items-center gap-2">
               <Loader size="sm" />
-              <span className="text-sm text-blue-700">Saving...</span>
+              <span className="text-sm text-accent-700">Saving...</span>
             </div>
           )}
           {formType === 'investment' && (
@@ -1432,11 +1339,11 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
 
       {/* Audit button for entire content area */}
       {items.length > 0 && (
-        <div className="flex justify-end px-6 py-2 border-b border-gray-200 bg-white">
+        <div className="flex justify-end px-6 pb-3">
           <button
             onClick={handleAuditTable}
             disabled={isAuditing || isLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn btn-secondary btn-sm"
             title="Send table data to AI chatbot for audit validation"
           >
             {isAuditing ? (
@@ -1451,7 +1358,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
 
       <div ref={contentContainerRef} className="overflow-x-auto relative">
         {isLoading && (
-          <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-[color-mix(in_srgb,var(--panel-bg)_80%,transparent)] flex items-center justify-center z-10">
             <Loader text="Loading portfolio items..." />
           </div>
         )}
@@ -1540,8 +1447,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         {/* Debug panel - shows what data we have */}
         {items.length === 0 && (
           <div className="p-8 text-center">
-            <p className="text-gray-500 mb-2">No {activeTab} data found.</p>
-            <p className="text-sm text-gray-400">
+            <p className="text-muted mb-2">No {activeTab} data found.</p>
+            <p className="text-sm text-neutral-500">
               {activeTab === 'bank-balance'
                 ? "Click 'Add Bank Balance' to add your bank account information."
                 : activeTab === 'receivables'
@@ -1556,8 +1463,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
       {toast && (
         <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 ${
           toast.type === 'success' 
-            ? 'bg-green-500 text-white' 
-            : 'bg-red-500 text-white'
+            ? 'bg-gain text-white' 
+            : 'bg-loss text-white'
         }`}>
           {toast.type === 'success' ? (
             <CheckCircle className="w-5 h-5 flex-shrink-0" />
@@ -1693,41 +1600,41 @@ function InvestmentGrid({
 
   return (
     <table className="w-full">
-      <thead className="bg-gray-50">
+      <thead className="bg-tile">
         <tr>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Name
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Type
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Amount
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Current Value
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Start Date
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Maturity Date
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Maturity Amount
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Status
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Actions
           </th>
         </tr>
       </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
+      <tbody className="bg-panel divide-y divide-divider">
         {allItems.length === 0 ? (
           <tr>
-            <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+            <td colSpan={9} className="px-6 py-8 text-center text-muted">
               No investments found. Click "Add Investment" to create one.
             </td>
           </tr>
@@ -1809,35 +1716,35 @@ function InvestmentGrid({
             const currentValue = calculateCurrentValue(item);
             
             return (
-              <tr key={item.id} className={`hover:bg-gray-50 ${isReadOnly ? 'bg-gray-50' : ''}`}>
+              <tr key={item.id} className={`hover:bg-tile ${isReadOnly ? 'bg-tile' : ''}`}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex items-center gap-2">
                     <span>{item.name}</span>
                     {item.tags?.includes('added from gmail') && (
-                      <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">
+                      <span className="px-2 py-0.5 bg-gain-bg text-gain text-xs rounded">
                         📧 Gmail
                       </span>
                     )}
                     {isReadOnly && (item.id === 'ppf-total' || item.type === 'ppf') && (
-                      <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-accent-100 text-accent-800 text-xs rounded flex items-center gap-1">
                         <Lock className="w-3 h-3" />
                         Provident Fund
                       </span>
                     )}
                     {isReadOnly && item.id !== 'ppf-total' && item.type !== 'ppf' && (
-                      <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
+                      <span className="px-2 py-0.5 bg-accent-100 text-accent-800 text-xs rounded flex items-center gap-1">
                         <Lock className="w-3 h-3" />
                         Zerodha
                       </span>
                     )}
                     {!item.isPublished && !isReadOnly && (
-                      <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">
+                      <span className="px-2 py-0.5 bg-warn-bg text-warn text-xs rounded">
                         Draft
                       </span>
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                   {item.type}
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold">
@@ -1849,7 +1756,7 @@ function InvestmentGrid({
                       if (currency !== 'INR' && originalAmount !== undefined) {
                         const symbol = currency === 'USD' ? '$' : 'Rs';
                         return (
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-xs text-muted mt-1">
                             {symbol} {originalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
                         );
@@ -1857,13 +1764,13 @@ function InvestmentGrid({
                       return null;
                     })()}
                     {item.pnl !== undefined && (
-                      <div className={`text-xs mt-1 ${item.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ({item.pnl >= 0 ? '+' : ''}₹{item.pnl.toLocaleString()})
+                      <div className={`text-xs mt-1 ${item.pnl >= 0 ? 'text-gain' : 'text-loss'}`}>
+                        ({item.pnl >= 0 ? '+' : '−'}₹{Math.abs(item.pnl).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                       </div>
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm font-semibold text-blue-600">
+                <td className="px-6 py-4 text-sm font-semibold text-accent-700">
                   {currentValue !== null ? (
                     (() => {
                       const currency = (item.originalCurrency || item.currency || 'INR') as 'INR' | 'NPR' | 'USD';
@@ -1873,7 +1780,7 @@ function InvestmentGrid({
                         return (
                           <div>
                             <div>₹{currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="text-xs text-muted mt-1">
                               {symbol} {originalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                           </div>
@@ -1882,19 +1789,22 @@ function InvestmentGrid({
                       return `₹${currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     })()
                   ) : (
-                    'N/A'
+                    // No growth rule: the current value is the principal (same figure net worth uses)
+                    <span className="font-normal text-ink">
+                      ₹{getCurrentInvestmentValue(item as Investment).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A'}
+                  {item.startDate ? new Date(item.startDate).toLocaleDateString() : <span className="text-muted">—</span>}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {item.maturityDate
                     ? new Date(item.maturityDate).toLocaleDateString()
-                    : 'N/A'}
+                    : <span className="text-muted">—</span>}
                 </td>
-                <td className="px-6 py-4 text-sm font-semibold text-indigo-600">
-                  {item.maturityAmount !== undefined ? (
+                <td className="px-6 py-4 text-sm font-semibold text-accent-700">
+                  {item.maturityAmount !== undefined && item.maturityAmount !== null && item.maturityAmount > 0 ? (
                     (() => {
                       const currency = (item.originalCurrency || item.currency || 'INR') as 'INR' | 'NPR' | 'USD';
                       if (currency !== 'INR' && item.originalMaturityAmount !== undefined) {
@@ -1902,7 +1812,7 @@ function InvestmentGrid({
                         return (
                           <div>
                             <div>₹{item.maturityAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="text-xs text-muted mt-1">
                               {symbol} {item.originalMaturityAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                           </div>
@@ -1911,17 +1821,17 @@ function InvestmentGrid({
                       return `₹${item.maturityAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     })()
                   ) : (
-                    'N/A'
+                    <span className="font-normal text-muted">—</span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span
                     className={`px-2 py-1 rounded text-xs ${
                       item.status === 'closed'
-                        ? 'bg-gray-100 text-gray-800'
+                        ? 'bg-tile text-ink'
                         : item.status === 'matured' || (item.maturityDate && new Date(item.maturityDate) <= new Date())
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-green-100 text-green-800'
+                        ? 'bg-accent-100 text-accent-800'
+                        : 'bg-gain-bg text-gain'
                     }`}>
                     {item.status === 'closed'
                       ? 'closed'
@@ -1932,10 +1842,10 @@ function InvestmentGrid({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {isReadOnly ? (
-                    <span className="text-xs text-gray-500 italic">Read-only (from Zerodha)</span>
+                    <span className="text-xs text-muted italic">Read-only (from Zerodha)</span>
                   ) : item.status === 'closed' ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500 italic flex items-center gap-1">
+                      <span className="text-xs text-muted italic flex items-center gap-1">
                         <XOctagon className="w-3.5 h-3.5" />
                         Closed (excluded from net worth)
                       </span>
@@ -1943,7 +1853,7 @@ function InvestmentGrid({
                         <button
                           onClick={() => onUndoClose(item.id)}
                           disabled={isUndoingClose === item.id}
-                          className="text-amber-600 hover:text-amber-700 text-xs font-medium flex items-center gap-1 disabled:opacity-50"
+                          className="text-warn hover:text-warn text-xs font-medium flex items-center gap-1 disabled:opacity-50"
                           title="Undo close - restore to net worth">
                           {isUndoingClose === item.id ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1958,14 +1868,14 @@ function InvestmentGrid({
                     <div className="flex gap-2 items-center">
                       <button
                         onClick={() => onEdit(item)}
-                        className="text-blue-600 hover:text-blue-700"
+                        className="text-accent-700 hover:text-accent-700"
                         title="Edit">
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => onDelete(item.id)}
                         disabled={isDeleting === item.id}
-                        className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-loss hover:text-loss disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Delete">
                         {isDeleting === item.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -1976,16 +1886,16 @@ function InvestmentGrid({
                       <div className="relative" ref={(el) => { menuRefs.current[item.id] = el; }}>
                         <button
                           onClick={() => setOpenMenuId(openMenuId === item.id ? null : item.id)}
-                          className="text-gray-600 hover:text-gray-800 p-1"
+                          className="text-muted hover:text-ink p-1"
                           title="More options">
                           <MoreVertical className="w-4 h-4" />
                         </button>
                         {openMenuId === item.id && (
-                          <div className="absolute right-0 mt-1 w-44 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                          <div className="absolute right-0 mt-1 w-44 bg-panel rounded-md shadow-lg border border-divider z-10">
                             <button
                               onClick={() => onPublishToggle(item.id, item.isPublished || false)}
                               disabled={isPublishing === item.id}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                              className="w-full text-left px-4 py-2 text-sm text-neutral-800 hover:bg-tile flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                               {isPublishing === item.id ? (
                                 <>
                                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -2007,7 +1917,7 @@ function InvestmentGrid({
                               <button
                                 onClick={() => onClose(item.id)}
                                 disabled={isClosing === item.id}
-                                className="w-full text-left px-4 py-2 text-sm text-amber-700 hover:bg-amber-50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border-t border-gray-100"
+                                className="w-full text-left px-4 py-2 text-sm text-warn hover:bg-warn-bg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed border-t border-divider"
                                 title="Close investment - excludes from net worth and totals">
                                 {isClosing === item.id ? (
                                   <>
@@ -2062,51 +1972,51 @@ function LoanGrid({
 }) {
   return (
     <table className="w-full">
-      <thead className="bg-gray-50">
+      <thead className="bg-tile">
         <tr>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Name
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Type
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Principal
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Outstanding
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             EMI
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Start Date
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Actions
           </th>
         </tr>
       </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
+      <tbody className="bg-panel divide-y divide-divider">
         {loans.length === 0 ? (
           <tr>
-            <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+            <td colSpan={7} className="px-6 py-8 text-center text-muted">
               No loans found. Click "Add Loan" to create one.
             </td>
           </tr>
         ) : (
           loans.map((loan) => (
-            <tr key={loan.id} className="hover:bg-gray-50">
+            <tr key={loan.id} className="hover:bg-tile">
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 {loan.name}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                 {loan.type}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                 ₹{loan.principalAmount.toLocaleString()}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-red-600">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-loss">
                 ₹{loan.outstandingAmount.toLocaleString()}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -2119,14 +2029,14 @@ function LoanGrid({
                 <div className="flex gap-2 items-center">
                   <button
                     onClick={() => onEdit(loan)}
-                    className="text-blue-600 hover:text-blue-700"
+                    className="text-accent-700 hover:text-accent-700"
                     title="Edit">
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => onDelete(loan.id)}
                     disabled={isDeleting === loan.id}
-                    className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-loss hover:text-loss disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Delete">
                     {isDeleting === loan.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -2137,16 +2047,16 @@ function LoanGrid({
                   <div className="relative" ref={(el) => { menuRefs.current[loan.id] = el; }}>
                     <button
                       onClick={() => setOpenMenuId(openMenuId === loan.id ? null : loan.id)}
-                      className="text-gray-600 hover:text-gray-800 p-1"
+                      className="text-muted hover:text-ink p-1"
                       title="More options">
                       <MoreVertical className="w-4 h-4" />
                     </button>
                     {openMenuId === loan.id && (
-                      <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                      <div className="absolute right-0 mt-1 w-40 bg-panel rounded-md shadow-lg border border-divider z-10">
                         <button
                           onClick={() => onPublishToggle(loan.id, loan.isPublished || false)}
                           disabled={isPublishing === loan.id}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                          className="w-full text-left px-4 py-2 text-sm text-neutral-800 hover:bg-tile flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                           {isPublishing === loan.id ? (
                             <>
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -2202,51 +2112,51 @@ function PropertyGrid({
 }) {
   return (
     <table className="w-full">
-      <thead className="bg-gray-50">
+      <thead className="bg-tile">
         <tr>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Name
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Type
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Purchase Price
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Current Value
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Location
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Purchase Date
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Actions
           </th>
         </tr>
       </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
+      <tbody className="bg-panel divide-y divide-divider">
         {properties.length === 0 ? (
           <tr>
-            <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+            <td colSpan={7} className="px-6 py-8 text-center text-muted">
               No properties found. Click "Add Property" to create one.
             </td>
           </tr>
         ) : (
           properties.map((property) => (
-            <tr key={property.id} className="hover:bg-gray-50">
+            <tr key={property.id} className="hover:bg-tile">
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 {property.name}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                 {property.type}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                 ₹{property.purchasePrice.toLocaleString()}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gain">
                 {property.currentValue
                   ? `₹${property.currentValue.toLocaleString()}`
                   : 'N/A'}
@@ -2259,14 +2169,14 @@ function PropertyGrid({
                 <div className="flex gap-2 items-center">
                   <button
                     onClick={() => onEdit(property)}
-                    className="text-blue-600 hover:text-blue-700"
+                    className="text-accent-700 hover:text-accent-700"
                     title="Edit">
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => onDelete(property.id)}
                     disabled={isDeleting === property.id}
-                    className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-loss hover:text-loss disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Delete">
                     {isDeleting === property.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -2277,16 +2187,16 @@ function PropertyGrid({
                   <div className="relative" ref={(el) => { menuRefs.current[property.id] = el; }}>
                     <button
                       onClick={() => setOpenMenuId(openMenuId === property.id ? null : property.id)}
-                      className="text-gray-600 hover:text-gray-800 p-1"
+                      className="text-muted hover:text-ink p-1"
                       title="More options">
                       <MoreVertical className="w-4 h-4" />
                     </button>
                     {openMenuId === property.id && (
-                      <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                      <div className="absolute right-0 mt-1 w-40 bg-panel rounded-md shadow-lg border border-divider z-10">
                         <button
                           onClick={() => onPublishToggle(property.id, property.isPublished || false)}
                           disabled={isPublishing === property.id}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                          className="w-full text-left px-4 py-2 text-sm text-neutral-800 hover:bg-tile flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                           {isPublishing === property.id ? (
                             <>
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -2383,55 +2293,55 @@ function BankBalanceGrid({
 
   return (
     <table className="w-full">
-      <thead className="bg-gray-50">
+      <thead className="bg-tile">
         <tr>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             {hasReceivables ? 'Debtor Name' : 'Bank Name'}
           </th>
           {!hasReceivables && (
             <>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
                 Account Number
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
                 Account Type
               </th>
             </>
           )}
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             {hasReceivables ? 'Amount' : 'Balance'}
           </th>
           {hasReceivables && (
             <>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
                 Issue Date
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
                 Due Date
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
                 Interest Rate
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
                 Interest Amount
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
                 Expected Total
               </th>
             </>
           )}
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Last Updated
           </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Actions
           </th>
         </tr>
       </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
+      <tbody className="bg-panel divide-y divide-divider">
         {bankBalances.length === 0 ? (
           <tr>
-            <td colSpan={colSpan} className="px-6 py-8 text-center text-gray-500">
+            <td colSpan={colSpan} className="px-6 py-8 text-center text-muted">
               No {hasReceivables ? 'receivables' : 'bank balances'} found. Click "Add {hasReceivables ? 'Receivables' : 'Bank Balance'}" to create one.
             </td>
           </tr>
@@ -2441,16 +2351,16 @@ function BankBalanceGrid({
             const interestCalc = calculateInterest(balance);
             
             return (
-              <tr key={balance.id} className="hover:bg-gray-50">
+              <tr key={balance.id} className="hover:bg-tile">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   {balance.bankName}
                 </td>
                 {!hasReceivables && (
                   <>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       {balance.accountNumber || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       {balance.accountType}
                     </td>
                   </>
@@ -2458,26 +2368,26 @@ function BankBalanceGrid({
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                   {balance.originalCurrency || balance.currency} {balance.originalAmount ? balance.originalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : balance.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   {balance.originalCurrency && balance.originalCurrency !== 'INR' && (
-                    <span className="text-xs text-gray-500 ml-1">
+                    <span className="text-xs text-muted ml-1">
                       (₹{balance.balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                     </span>
                   )}
                 </td>
                 {hasReceivables && (
                   <>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       {balance.issueDate ? new Date(balance.issueDate).toLocaleDateString() : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       {balance.dueDate ? new Date(balance.dueDate).toLocaleDateString() : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">
                       {balance.interestRate ? `${balance.interestRate}%` : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gain">
                       {interestCalc ? `₹${interestCalc.interestAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-accent-700">
                       {interestCalc ? `₹${interestCalc.totalWithInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                     </td>
                   </>
@@ -2485,11 +2395,11 @@ function BankBalanceGrid({
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {isReceivable && balance.status === 'closed' && balance.paidDate ? (
                     <div>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gain-bg text-gain text-xs font-semibold rounded-full">
                         <CheckCircle className="w-3 h-3" />
                         Paid
                       </span>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted mt-1">
                         {new Date(balance.paidDate).toLocaleDateString()}
                       </p>
                     </div>
@@ -2502,7 +2412,7 @@ function BankBalanceGrid({
                     {!(isReceivable && balance.status === 'closed') && (
                       <button
                         onClick={() => onEdit(balance)}
-                        className="text-blue-600 hover:text-blue-700"
+                        className="text-accent-700 hover:text-accent-700"
                         title="Edit">
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -2510,7 +2420,7 @@ function BankBalanceGrid({
                     <button
                       onClick={() => onDelete(balance.id)}
                       disabled={isDeleting === balance.id}
-                      className="text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-loss hover:text-loss disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Delete">
                       {isDeleting === balance.id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -2521,16 +2431,16 @@ function BankBalanceGrid({
                     <div className="relative" ref={(el) => { menuRefs.current[balance.id] = el; }}>
                       <button
                         onClick={() => setOpenMenuId(openMenuId === balance.id ? null : balance.id)}
-                        className="text-gray-600 hover:text-gray-800 p-1"
+                        className="text-muted hover:text-ink p-1"
                         title="More options">
                         <MoreVertical className="w-4 h-4" />
                       </button>
                       {openMenuId === balance.id && (
-                        <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                        <div className="absolute right-0 mt-1 w-48 bg-panel rounded-md shadow-lg border border-divider z-10">
                           <button
                             onClick={() => onPublishToggle(balance.id, balance.isPublished || false)}
                             disabled={isPublishing === balance.id}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            className="w-full text-left px-4 py-2 text-sm text-neutral-800 hover:bg-tile flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                             {isPublishing === balance.id ? (
                               <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -2553,7 +2463,7 @@ function BankBalanceGrid({
                               onDuplicate(balance);
                               setOpenMenuId(null);
                             }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-t border-gray-100">
+                            className="w-full text-left px-4 py-2 text-sm text-neutral-800 hover:bg-tile flex items-center gap-2 border-t border-divider">
                             <Copy className="w-4 h-4" />
                             Duplicate
                           </button>
@@ -2563,7 +2473,7 @@ function BankBalanceGrid({
                                 setConfirmPaidId(balance.id);
                                 setOpenMenuId(null);
                               }}
-                              className="w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-green-50 flex items-center gap-2 border-t border-gray-100">
+                              className="w-full text-left px-4 py-2 text-sm text-gain hover:bg-gain-bg flex items-center gap-2 border-t border-divider">
                               <CheckCircle className="w-4 h-4" />
                               Mark as Paid
                             </button>
@@ -2589,18 +2499,18 @@ function BankBalanceGrid({
                   className="absolute inset-0 bg-black/50"
                   onClick={() => { setConfirmPaidId(null); setIsMarkingPaid(false); }}
                 />
-                <div className="relative bg-white rounded-lg shadow-xl border border-gray-200 p-6 w-full max-w-md mx-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <div className="relative bg-panel rounded-lg shadow-lg border border-divider p-6 w-full max-w-md mx-4">
+                  <h3 className="text-lg font-semibold text-ink mb-2">
                     Mark as Paid
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted mb-4">
                     Are you sure you want to mark the receivable from{' '}
-                    <span className="font-semibold text-gray-900">{confirmPaidBalance.bankName}</span>{' '}
+                    <span className="font-semibold text-ink">{confirmPaidBalance.bankName}</span>{' '}
                     as paid? This will close the activity and disable editing.
                   </p>
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
+                  <div className="bg-tile rounded-lg p-3 mb-4 text-sm">
                     <div className="flex justify-between mb-1">
-                      <span className="text-gray-500">Amount:</span>
+                      <span className="text-muted">Amount:</span>
                       <span className="font-medium">
                         {confirmPaidBalance.originalCurrency || confirmPaidBalance.currency}{' '}
                         {(confirmPaidBalance.originalAmount || confirmPaidBalance.balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -2608,7 +2518,7 @@ function BankBalanceGrid({
                     </div>
                     {confirmPaidBalance.interestRate && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Interest Rate:</span>
+                        <span className="text-muted">Interest Rate:</span>
                         <span className="font-medium">{confirmPaidBalance.interestRate}%</span>
                       </div>
                     )}
@@ -2617,7 +2527,7 @@ function BankBalanceGrid({
                     <button
                       onClick={() => { setConfirmPaidId(null); setIsMarkingPaid(false); }}
                       disabled={isMarkingPaid}
-                      className="px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50">
+                      className="px-4 py-2 text-sm text-neutral-800 bg-tile hover:bg-neutral-200 transition-colors disabled:opacity-50 rounded-pill font-medium">
                       Cancel
                     </button>
                     <button
@@ -2628,7 +2538,7 @@ function BankBalanceGrid({
                         setConfirmPaidId(null);
                       }}
                       disabled={isMarkingPaid}
-                      className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                      className="px-4 py-2 text-sm text-white bg-accent hover:bg-accent-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-pill font-medium">
                       {isMarkingPaid ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />

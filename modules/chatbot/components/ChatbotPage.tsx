@@ -1,20 +1,28 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { ChatMessage } from "@/core/types";
+import { usePathname, useRouter } from "next/navigation";
+import { ChatMessage } from "@/shared/types";
 import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChatChart } from "./ChatChart";
-import { Mic, MicOff, X } from "lucide-react";
+import { AudioLines, MessageCircle, MicOff, X } from "lucide-react";
+import { Button, LinkButton, PageHeader } from "@/shared/components/ui";
 import { VoiceModeView } from "./VoiceModeView";
 import { scrapeCurrentPage } from "../utils/scrapePageData";
 import { capturePageScreenshot } from "../utils/captureScreenshot";
 
 export function ChatbotPage() {
   const pathname = usePathname();
+  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Server-side conversation id so follow-up answers (e.g. a missing amount)
+  // resolve against the same thread; reset when the chat is cleared.
+  const conversationIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (messages.length === 0) conversationIdRef.current = null;
+  }, [messages.length]);
   const [input, setInput] = useState("");
   const [operationPrefix, setOperationPrefix] = useState<string>(""); // Track selected operation
   const [selectedAgent, setSelectedAgent] = useState<"ask" | "audit-finance">("ask"); // Agent selector
@@ -269,6 +277,7 @@ export function ChatbotPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          conversationId: conversationIdRef.current,
           message: transcript,
           agent: selectedAgent,
           currentPage: pathname,
@@ -282,11 +291,12 @@ export function ChatbotPage() {
       });
 
       const data = await response.json();
+      if (data.conversationId) conversationIdRef.current = data.conversationId;
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response,
+        content: data.response || (data.error ? `The assistant isn't available right now: ${data.error}` : "Sorry, I didn't get a reply. Please try again."),
         timestamp: new Date(),
       };
 
@@ -374,6 +384,7 @@ export function ChatbotPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          conversationId: conversationIdRef.current,
           message: messageToSend,
           agent: selectedAgent,
           currentPage: pathname,
@@ -387,11 +398,12 @@ export function ChatbotPage() {
       });
 
       const data = await response.json();
+      if (data.conversationId) conversationIdRef.current = data.conversationId;
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response,
+        content: data.response || (data.error ? `The assistant isn't available right now: ${data.error}` : "Sorry, I didn't get a reply. Please try again."),
         timestamp: new Date(),
       };
 
@@ -462,61 +474,64 @@ export function ChatbotPage() {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-6 border-b">
-        <div className="flex items-center justify-between">
+    <div className="flex min-h-[calc(100vh-120px)] max-w-[860px] flex-col">
+      <PageHeader title="Assistant" meta={false} />
+      <div>
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">AI Financial Assistant</h1>
-            <p className="text-gray-600 mt-1">
-              Ask questions about your financial data and get AI-powered insights
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="agent-select" className="text-sm font-medium text-gray-600">
-              Agent:
+            <label htmlFor="agent-select" className="field-label">
+              Mode
             </label>
-            <div className="relative">
+            <div className="relative w-[270px] max-w-full">
               <select
                 id="agent-select"
                 value={selectedAgent}
                 onChange={(e) => handleAgentChange(e.target.value as "ask" | "audit-finance")}
                 disabled={isLoading || agentStatus === "connecting"}
-                className={`px-3 py-2 pr-8 text-sm font-medium border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                className={`input pr-8 ${
                   selectedAgent === "audit-finance"
                     ? agentStatus === "connected"
-                      ? "bg-green-50 border-green-400 text-green-800"
+                      ? "bg-gain-bg border-gain text-gain"
                       : agentStatus === "failed"
-                        ? "bg-red-50 border-red-400 text-red-800"
-                        : "bg-amber-50 border-amber-300 text-amber-800"
-                    : "bg-white border-gray-300 text-gray-700"
+                        ? "bg-loss-bg border-loss text-loss"
+                        : "bg-warn-bg border-warn text-warn"
+                    : ""
                 } disabled:opacity-50`}
               >
-                <option value="ask">Ask (Default)</option>
-                <option value="audit-finance">Audit Finance</option>
+                <option value="ask">Ask — answers only</option>
+                <option value="audit-finance">Audit finance</option>
               </select>
               {selectedAgent === "audit-finance" && (
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                <span className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none">
                   {agentStatus === "connecting" && (
-                    <span className="inline-block w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="inline-block w-3 h-3 border-2 border-warn border-t-transparent rounded-full animate-spin" />
                   )}
                   {agentStatus === "connected" && (
-                    <span className="inline-block w-2.5 h-2.5 bg-green-500 rounded-full" />
+                    <span className="inline-block w-2.5 h-2.5 bg-gain rounded-full" />
                   )}
                   {agentStatus === "failed" && (
-                    <span className="inline-block w-2.5 h-2.5 bg-red-500 rounded-full" />
+                    <span className="inline-block w-2.5 h-2.5 bg-loss rounded-full" />
                   )}
                 </span>
               )}
             </div>
           </div>
+          <div className="flex flex-wrap gap-2">
+            <LinkButton href="/settings#whatsapp" variant="secondary" icon={MessageCircle}>
+              WhatsApp
+            </LinkButton>
+            <Button variant="secondary" onClick={() => router.back()}>
+              Exit full screen
+            </Button>
+          </div>
         </div>
         {selectedAgent === "audit-finance" && (
-          <div className={`mt-3 px-3 py-2 rounded-lg text-sm ${
+          <div className={`mt-3 px-3 py-2 rounded-[12px] text-[13.5px] ${
             agentStatus === "connected"
-              ? "bg-green-50 border border-green-200 text-green-800"
+              ? "bg-gain-bg text-gain"
               : agentStatus === "failed"
-                ? "bg-red-50 border border-red-200 text-red-800"
-                : "bg-amber-50 border border-amber-200 text-amber-800"
+                ? "bg-loss-bg text-loss"
+                : "bg-warn-bg text-warn"
           }`}>
             {agentStatus === "connecting" && (
               <><strong>Connecting...</strong> Verifying MCP connection to Finance Audit Agent</>
@@ -525,49 +540,36 @@ export function ChatbotPage() {
               <><strong>Connected</strong> — Finance Audit Agent is ready. Paste a calculator URL to audit.</>
             )}
             {agentStatus === "failed" && (
-              <><strong>Connection Failed</strong> — Could not reach the audit agent. Make sure <code className="bg-red-100 px-1 rounded">finance-audit-agent</code> is built (<code className="bg-red-100 px-1 rounded">npm run build</code>).</>
+              <><strong>Connection Failed</strong> — Could not reach the audit agent. Make sure <code className="bg-loss-bg px-1 rounded">finance-audit-agent</code> is built (<code className="bg-loss-bg px-1 rounded">npm run build</code>).</>
             )}
           </div>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 space-y-4 py-6">
         {messages.length === 0 && (
-          <div className="text-center text-gray-500 mt-16">
-            <h2 className="text-xl font-semibold mb-2">
-              Welcome to your Financial AI Assistant
-            </h2>
-            <p className="mb-4">
-              I can help you understand your finances, analyze spending patterns,
-              and provide insights.
+          <div className="mt-10 max-w-[720px]">
+            <h2 className="text-[26px] text-ink">Ask about your money.</h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted">
+              Try “What’s my total net worth?”, “Show me my loans and outstanding amounts” or “Analyze my spending by category”. Changes to records are always shown for review first.
             </p>
-            <div className="mt-8 space-y-2 text-left max-w-md mx-auto">
-              <p className="font-semibold">Try asking:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>"Give me a financial summary"</li>
-                <li>"What are my total investments?"</li>
-                <li>"Show me my loans and outstanding amounts"</li>
-                <li>"What's my total net worth?"</li>
-                <li>"Analyze my spending by category"</li>
-                <li>"What are my bank balances?"</li>
-              </ul>
-            </div>
           </div>
         )}
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${
+            className={`msg-in flex ${
               message.role === "user" ? "justify-end" : "justify-start"
             }`}
           >
             <div
-              className={`max-w-3xl rounded-lg p-4 ${
+              className={`max-w-[85%] text-[15px] leading-relaxed ${
                 message.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-900"
+                  ? "rounded-[16px] bg-accent-100 px-4 py-3 text-ink"
+                  : "panel px-4 py-3.5 text-ink"
               }`}
             >
+              <div className="eyebrow mb-1.5">{message.role === "user" ? "You" : "Assistant"}</div>
               {message.role === "assistant" ? (
                 <div>
                   {(() => {
@@ -686,11 +688,11 @@ export function ChatbotPage() {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg p-4">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150" />
+            <div className="panel msg-in px-4 py-3.5" aria-label="Assistant is typing">
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 bg-neutral-500 rounded-full [animation:lgDot_1.2s_infinite]" />
+                <div className="w-2 h-2 bg-neutral-500 rounded-full [animation:lgDot_1.2s_.2s_infinite]" />
+                <div className="w-2 h-2 bg-neutral-500 rounded-full [animation:lgDot_1.2s_.4s_infinite]" />
               </div>
             </div>
           </div>
@@ -698,9 +700,9 @@ export function ChatbotPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-6 border-t bg-gray-50">
+      <div className="sticky bottom-24 pb-2 pt-4 md:bottom-0" style={{ background: "linear-gradient(to bottom, transparent, var(--color-bg) 18px)" }}>
         {/* Operation Tags */}
-        <div className="max-w-4xl mx-auto mb-3">
+        <div className="mb-4">
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => {
@@ -708,7 +710,7 @@ export function ChatbotPage() {
                 setInput("");
               }}
               disabled={isLoading || isListening}
-              className="px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary"
             >
               + Create Investment
             </button>
@@ -718,9 +720,9 @@ export function ChatbotPage() {
                 setInput("");
               }}
               disabled={isLoading || isListening}
-              className="px-3 py-1.5 text-xs font-medium bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary"
             >
-              ✏️ Update Investment
+              Update Investment
             </button>
             <button
               onClick={() => {
@@ -728,9 +730,9 @@ export function ChatbotPage() {
                 setInput("show me my portfolio summary");
               }}
               disabled={isLoading || isListening}
-              className="px-3 py-1.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary"
             >
-              📊 Portfolio Summary
+              Portfolio Summary
             </button>
             <button
               onClick={() => {
@@ -738,9 +740,9 @@ export function ChatbotPage() {
                 setInput("show me a chart of my investments");
               }}
               disabled={isLoading || isListening}
-              className="px-3 py-1.5 text-xs font-medium bg-orange-100 text-orange-700 rounded-full hover:bg-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary"
             >
-              📈 Investment Chart
+              Investment Chart
             </button>
             <button
               onClick={() => {
@@ -748,9 +750,9 @@ export function ChatbotPage() {
                 setInput("what are my total expenses this month?");
               }}
               disabled={isLoading || isListening}
-              className="px-3 py-1.5 text-xs font-medium bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary"
             >
-              💰 Expenses
+              Expenses
             </button>
             <button
               onClick={() => {
@@ -758,31 +760,31 @@ export function ChatbotPage() {
                 setInput("show me my loans");
               }}
               disabled={isLoading || isListening}
-              className="px-3 py-1.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full hover:bg-yellow-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary"
             >
-              💳 Loans
+              Loans
             </button>
           </div>
         </div>
-        <div className="flex gap-2 max-w-4xl mx-auto">
+        <div className="flex items-center gap-2">
           <div className="relative flex-1">
             {operationPrefix && (
               <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 z-10">
-                <span className="px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-md border border-blue-200 flex items-center gap-1.5">
+                <span className="tag tag-accent font-semibold">
                   {operationPrefix}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setOperationPrefix("");
                     }}
-                    className="hover:bg-blue-200 rounded p-0.5 transition-colors"
+                    className="hover:bg-accent-200 rounded p-0.5 transition-colors"
                     title="Remove operation"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 </span>
-                <span className="w-px h-4 bg-gray-300"></span>
-                <span className="w-0.5 h-4 bg-blue-600 animate-pulse"></span>
+                <span className="w-px h-4 bg-neutral-300"></span>
+                <span className="w-0.5 h-4 bg-accent animate-pulse"></span>
               </div>
             )}
             <input
@@ -798,36 +800,25 @@ export function ChatbotPage() {
                 }
               }}
               placeholder={operationPrefix ? "Enter details..." : selectedAgent === "audit-finance" ? "Ask to audit your data or paste a calculator URL..." : "Ask about your finances or click mic to speak..."}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${operationPrefix ? 'pl-32' : ''}`}
+              className={`input !min-h-[46px] ${operationPrefix ? '!pl-44' : ''}`}
               disabled={isLoading || isListening}
             />
           </div>
           <button
             onClick={isListening || isVoiceMode ? stopListening : startListening}
             disabled={isLoading}
-            className={`px-4 py-3 rounded-lg font-semibold transition-colors ${
-              isListening || isVoiceMode
-                ? "bg-red-600 text-white hover:bg-red-700 animate-pulse"
-                : "bg-purple-600 text-white hover:bg-purple-700"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`grid h-[46px] w-[46px] flex-none place-items-center rounded-full text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              isListening || isVoiceMode ? "bg-loss animate-pulse" : "bg-[var(--logo-bg)] hover:opacity-90"
+            }`}
             title={isListening || isVoiceMode ? "Stop Talk Mode" : "Start Talk Mode - Speak naturally"}
+            aria-label={isListening || isVoiceMode ? "Stop talk mode" : "Start talk mode"}
           >
-            {isListening || isVoiceMode ? (
-              <>
-                <MicOff className="w-5 h-5 inline mr-2" />
-                Talk Mode
-              </>
-            ) : (
-              <>
-                <Mic className="w-5 h-5 inline mr-2" />
-                Talk Mode
-              </>
-            )}
+            {isListening || isVoiceMode ? <MicOff className="w-5 h-5" /> : <AudioLines className="w-5 h-5" />}
           </button>
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+            className="btn btn-primary btn-lg !min-h-[46px] !px-6"
           >
             Send
           </button>

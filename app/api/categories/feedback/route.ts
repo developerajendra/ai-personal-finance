@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { provideFeedback } from "@/core/services/categoryLearningService";
+import { provideFeedback } from "@/server/imports/categoryLearning";
 
 export async function POST(request: NextRequest) {
   try {

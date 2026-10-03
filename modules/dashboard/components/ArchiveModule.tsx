@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FinancialSnapshot, ArchiveGrowthMetrics } from "@/core/types";
-import { formatIndianNumber } from "@/core/services/currencyService";
+import { FinancialSnapshot, ArchiveGrowthMetrics } from "@/shared/types";
+import { formatIndianNumber } from "@/shared/utils/currency";
 import {
   TrendingUp,
   TrendingDown,
@@ -203,11 +203,7 @@ export function ArchiveModule() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div>
-          <h1 className="text-3xl font-bold">Financial Archive</h1>
-          <p className="text-gray-600 mt-1">View historical financial data</p>
-        </div>
+      <div>
         <div className="mt-8">
           <Loader text="Loading archive data..." size="lg" />
         </div>
@@ -216,25 +212,19 @@ export function ArchiveModule() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Financial Archive</h1>
-        <p className="text-gray-600 mt-1">Historical financial snapshots</p>
-      </div>
-
+    <div>
       {/* Year Selector */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+      <div className="mb-6">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-gray-500" />
-            <label className="text-sm font-medium text-gray-700">Year:</label>
+            <Calendar className="w-5 h-5 text-muted" />
+            <label className="text-sm font-medium text-neutral-800">Year</label>
             <select
               value={selectedYear}
               onChange={(e) => {
                 setSelectedYear(parseInt(e.target.value));
               }}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="input !w-auto"
             >
               {availableYears.map((year) => (
                 <option key={year} value={year}>
@@ -263,7 +253,7 @@ export function ArchiveModule() {
                   console.error("Error creating snapshot:", error);
                 }
               }}
-              className="ml-auto px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+              className="btn btn-primary ml-auto"
             >
               Create Snapshot
             </button>
@@ -275,15 +265,15 @@ export function ArchiveModule() {
       {isPastYear && yearlySnapshot ? (
         <div className="space-y-6">
           <div className="text-center py-2">
-            <h2 className="text-xl font-semibold text-gray-800">
+            <h2 className="text-xl font-semibold text-ink">
               {selectedYear} Summary
             </h2>
           </div>
           <YearlySnapshotGrid snapshot={yearlySnapshot} />
         </div>
       ) : isPastYear && !yearlySnapshot ? (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-          <p className="text-yellow-800">
+        <div className="bg-warn-bg rounded-panel p-6 text-center">
+          <p className="text-warn">
             No snapshot found for {selectedYear}. Create a snapshot to view historical data.
           </p>
         </div>
@@ -291,11 +281,11 @@ export function ArchiveModule() {
         /* Monthly Grid for Current Year */
         <div className="space-y-6">
           {/* Year Analytics Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-6 text-white">
+          <div className="panel px-6 py-[22px]">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-2xl font-bold">{selectedYear} Financial Analytics</h2>
-                <p className="text-purple-100 mt-1">
+                <h2 className="text-[19px] text-ink">{selectedYear} financial analytics</h2>
+                <p className="text-muted text-[13.5px] mt-1">
                   {snapshots.filter((s) => s.month !== undefined).length} of {selectedYear === 2025 ? 1 : 12} months recorded
                 </p>
               </div>
@@ -303,8 +293,8 @@ export function ArchiveModule() {
                 {snapshots.length > 0 && (
                   <>
                     <div className="text-right">
-                      <p className="text-xs text-purple-200">Avg Net Worth</p>
-                      <p className="text-xl font-bold">
+                      <p className="eyebrow">Avg Net Worth</p>
+                      <p className="text-xl font-bold text-ink mt-1">
                         {formatIndianNumber(
                           snapshots
                             .filter((s) => s.month !== undefined)
@@ -328,11 +318,11 @@ export function ArchiveModule() {
                             return (
                               <>
                                 {isPositive ? (
-                                  <TrendingUp className="w-3 h-3 text-green-300" />
+                                  <TrendingUp className="w-3 h-3 text-gain" />
                                 ) : (
-                                  <TrendingDown className="w-3 h-3 text-red-300" />
+                                  <TrendingDown className="w-3 h-3 text-loss" />
                                 )}
-                                <span className={`text-xs font-medium ${isPositive ? "text-green-300" : "text-red-300"}`}>
+                                <span className={`text-xs font-medium ${isPositive ? "text-gain" : "text-loss"}`}>
                                   {isPositive ? "+" : ""}{formatIndianNumber(increment)} ({isPositive ? "+" : ""}{incrementPercent}%)
                                 </span>
                               </>
@@ -341,10 +331,10 @@ export function ArchiveModule() {
                         </div>
                       )}
                     </div>
-                    <div className="w-px h-12 bg-white/20"></div>
+                    <div className="w-px h-12 bg-divider"></div>
                     <div className="text-right">
-                      <p className="text-xs text-purple-200">Avg Investments</p>
-                      <p className="text-xl font-bold">
+                      <p className="eyebrow">Avg Investments</p>
+                      <p className="text-xl font-bold text-ink mt-1">
                         {formatIndianNumber(
                           snapshots
                             .filter((s) => s.month !== undefined)
@@ -368,11 +358,11 @@ export function ArchiveModule() {
                             return (
                               <>
                                 {isPositive ? (
-                                  <TrendingUp className="w-3 h-3 text-green-300" />
+                                  <TrendingUp className="w-3 h-3 text-gain" />
                                 ) : (
-                                  <TrendingDown className="w-3 h-3 text-red-300" />
+                                  <TrendingDown className="w-3 h-3 text-loss" />
                                 )}
-                                <span className={`text-xs font-medium ${isPositive ? "text-green-300" : "text-red-300"}`}>
+                                <span className={`text-xs font-medium ${isPositive ? "text-gain" : "text-loss"}`}>
                                   {isPositive ? "+" : ""}{formatIndianNumber(increment)} ({isPositive ? "+" : ""}{incrementPercent}%)
                                 </span>
                               </>
@@ -388,63 +378,63 @@ export function ArchiveModule() {
           </div>
 
           {monthsToShow.length === 0 ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-              <p className="text-yellow-800">
+            <div className="bg-warn-bg rounded-panel p-6 text-center">
+              <p className="text-warn">
                 No monthly snapshots available for {selectedYear}.
               </p>
             </div>
           ) : (
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="panel overflow-hidden">
               {/* Table Header */}
-              <div className="grid grid-cols-11 gap-3 p-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-purple-200 font-semibold text-xs text-gray-700">
+              <div className="grid grid-cols-11 gap-3 p-3 bg-tile font-semibold text-[11.5px] uppercase tracking-wide text-muted">
                 <div className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
                   <span>Month</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Wallet className="w-3 h-3 text-purple-600" />
+                  <Wallet className="w-3 h-3 text-accent-700" />
                   <span>Net Worth</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-blue-600" />
+                  <TrendingUp className="w-3 h-3 text-accent-700" />
                   <span>Investments</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <ArrowUpRight className="w-3 h-3 text-green-600" />
+                  <ArrowUpRight className="w-3 h-3 text-gain" />
                   <span>Liquid Assets</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Home className="w-3 h-3 text-orange-600" />
+                  <Home className="w-3 h-3 text-warn" />
                   <span>Fixed Assets</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <CreditCard className="w-3 h-3 text-red-600" />
+                  <CreditCard className="w-3 h-3 text-loss" />
                   <span>Total Loans</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Home className="w-3 h-3 text-indigo-600" />
+                  <Home className="w-3 h-3 text-accent-700" />
                   <span>Properties</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-cyan-600" />
+                  <TrendingUp className="w-3 h-3 text-accent-700" />
                   <span>Stocks + MF</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Wallet className="w-3 h-3 text-yellow-600" />
+                  <Wallet className="w-3 h-3 text-warn" />
                   <span>Provident Fund</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <ArrowUpRight className="w-3 h-3 text-emerald-600" />
+                  <ArrowUpRight className="w-3 h-3 text-gain" />
                   <span>Receivables</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <RefreshCw className="w-3 h-3 text-gray-600" />
+                  <RefreshCw className="w-3 h-3 text-muted" />
                   <span>Last Updated</span>
                 </div>
               </div>
               
               {/* Table Rows */}
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-divider">
                 {monthsToShow.map((month) => {
                   const snapshot = snapshotMap.get(month);
                   // Get previous month snapshot for growth calculation
@@ -510,7 +500,7 @@ export function ArchiveModule() {
                 
                 {/* Add button for upcoming months if current year */}
                 {selectedYear === currentYear && currentMonth < 12 && (
-                  <div className="p-3 text-center border-t border-gray-200">
+                  <div className="p-3 text-center border-t border-divider">
                     <button
                       onClick={async () => {
                         try {
@@ -529,7 +519,7 @@ export function ArchiveModule() {
                           console.error("Error creating snapshot:", error);
                         }
                       }}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                      className="btn btn-primary"
                     >
                       Generate Report for {FULL_MONTHS[currentMonth]}
                     </button>
@@ -627,26 +617,26 @@ function MonthRow({
     : null;
 
   return (
-    <div className={`grid grid-cols-11 gap-3 p-3 hover:bg-gray-50 transition-colors border-l-4 ${
+    <div className={`grid grid-cols-11 gap-3 p-3 hover:bg-tile transition-colors border-l-4 ${
       hasData 
         ? isCurrentMonth 
-          ? "bg-purple-50 border-purple-500" 
-          : "bg-white border-green-500"
-        : "bg-gray-50 border-gray-300"
+          ? "bg-accent-100 border-accent" 
+          : "bg-panel border-gain"
+        : "bg-tile border-divider"
     }`}>
         {/* Month Column */}
         <div className="flex items-center min-w-0">
           <div className="flex items-center gap-2 min-w-0">
             {hasData ? (
-              <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-gain flex-shrink-0" />
             ) : (
-              <XCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <XCircle className="w-4 h-4 text-neutral-500 flex-shrink-0" />
             )}
             <div className="min-w-0">
-              <p className="text-xs font-medium text-gray-500">{MONTHS[month - 1]}</p>
-              <p className="text-sm font-semibold text-gray-900 truncate">{monthName}</p>
+              <p className="text-xs font-medium text-muted">{MONTHS[month - 1]}</p>
+              <p className="text-sm font-semibold text-ink truncate">{monthName}</p>
               {isCurrentMonth && (
-                <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-accent-100 text-accent-700 text-xs font-medium rounded">
                   Current
                 </span>
               )}
@@ -658,19 +648,19 @@ function MonthRow({
       <div className="flex items-center">
         {hasData ? (
           <div>
-            <p className="text-sm font-semibold text-purple-700">
+            <p className="text-sm font-semibold text-accent-700">
               {formatIndianNumber(snapshot.netWorth)}
             </p>
             {netWorthDiff && (
               <div className="flex items-center gap-0.5 mt-0.5">
                 {netWorthDiff.isPositive ? (
-                  <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                  <TrendingUp className="w-2.5 h-2.5 text-gain" />
                 ) : (
-                  <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                  <TrendingDown className="w-2.5 h-2.5 text-loss" />
                 )}
                 <span
                   className={`text-xs font-medium ${
-                    netWorthDiff.isPositive ? "text-green-600" : "text-red-600"
+                    netWorthDiff.isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
                   {netWorthDiff.sign}
@@ -682,7 +672,7 @@ function MonthRow({
         ) : (
           <div className="flex items-center gap-2">
             {isGenerating ? (
-              <div className="flex items-center gap-1 text-xs text-purple-600">
+              <div className="flex items-center gap-1 text-xs text-accent-700">
                 <Loader text="" size="sm" />
                 <span>Generating...</span>
               </div>
@@ -709,12 +699,12 @@ function MonthRow({
                     alert("Error creating snapshot. Please try again.");
                   }
                 }}
-                className="text-xs text-purple-600 hover:text-purple-700 font-medium px-2 py-1 bg-purple-50 rounded hover:bg-purple-100 transition-colors"
+                className="text-xs text-accent-700 hover:text-accent-700 font-medium px-2 py-1 bg-accent-100 rounded hover:bg-accent-100 transition-colors"
               >
                 Create
               </button>
             ) : (
-              <span className="text-xs text-gray-400">-</span>
+              <span className="text-xs text-neutral-500">-</span>
             )}
           </div>
         )}
@@ -724,19 +714,19 @@ function MonthRow({
       <div className="flex items-center">
         {hasData ? (
           <div>
-            <p className="text-sm font-semibold text-blue-700">
+            <p className="text-sm font-semibold text-accent-700">
               {formatIndianNumber(snapshot.totalInvestments)}
             </p>
             {investmentsDiff && (
               <div className="flex items-center gap-0.5 mt-0.5">
                 {investmentsDiff.isPositive ? (
-                  <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                  <TrendingUp className="w-2.5 h-2.5 text-gain" />
                 ) : (
-                  <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                  <TrendingDown className="w-2.5 h-2.5 text-loss" />
                 )}
                 <span
                   className={`text-xs font-medium ${
-                    investmentsDiff.isPositive ? "text-green-600" : "text-red-600"
+                    investmentsDiff.isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
                   {investmentsDiff.sign}
@@ -746,7 +736,7 @@ function MonthRow({
             )}
           </div>
         ) : (
-          <span className="text-xs text-gray-400">-</span>
+          <span className="text-xs text-neutral-500">-</span>
         )}
       </div>
 
@@ -754,19 +744,19 @@ function MonthRow({
       <div className="flex items-center">
         {hasData ? (
           <div>
-            <p className="text-sm font-semibold text-green-700">
+            <p className="text-sm font-semibold text-gain">
               {formatIndianNumber(snapshot.totalLiquidAssets)}
             </p>
             {liquidAssetsDiff && (
               <div className="flex items-center gap-0.5 mt-0.5">
                 {liquidAssetsDiff.isPositive ? (
-                  <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                  <TrendingUp className="w-2.5 h-2.5 text-gain" />
                 ) : (
-                  <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                  <TrendingDown className="w-2.5 h-2.5 text-loss" />
                 )}
                 <span
                   className={`text-xs font-medium ${
-                    liquidAssetsDiff.isPositive ? "text-green-600" : "text-red-600"
+                    liquidAssetsDiff.isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
                   {liquidAssetsDiff.sign}
@@ -776,7 +766,7 @@ function MonthRow({
             )}
           </div>
         ) : (
-          <span className="text-xs text-gray-400">-</span>
+          <span className="text-xs text-neutral-500">-</span>
         )}
       </div>
 
@@ -784,19 +774,19 @@ function MonthRow({
       <div className="flex items-center">
         {hasData ? (
           <div>
-            <p className="text-sm font-semibold text-orange-700">
+            <p className="text-sm font-semibold text-warn">
               {formatIndianNumber(snapshot.totalFixedAssets)}
             </p>
             {fixedAssetsDiff && (
               <div className="flex items-center gap-0.5 mt-0.5">
                 {fixedAssetsDiff.isPositive ? (
-                  <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                  <TrendingUp className="w-2.5 h-2.5 text-gain" />
                 ) : (
-                  <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                  <TrendingDown className="w-2.5 h-2.5 text-loss" />
                 )}
                 <span
                   className={`text-xs font-medium ${
-                    fixedAssetsDiff.isPositive ? "text-green-600" : "text-red-600"
+                    fixedAssetsDiff.isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
                   {fixedAssetsDiff.sign}
@@ -806,7 +796,7 @@ function MonthRow({
             )}
           </div>
         ) : (
-          <span className="text-xs text-gray-400">-</span>
+          <span className="text-xs text-neutral-500">-</span>
         )}
       </div>
 
@@ -814,19 +804,19 @@ function MonthRow({
       <div className="flex items-center">
         {hasData ? (
           <div>
-            <p className="text-sm font-semibold text-red-700">
+            <p className="text-sm font-semibold text-loss">
               {formatIndianNumber(snapshot.totalLoans)}
             </p>
             {loansDiff && (
               <div className="flex items-center gap-0.5 mt-0.5">
                 {loansDiff.isPositive ? (
-                  <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                  <TrendingUp className="w-2.5 h-2.5 text-gain" />
                 ) : (
-                  <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                  <TrendingDown className="w-2.5 h-2.5 text-loss" />
                 )}
                 <span
                   className={`text-xs font-medium ${
-                    loansDiff.isPositive ? "text-green-600" : "text-red-600"
+                    loansDiff.isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
                   {loansDiff.sign}
@@ -836,7 +826,7 @@ function MonthRow({
             )}
           </div>
         ) : (
-          <span className="text-xs text-gray-400">-</span>
+          <span className="text-xs text-neutral-500">-</span>
         )}
       </div>
 
@@ -844,19 +834,19 @@ function MonthRow({
       <div className="flex items-center">
         {hasData ? (
           <div>
-            <p className="text-sm font-semibold text-indigo-700">
+            <p className="text-sm font-semibold text-accent-700">
               {formatIndianNumber(snapshot.totalProperties)}
             </p>
             {propertiesDiff && (
               <div className="flex items-center gap-0.5 mt-0.5">
                 {propertiesDiff.isPositive ? (
-                  <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                  <TrendingUp className="w-2.5 h-2.5 text-gain" />
                 ) : (
-                  <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                  <TrendingDown className="w-2.5 h-2.5 text-loss" />
                 )}
                 <span
                   className={`text-xs font-medium ${
-                    propertiesDiff.isPositive ? "text-green-600" : "text-red-600"
+                    propertiesDiff.isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
                   {propertiesDiff.sign}
@@ -866,7 +856,7 @@ function MonthRow({
             )}
           </div>
         ) : (
-          <span className="text-xs text-gray-400">-</span>
+          <span className="text-xs text-neutral-500">-</span>
         )}
       </div>
 
@@ -874,19 +864,19 @@ function MonthRow({
       <div className="flex items-center">
         {hasData ? (
           <div>
-            <p className="text-sm font-semibold text-cyan-700">
+            <p className="text-sm font-semibold text-accent-700">
               {formatIndianNumber(stocksAndMF)}
             </p>
             {stocksAndMFDiff && (
               <div className="flex items-center gap-0.5 mt-0.5">
                 {stocksAndMFDiff.isPositive ? (
-                  <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                  <TrendingUp className="w-2.5 h-2.5 text-gain" />
                 ) : (
-                  <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                  <TrendingDown className="w-2.5 h-2.5 text-loss" />
                 )}
                 <span
                   className={`text-xs font-medium ${
-                    stocksAndMFDiff.isPositive ? "text-green-600" : "text-red-600"
+                    stocksAndMFDiff.isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
                   {stocksAndMFDiff.sign}
@@ -896,7 +886,7 @@ function MonthRow({
             )}
           </div>
         ) : (
-          <span className="text-xs text-gray-400">-</span>
+          <span className="text-xs text-neutral-500">-</span>
         )}
       </div>
 
@@ -904,19 +894,19 @@ function MonthRow({
       <div className="flex items-center">
         {hasData ? (
           <div>
-            <p className="text-sm font-semibold text-yellow-700">
+            <p className="text-sm font-semibold text-warn">
               {formatIndianNumber(snapshot.totalPPF || 0)}
             </p>
             {ppfDiff && (
               <div className="flex items-center gap-0.5 mt-0.5">
                 {ppfDiff.isPositive ? (
-                  <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                  <TrendingUp className="w-2.5 h-2.5 text-gain" />
                 ) : (
-                  <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                  <TrendingDown className="w-2.5 h-2.5 text-loss" />
                 )}
                 <span
                   className={`text-xs font-medium ${
-                    ppfDiff.isPositive ? "text-green-600" : "text-red-600"
+                    ppfDiff.isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
                   {ppfDiff.sign}
@@ -926,7 +916,7 @@ function MonthRow({
             )}
           </div>
         ) : (
-          <span className="text-xs text-gray-400">-</span>
+          <span className="text-xs text-neutral-500">-</span>
         )}
       </div>
 
@@ -934,19 +924,19 @@ function MonthRow({
       <div className="flex items-center">
         {hasData ? (
           <div>
-            <p className="text-sm font-semibold text-emerald-700">
+            <p className="text-sm font-semibold text-gain">
               {formatIndianNumber(snapshot.totalReceivables || 0)}
             </p>
             {receivablesDiff && (
               <div className="flex items-center gap-0.5 mt-0.5">
                 {receivablesDiff.isPositive ? (
-                  <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                  <TrendingUp className="w-2.5 h-2.5 text-gain" />
                 ) : (
-                  <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                  <TrendingDown className="w-2.5 h-2.5 text-loss" />
                 )}
                 <span
                   className={`text-xs font-medium ${
-                    receivablesDiff.isPositive ? "text-green-600" : "text-red-600"
+                    receivablesDiff.isPositive ? "text-gain" : "text-loss"
                   }`}
                 >
                   {receivablesDiff.sign}
@@ -956,7 +946,7 @@ function MonthRow({
             )}
           </div>
         ) : (
-          <span className="text-xs text-gray-400">-</span>
+          <span className="text-xs text-neutral-500">-</span>
         )}
       </div>
 
@@ -964,7 +954,7 @@ function MonthRow({
       <div className="flex items-center">
         {hasData && snapshot ? (
           <div className="flex flex-col gap-1.5">
-            <div className="text-xs text-gray-600">
+            <div className="text-xs text-muted">
               <p className="font-medium">
                 {new Date(snapshot.updatedAt).toLocaleDateString('en-US', {
                   month: 'short',
@@ -972,7 +962,7 @@ function MonthRow({
                   year: 'numeric'
                 })}
               </p>
-              <p className="text-gray-500 mt-0.5">
+              <p className="text-muted mt-0.5">
                 {new Date(snapshot.updatedAt).toLocaleTimeString('en-US', {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -984,7 +974,7 @@ function MonthRow({
               <button
                 onClick={onUpdate}
                 disabled={isUpdating}
-                className="px-2 py-1 text-xs font-medium text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 w-fit"
+                className="px-2 py-1 text-xs font-medium text-accent-700 hover:text-accent-700 bg-accent-100 hover:bg-accent-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 w-fit"
                 title="Update current month data"
               >
                 {isUpdating ? (
@@ -1002,7 +992,7 @@ function MonthRow({
             )}
           </div>
         ) : (
-          <span className="text-xs text-gray-400">-</span>
+          <span className="text-xs text-neutral-500">-</span>
         )}
       </div>
     </div>
@@ -1023,12 +1013,12 @@ function MetricRow({
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <div className="text-gray-400">{icon}</div>
-        <span className={`text-xs ${highlight ? "font-semibold" : ""} text-gray-600`}>
+        <div className="text-neutral-500">{icon}</div>
+        <span className={`text-xs ${highlight ? "font-semibold" : ""} text-muted`}>
           {label}
         </span>
       </div>
-      <span className={`${highlight ? "text-lg font-bold" : "text-sm font-semibold"} text-gray-900`}>
+      <span className={`${highlight ? "text-lg font-bold" : "text-sm font-semibold"} text-ink`}>
         {formatIndianNumber(value)}
       </span>
     </div>
@@ -1101,17 +1091,17 @@ function GridCard({
 }) {
   return (
     <div
-      className={`bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow ${
-        highlight ? "border-purple-300 bg-purple-50/30" : ""
+      className={`bg-panel rounded-lg border border-divider p-5 hover:shadow-md transition-shadow ${
+        highlight ? "border-accent-200 bg-accent-100" : ""
       }`}
     >
       <div className="flex items-center justify-between mb-3">
-        <p className={`text-sm font-medium ${highlight ? "text-purple-700" : "text-gray-600"}`}>
+        <p className={`text-sm font-medium ${highlight ? "text-accent-700" : "text-muted"}`}>
           {label}
         </p>
-        <div className={`${highlight ? "text-purple-600" : "text-gray-400"}`}>{icon}</div>
+        <div className={`${highlight ? "text-accent-700" : "text-neutral-500"}`}>{icon}</div>
       </div>
-      <p className={`${highlight ? "text-3xl" : "text-2xl"} font-bold text-gray-900`}>
+      <p className={`${highlight ? "text-3xl" : "text-2xl"} font-bold text-ink`}>
         {formatIndianNumber(value)}
       </p>
     </div>

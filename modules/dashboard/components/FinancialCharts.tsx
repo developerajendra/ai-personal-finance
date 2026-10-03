@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Transaction, FinancialSummary } from "@/core/types";
+import { Transaction, FinancialSummary } from "@/shared/types";
 import {
   PieChart,
   Pie,
@@ -59,7 +59,7 @@ export function FinancialCharts({
   }, [transactions]);
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 border border-gray-200 space-y-6">
+    <div className="panel p-6 space-y-6">
       <h2 className="text-xl font-semibold">Financial Overview</h2>
 
       {categoryData.length > 0 && (
@@ -110,7 +110,7 @@ export function FinancialCharts({
       )}
 
       {categoryData.length === 0 && monthlyChartData.length === 0 && (
-        <div className="text-center text-gray-500 py-12">
+        <div className="text-center text-muted py-12">
           <p>No data available. Upload financial data in the Admin Panel.</p>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { testOllamaConnection } from "@/core/services/ollamaService";
+import { testOllamaConnection } from "@/server/ai/providers/ollama/client";
 
 export async function GET() {
   try {

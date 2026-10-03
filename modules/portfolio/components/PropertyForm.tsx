@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Property } from "@/core/types";
+import { Property } from "@/shared/types";
 import { Save, X } from "lucide-react";
 import { ButtonLoader } from "@/shared/components/Loader";
 
@@ -55,7 +55,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Property Name *
           </label>
           <input
@@ -64,12 +64,12 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="e.g., House, Plot, Apartment"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Property Type *
           </label>
           <select
@@ -81,7 +81,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
                 type: e.target.value as Property["type"],
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           >
             <option value="house">House</option>
             <option value="plot">Plot</option>
@@ -93,7 +93,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Purchase Price (₹) *
           </label>
           <input
@@ -108,12 +108,12 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
                 purchasePrice: parseFloat(e.target.value),
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Current Value (₹) (Optional)
           </label>
           <input
@@ -127,12 +127,12 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
                 currentValue: e.target.value ? parseFloat(e.target.value) : undefined,
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Location *
           </label>
           <input
@@ -143,12 +143,12 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
               setFormData({ ...formData, location: e.target.value })
             }
             placeholder="e.g., Mumbai, Delhi"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Purchase Date *
           </label>
           <input
@@ -158,12 +158,12 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
             onChange={(e) =>
               setFormData({ ...formData, purchaseDate: e.target.value })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Status *
           </label>
           <select
@@ -175,7 +175,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
                 status: e.target.value as Property["status"],
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           >
             <option value="owned">Owned</option>
             <option value="rented-out">Rented Out</option>
@@ -184,7 +184,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-neutral-800 mb-1">
             Asset Type *
           </label>
           <select
@@ -196,7 +196,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
                 assetType: e.target.value as 'fixed' | 'liquid',
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           >
             <option value="fixed">Fixed Asset</option>
             <option value="liquid">Liquid Asset</option>
@@ -205,7 +205,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-neutral-800 mb-1">
           Description (Optional)
         </label>
         <textarea
@@ -214,7 +214,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
             setFormData({ ...formData, description: e.target.value })
           }
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
         />
       </div>
 
@@ -222,7 +222,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+          className="px-4 py-2 border border-divider rounded-lg hover:bg-tile flex items-center gap-2"
         >
           <X className="w-4 h-4" />
           Cancel
@@ -230,7 +230,7 @@ export function PropertyForm({ property, onSave, onCancel, isSaving = false }: P
         <button
           type="submit"
           disabled={isSaving}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 bg-accent text-white hover:bg-accent-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-pill font-medium"
         >
           {isSaving ? (
             <>

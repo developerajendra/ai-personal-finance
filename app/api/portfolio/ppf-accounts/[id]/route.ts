@@ -3,8 +3,8 @@ import {
   loadPPFAccounts,
   savePPFAccount,
   PPFAccount,
-} from "@/core/services/ppfStorageService";
-import { getSession } from "@/core/auth/getSession";
+} from "@/server/finance/provident-fund/ppfStorage";
+import { getSession } from "@/server/auth/session";
 
 export async function PATCH(
   request: NextRequest,

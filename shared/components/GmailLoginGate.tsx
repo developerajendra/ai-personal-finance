@@ -56,16 +56,16 @@ export function GmailLoginGate({ children }: GmailLoginGateProps) {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-tile via-accent-500 to-accent-700">
         <div className="text-center">
           <div className="relative">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+            <div className="w-16 h-16 bg-gradient-to-br from-accent to-accent-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
               <Mail className="w-8 h-8 text-white" />
             </div>
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-white animate-pulse"></div>
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-gain rounded-full border-4 border-white animate-pulse"></div>
           </div>
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto mb-3" />
-          <p className="text-gray-600 font-medium">Checking authentication...</p>
+          <Loader2 className="w-6 h-6 animate-spin text-accent-700 mx-auto mb-3" />
+          <p className="text-muted font-medium">Checking authentication...</p>
         </div>
       </div>
     );
@@ -76,45 +76,45 @@ export function GmailLoginGate({ children }: GmailLoginGateProps) {
   // If not connected, show login screen
   if (!isConnected) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-lg w-full mx-4 border border-gray-100">
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-tile via-accent-500 to-accent-700 p-4">
+        <div className="bg-panel rounded-2xl shadow-2xl p-10 max-w-lg w-full mx-4 border border-divider">
           {/* Gmail Logo/Icon */}
           <div className="text-center mb-8">
             <div className="relative inline-block mb-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-red-500 via-yellow-500 to-green-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg transform hover:scale-105 transition-transform">
+              <div className="w-20 h-20 bg-gradient-to-br from-loss via-warn to-gain rounded-2xl flex items-center justify-center mx-auto shadow-lg transform hover:scale-105 transition-transform">
                 <Mail className="w-10 h-10 text-white" />
               </div>
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-4 border-white"></div>
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-accent rounded-full border-4 border-white"></div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-ink mb-3 bg-gradient-to-r from-accent to-accent-700 bg-clip-text text-transparent">
               Login with Gmail
             </h1>
-            <p className="text-gray-600 text-lg">
+            <p className="text-muted text-lg">
               Connect your Gmail account to access your financial dashboard
             </p>
           </div>
 
           {/* Features */}
           <div className="space-y-3 mb-8">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
-              <TrendingUp className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-accent to-accent-700 border border-accent-200">
+              <TrendingUp className="w-5 h-5 text-accent-700 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-gray-900">Auto-sync Investments</p>
-                <p className="text-xs text-gray-600">Automatically extract investment data from emails</p>
+                <p className="text-sm font-semibold text-ink">Auto-sync Investments</p>
+                <p className="text-xs text-muted">Automatically extract investment data from emails</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100">
-              <Zap className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-gain to-gain border border-divider">
+              <Zap className="w-5 h-5 text-gain mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-gray-900">Real-time Updates</p>
-                <p className="text-xs text-gray-600">Keep your portfolio updated automatically</p>
+                <p className="text-sm font-semibold text-ink">Real-time Updates</p>
+                <p className="text-xs text-muted">Keep your portfolio updated automatically</p>
               </div>
             </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100">
-              <Shield className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-accent to-loss border border-accent-200">
+              <Shield className="w-5 h-5 text-accent-700 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-semibold text-gray-900">Secure & Private</p>
-                <p className="text-xs text-gray-600">Your data is encrypted and secure</p>
+                <p className="text-sm font-semibold text-ink">Secure & Private</p>
+                <p className="text-xs text-muted">Your data is encrypted and secure</p>
               </div>
             </div>
           </div>
@@ -123,7 +123,7 @@ export function GmailLoginGate({ children }: GmailLoginGateProps) {
           <button
             onClick={handleLogin}
             disabled={isConnecting}
-            className="w-full group relative overflow-hidden flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
+            className="w-full group relative overflow-hidden flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-accent to-accent-700 text-white rounded-xl hover:from-accent hover:to-accent-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg shadow-blue-500/30 hover:shadow-lg hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
             {isConnecting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -141,7 +141,7 @@ export function GmailLoginGate({ children }: GmailLoginGateProps) {
           </button>
 
           {/* Footer */}
-          <p className="text-center text-xs text-gray-500 mt-6">
+          <p className="text-center text-xs text-muted mt-6">
             By logging in, you agree to our terms of service and privacy policy
           </p>
         </div>

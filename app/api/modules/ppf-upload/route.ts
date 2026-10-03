@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import pdfParse from "pdf-parse";
-import { generateJsonContent } from "@/core/services/ollamaService";
+import { generateJsonContent } from "@/server/ai/providers/ollama/client";
 import {
   savePPFAccount,
   PPFAccount,
-} from "@/core/services/ppfStorageService";
-import { getSession } from "@/core/auth/getSession";
+} from "@/server/finance/provident-fund/ppfStorage";
+import { getSession } from "@/server/auth/session";
 import fs from "fs";
 import path from "path";
 

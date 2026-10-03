@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getLoanEmailMetadata, getAllLoanEmailMetadata } from '@/core/services/loanEmailMetadataService';
+import { getLoanEmailMetadata, getAllLoanEmailMetadata } from '@/server/integrations/gmail/loans/loanEmailMetadata';
 
 export async function GET(request: NextRequest) {
   try {

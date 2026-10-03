@@ -3,7 +3,7 @@ import {
   clearAllCache,
   clearExpiredCache,
   invalidateCache,
-} from "@/core/services/ollamaCacheService";
+} from "@/server/ai/providers/ollama/cache";
 
 export async function DELETE(request: NextRequest) {
   try {

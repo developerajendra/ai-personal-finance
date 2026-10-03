@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PortfolioSummary } from "@/core/types";
+import { PortfolioSummary } from "@/shared/types";
 
 export async function GET() {
   // In production, fetch from database and calculate

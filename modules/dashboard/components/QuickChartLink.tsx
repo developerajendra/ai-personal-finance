@@ -10,7 +10,7 @@ export function QuickChartLink({ onClick }: QuickChartLinkProps) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+      className="flex items-center gap-2 px-4 py-2 bg-accent text-white hover:bg-accent-700 transition-colors rounded-pill font-medium"
     >
       <BarChart3 className="w-5 h-5" />
       <span>Quick Chart</span>

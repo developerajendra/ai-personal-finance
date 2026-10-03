@@ -1,28 +1,771 @@
+@import "./ledger-theme.css";
+
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
 
+/* Legacy aliases kept for any code still reading them */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    background: var(--color-bg);
+  }
+  body {
+    color: var(--color-text);
+    background: var(--color-bg);
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums lining-nums;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1,
+  h2 {
+    font-family: var(--font-heading);
+    letter-spacing: var(--heading-tracking);
+  }
+  h1 {
+    font-weight: var(--heading-weight);
+  }
+  h2 {
+    font-weight: 650;
+  }
+  a {
+    color: inherit;
+  }
+  button:focus-visible,
+  select:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-accent-200);
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+
+/* Ledger component classes. Kept outside @layer so Tailwind never purges classes that are
+   composed dynamically (e.g. `tag-${tone}`), and placed before utilities so utilities still win. */
+
+  /* Panel: the one boxed surface. Padding comes from the caller (default p-[22px_24px]). */
+  .panel {
+    background: var(--panel-bg);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+    border: var(--panel-border);
+  }
+  .panel-lift {
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .panel-lift:hover {
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-1px);
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 16px;
+    border-radius: var(--radius-btn);
+    border: 1px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, opacity 0.15s;
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-sm {
+    min-height: 30px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  .btn-lg {
+    min-height: 42px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
+  .btn-primary {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--color-accent-700);
+  }
+  .btn-secondary {
+    background: var(--btn2-bg);
+    border-color: var(--btn2-border);
+    color: var(--color-text);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--btn2-hover);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-accent-700);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--color-accent-100);
+  }
+  .btn-danger {
+    background: var(--fin-loss-bg);
+    color: var(--fin-loss);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--fin-loss) 18%, transparent);
+  }
+  .btn-icon {
+    width: 36px;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  /* Inputs */
+  .input {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 12px;
+    border-radius: var(--radius-input);
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--color-text);
+    font-size: 14px;
+  }
+  .input::placeholder {
+    color: var(--color-neutral-500);
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-100);
+  }
+  .field-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--color-neutral-600);
+  }
+
+  /* Segmented control */
+  .seg {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--radius-seg);
+    background: var(--seg-bg);
+  }
+  html[data-theme="private"] .seg {
+    border: 1px solid rgba(20, 33, 61, 0.22);
+  }
+  .seg-opt {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 4px 14px;
+    border-radius: var(--radius-seg-opt);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text);
+    background: transparent;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .seg-opt[aria-pressed="true"] {
+    background: var(--seg-on);
+    box-shadow: var(--seg-on-shadow);
+  }
+  html[data-theme="private"] .seg-opt[aria-pressed="true"] {
+    color: #fff;
+  }
+
+  /* Tags / pills */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 9px;
+    border-radius: var(--radius-tag);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 18px;
+    white-space: nowrap;
+    background: var(--tile-bg);
+    color: var(--color-neutral-700);
+  }
+  .tag-gain {
+    background: var(--fin-gain-bg);
+    color: var(--fin-gain);
+  }
+  .tag-loss {
+    background: var(--fin-loss-bg);
+    color: var(--fin-loss);
+  }
+  .tag-warn {
+    background: var(--fin-warn-bg);
+    color: var(--fin-warn);
+  }
+  .tag-accent {
+    background: var(--color-accent-100);
+    color: var(--color-accent-800);
+  }
+
+  /* Eyebrow label (uppercase metadata) */
+  .eyebrow {
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-neutral-600);
+  }
+
+  /* Ledger table */
+  .ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .ledger-table thead th {
+    background: var(--tile-bg);
+    color: var(--color-neutral-600);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 12px 16px;
+    white-space: nowrap;
+  }
+  .ledger-table tbody td {
+    padding: 14px 16px;
+    border-top: 1px solid var(--color-divider);
+    vertical-align: middle;
+  }
+  .ledger-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--tile-bg) 60%, transparent);
+  }
+  .ledger-table .num {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Dialog */
+  .dialog {
+    background: var(--dialog-bg);
+    border-radius: var(--radius-dialog);
+    box-shadow: var(--shadow-lg);
+    color: var(--color-text);
+  }
+
+  /* Glass surfaces */
+  .glass-side {
+    background: var(--side-bg);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    box-shadow: var(--side-edge);
+  }
+  .glass-tabbar {
+    background: var(--tabbar-bg);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    box-shadow: 0 -0.5px 0 rgba(0, 0, 0, 0.16);
+  }
+
+/* ---------- Sidebar navigation states ---------- */
+.nav-item {
+  color: var(--side-fg);
+  transition: background-color 0.16s ease, color 0.16s ease, padding 0.2s ease;
 }
+.nav-item:hover {
+  background-color: var(--nav-hover);
+}
+.nav-item:active {
+  background-color: var(--nav-sel);
+}
+.nav-item-on,
+.nav-item-on:hover {
+  background-color: var(--nav-sel);
+  color: var(--nav-sel-fg);
+}
+
+/* Sidebar collapse / expand */
+.sidebar-anim {
+  transition: width 0.3s cubic-bezier(0.2, 0.9, 0.25, 1), padding 0.3s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.2s ease;
+  will-change: width;
+}
+/* Whole sidebar hidden: slides to zero width, then leaves the tab order (visibility flips after the slide) */
+.sidebar-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: width 0.3s cubic-bezier(0.2, 0.9, 0.25, 1), padding 0.3s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.2s ease, visibility 0s linear 0.3s;
+}
+.sidebar-anim > * {
+  min-width: 232px;
+}
+.nav-fold {
+  display: block;
+  max-width: 220px;
+  opacity: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 0.18s ease 0.08s, max-width 0.28s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.nav-fold-off {
+  max-width: 0;
+  opacity: 0;
+  transition: opacity 0.1s ease, max-width 0.28s cubic-bezier(0.2, 0.9, 0.25, 1);
+  pointer-events: none;
+}
+.nav-group-label {
+  max-height: 28px;
+  opacity: 1;
+  overflow: hidden;
+  transition: opacity 0.18s ease, max-height 0.28s ease, padding 0.28s ease;
+}
+.nav-group-label-off {
+  max-height: 0;
+  opacity: 0;
+  padding-bottom: 0;
+}
+
+/* ---------- Motion ---------- */
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes chatIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes chatOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+  }
+}
+@keyframes msgIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop-in {
+  animation: popIn 0.16s ease-out both;
+  transform-origin: top left;
+}
+.fade-in {
+  animation: fadeIn 0.18s ease-out both;
+}
+.page-enter {
+  /* backwards, not both: a filled transform animation would keep trapping fixed overlays (dialogs, drawers) */
+  animation: pageEnter 0.28s ease-out backwards;
+}
+.chat-in {
+  animation: chatIn 0.26s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+  transform-origin: bottom right;
+}
+.chat-out {
+  animation: chatOut 0.18s ease-in both;
+  transform-origin: bottom right;
+}
+.msg-in {
+  animation: msgIn 0.24s ease-out both;
+}
+
+/* ---------- Assistant markdown (no typography plugin installed) ---------- */
+.prose {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+.prose > * + * {
+  margin-top: 0.6em;
+}
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-family: var(--font-heading);
+  font-weight: 650;
+  line-height: 1.3;
+  margin-top: 1em;
+}
+.prose h1 { font-size: 19px; }
+.prose h2 { font-size: 17px; }
+.prose h3,
+.prose h4 { font-size: 15px; }
+.prose > :first-child { margin-top: 0; }
+.prose strong { font-weight: 650; }
+.prose a { color: var(--color-accent-700); text-decoration: underline; text-underline-offset: 2px; }
+.prose ul,
+.prose ol { padding-left: 1.25em; }
+.prose ul { list-style: disc; }
+.prose ol { list-style: decimal; }
+.prose li + li { margin-top: 0.25em; }
+.prose li::marker { color: var(--color-neutral-500); }
+.prose code {
+  font-size: 0.88em;
+  padding: 0.1em 0.35em;
+  border-radius: 6px;
+  background: var(--tile-bg);
+}
+.prose pre {
+  overflow-x: auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--tile-bg);
+  font-size: 13px;
+}
+.prose pre code { background: none; padding: 0; }
+.prose blockquote {
+  border-left: 3px solid var(--color-accent-300);
+  padding-left: 12px;
+  color: var(--color-neutral-700);
+}
+.prose hr { border: 0; border-top: 1px solid var(--color-divider); margin: 1em 0; }
+.prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+.prose th {
+  background: var(--tile-bg);
+  color: var(--color-neutral-600);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+.prose td {
+  padding: 8px 12px;
+  border-top: 1px solid var(--color-divider);
+}
+.bg-accent .prose,
+.bg-accent .prose * { color: inherit; }
+
+/* ---------- ⌘K command palette (self-contained so it renders identically everywhere) ---------- */
+.cmdk-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 16px 16px;
+  background: rgba(29, 29, 31, 0.4);
+}
+.cmdk {
+  width: 100%;
+  max-width: 620px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  transform-origin: top center;
+}
+.cmdk-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.cmdk-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 17px;
+  color: var(--color-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.cmdk-input:focus,
+.cmdk-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.cmdk-input::placeholder {
+  color: var(--color-neutral-500);
+}
+.cmdk-kbd {
+  flex: none;
+  font-size: 11px;
+  padding: 2px 6px;
+  border: 1px solid var(--color-divider);
+  border-radius: 3px;
+  color: var(--color-neutral-700);
+}
+.cmdk-list {
+  max-height: 52vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+}
+.cmdk-item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cmdk-item[aria-selected="true"] {
+  background: var(--color-accent-100);
+}
+@media (hover: hover) {
+  .cmdk-item:hover {
+    background: var(--color-accent-100);
+  }
+}
+.cmdk-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent-700);
+}
+.cmdk-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+.cmdk-sub {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--color-neutral-700);
+}
+.cmdk-kind {
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+.cmdk-foot {
+  display: flex;
+  gap: 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-divider);
+  font-size: 12px;
+  color: var(--color-neutral-700);
+}
+@media (max-width: 640px) {
+  .cmdk-overlay {
+    padding: 12px;
+  }
+  .cmdk-list {
+    max-height: 60vh;
+  }
+  .cmdk-kind,
+  .cmdk-foot {
+    display: none;
+  }
+}
+
+/* ---------- Floating AI button (solid colours, no color-mix dependency) ---------- */
+.ai-fab {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #0e8a9b;
+  background-color: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 0 0 3px var(--panel-bg), 0 8px 24px rgba(0, 0, 0, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ai-fab:hover {
+  transform: scale(1.05);
+}
+.ai-fab:active {
+  transform: scale(0.96);
+}
+
+/* Mobile tab bar: instant press feedback (the pill tints and shrinks while the finger is down) */
+.tab-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.tab-pill {
+  transition: background-color 0.18s ease, transform 0.12s ease;
+}
+.tab-btn:active .tab-pill {
+  transform: scale(0.92);
+  background-color: var(--color-accent-100);
+}
+
+/* Legal documents (/privacy, /terms) */
+.legal {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--color-text);
+}
+.legal section {
+  scroll-margin-top: 24px;
+}
+.legal h2 {
+  margin: 40px 0 10px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.legal h3 {
+  margin: 22px 0 6px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.legal p {
+  margin: 0 0 12px;
+}
+.legal ul {
+  margin: 0 0 14px;
+  padding-left: 22px;
+  list-style: disc;
+}
+.legal li {
+  margin: 4px 0;
+}
+.legal a {
+  color: var(--color-accent-700);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.legal strong {
+  font-weight: 600;
+}
+.legal-tab {
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: var(--color-text);
+}
+.legal-tab:hover {
+  background: var(--color-neutral-100);
+}
+.legal-tab-on {
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+  font-weight: 600;
+}
+
+@tailwind utilities;
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
 
+@keyframes lgOrb {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+@keyframes lgBar {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes lgDot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

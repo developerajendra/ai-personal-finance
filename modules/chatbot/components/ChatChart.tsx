@@ -38,7 +38,7 @@ export function ChatChart({ chartData }: ChatChartProps) {
   }
 
   return (
-    <div className="my-4 p-4 bg-white rounded-lg border border-gray-200">
+    <div className="my-4 p-4 panel">
       {title && (
         <h4 className="text-lg font-semibold mb-4 text-center">{title}</h4>
       )}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/core/auth/getSession";
-import * as userConfigRepo from "@/core/db/repositories/userConfigRepository";
+import { getSession } from "@/server/auth/session";
+import * as userConfigRepo from "@/server/db/repositories/userConfigRepository";
 
 export async function GET() {
   try {

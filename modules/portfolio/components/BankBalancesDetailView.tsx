@@ -1,25 +1,13 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { BankBalance } from '@/core/types';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
-import { Wallet, Building2, TrendingUp, CreditCard, Calendar } from 'lucide-react';
+import { BankBalance } from '@/shared/types';
+import { useState } from 'react';
 import { Loader } from '@/shared/components/Loader';
-import { formatIndianNumber } from '@/core/services/currencyService';
-
-const COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6'];
+import { DetailRow, Drawer, Panel, Tag } from '@/shared/components/ui';
+import { DataTable } from '@/shared/components/DataTable';
+import { useMoney, fmtDate } from '@/shared/hooks/useMoney';
+import { BreakdownPanel } from './BreakdownPanel';
 
 export function BankBalancesDetailView() {
   const { data: bankBalances = [], isLoading } = useQuery<BankBalance[]>({
@@ -45,9 +33,7 @@ export function BankBalancesDetailView() {
   // Filter out receivables - they should only appear in the receivables page
   const bankBalancesOnly = bankBalances.filter((balance) => !balance.tags?.includes('receivable'));
 
-  const totalBalance = bankBalancesOnly.reduce((sum, balance) => sum + balance.balance, 0);
   const activeAccounts = bankBalancesOnly.filter((balance) => balance.status === 'active').length;
-  const totalBanks = new Set(bankBalancesOnly.map((b) => b.bankName)).size;
 
   const bankBreakdown = bankBalancesOnly.reduce((acc, balance) => {
     acc[balance.bankName] = (acc[balance.bankName] || 0) + balance.balance;
@@ -70,207 +56,91 @@ export function BankBalancesDetailView() {
     value,
   }));
 
-  const balanceComparison = bankBalancesOnly.map((balance) => ({
-    name: balance.bankName.length > 15 ? balance.bankName.substring(0, 15) + '...' : balance.bankName,
-    balance: balance.balance,
-    accountType: balance.accountType,
-  }));
 
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Balance</p>
-              <p className="text-2xl font-bold text-indigo-600 mt-2">
-                ₹{formatIndianNumber(totalBalance)}
-              </p>
-            </div>
-            <Wallet className="w-8 h-8 text-indigo-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Accounts</p>
-              <p className="text-2xl font-bold text-blue-600 mt-2">
-                {bankBalancesOnly.length}
-              </p>
-            </div>
-            <CreditCard className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Active Accounts</p>
-              <p className="text-2xl font-bold text-green-600 mt-2">
-                {activeAccounts}
-              </p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Banks</p>
-              <p className="text-2xl font-bold text-purple-600 mt-2">
-                {totalBanks}
-              </p>
-            </div>
-            <Building2 className="w-8 h-8 text-purple-600" />
-          </div>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {bankChartData.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">Balance by Bank</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={bankChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value">
-                  {bankChartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => `₹${formatIndianNumber(value)}`} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-
-        {accountTypeChartData.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">Balance by Account Type</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={accountTypeChartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                <YAxis />
-                <Tooltip formatter={(value: number) => `₹${formatIndianNumber(value)}`} />
-                <Bar dataKey="value" fill="#6366F1" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
-
-      {/* Bank Balance Details Table */}
-      <div className="bg-white rounded-lg shadow border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold">Account Details</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Bank Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Account Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Account Number
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Balance
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Currency
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Updated
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {bankBalancesOnly.map((balance) => (
-                <tr key={balance.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-gray-400" />
-                      {balance.bankName}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {balance.accountType.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {balance.accountNumber || 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-semibold">
-                    {(() => {
-                      const currency = balance.originalCurrency || balance.currency || 'INR';
-                      const amount = balance.originalAmount ?? balance.balance;
-                      const symbol = currency === 'INR' ? '₹' : currency === 'USD' ? '$' : 'Rs';
-                      return (
-                        <>
-                          {symbol}{formatIndianNumber(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          {currency !== 'INR' && (
-                            <span className="text-xs text-gray-500 ml-1">
-                              (₹{formatIndianNumber(balance.balance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                            </span>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {balance.originalCurrency || balance.currency || 'INR'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(balance.lastUpdated).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        balance.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : balance.status === 'closed'
-                            ? 'bg-gray-100 text-gray-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                      {balance.status.charAt(0).toUpperCase() + balance.status.slice(1)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {bankBalancesOnly.length === 0 && (
-          <div className="p-12 text-center text-gray-500">
-            <Wallet className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p>No bank balances data available. Add bank accounts in the Portfolio section.</p>
-          </div>
-        )}
+    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+      <BankAccountsTable balances={bankBalancesOnly} activeAccounts={activeAccounts} />
+      <div className="space-y-4">
+        <BreakdownPanel title="By bank" items={bankChartData} color="var(--c-cash)" />
+        <BreakdownPanel title="By account type" items={accountTypeChartData} color="var(--color-accent)" />
       </div>
     </div>
   );
 }
 
+function BankAccountsTable({ balances, activeAccounts }: { balances: BankBalance[]; activeAccounts: number }) {
+  const { M, O } = useMoney();
+  const [open, setOpen] = useState<BankBalance | null>(null);
+  const ccy = (b: BankBalance) => b.originalCurrency || b.currency || 'INR';
+  const typeName = (b: BankBalance) => b.accountType.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  const statusTone = (st: BankBalance['status']) => (st === 'active' ? 'gain' : st === 'closed' ? 'neutral' : 'warn');
+
+  return (
+    <Panel flush className="overflow-hidden">
+      <div className="px-6 pb-4 pt-[22px]">
+        <h2 className="text-[19px]">Accounts</h2>
+        <p className="mt-1 text-[13px] text-muted">
+          {balances.length} accounts · {activeAccounts} active · tap a row for details
+        </p>
+      </div>
+      <DataTable<BankBalance>
+        rows={balances}
+        rowKey={(b) => b.id}
+        onRowClick={setOpen}
+        defaultSort={{ key: 'balance', dir: 'desc' }}
+        empty="No bank balances data available. Add bank accounts in the Portfolio section."
+        columns={[
+          {
+            key: 'bank',
+            label: 'Bank',
+            sortValue: (b) => b.bankName,
+            render: (b) => (
+              <>
+                <div className="font-semibold">{b.bankName}</div>
+                {b.accountNumber && <div className="text-[12.5px] text-muted">••{b.accountNumber.slice(-4)}</div>}
+              </>
+            ),
+          },
+          { key: 'type', label: 'Type', render: (b) => typeName(b), sortValue: (b) => b.accountType },
+          {
+            key: 'balance',
+            label: 'Balance',
+            align: 'right',
+            sortValue: (b) => b.balance,
+            render: (b) => (
+              <>
+                <div className="font-semibold">{M(b.balance, 2)}</div>
+                {ccy(b) !== 'INR' && <div className="text-[12.5px] text-muted">{O(b.originalAmount ?? b.balance, ccy(b))}</div>}
+              </>
+            ),
+          },
+          { key: 'updated', label: 'Updated', render: (b) => fmtDate(b.lastUpdated), sortValue: (b) => b.lastUpdated || '' },
+          {
+            key: 'status',
+            label: 'Status',
+            render: (b) => (
+              <Tag tone={statusTone(b.status)} className="font-semibold">
+                {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+              </Tag>
+            ),
+          },
+        ]}
+      />
+      <Drawer open={!!open} onClose={() => setOpen(null)} title={open?.bankName} subtitle={open ? `${typeName(open)} account` : undefined}>
+        {open && (
+          <>
+            <DetailRow label="Balance" value={M(open.balance, 2)} />
+            {ccy(open) !== 'INR' && <DetailRow label="Original amount" value={O(open.originalAmount ?? open.balance, ccy(open))} />}
+            <DetailRow label="Currency" value={ccy(open)} />
+            {open.accountNumber && <DetailRow label="Account" value={`••${open.accountNumber.slice(-4)}`} />}
+            <DetailRow label="Asset type" value={open.assetType === 'fixed' ? 'Fixed' : 'Liquid'} />
+            <DetailRow label="Last updated" value={fmtDate(open.lastUpdated)} />
+            <DetailRow label="Status" value={<Tag tone={statusTone(open.status)}>{open.status}</Tag>} />
+            {open.description && <p className="mt-4 text-[14px] text-muted">{open.description}</p>}
+            <p className="mt-6 text-[13px] text-muted">Edit or publish accounts from the Portfolio overview → Bank balances tab.</p>
+          </>
+        )}
+      </Drawer>
+    </Panel>
+  );
+}

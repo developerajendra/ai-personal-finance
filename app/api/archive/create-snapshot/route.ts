@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { saveSnapshot } from "@/core/services/archiveService";
-import { FinancialSnapshot } from "@/core/types";
+import { saveSnapshot } from "@/server/finance/reports/archiveService";
+import { FinancialSnapshot } from "@/shared/types";
 import {
   calculateSnapshotAsOfDate,
   validateSnapshot,
-} from "@/core/services/snapshotCalculatorService";
-import { getSession } from "@/core/auth/getSession";
+} from "@/server/finance/reports/snapshotCalculator";
+import { getSession } from "@/server/auth/session";
 
 // POST: Create snapshot with date-accurate historical calculation
 export async function POST(request: Request) {

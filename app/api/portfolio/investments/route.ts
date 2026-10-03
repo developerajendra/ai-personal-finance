@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Investment } from "@/core/types";
-import { paginate, PaginationParams } from "@/core/services/scalabilityService";
-import { getSession } from "@/core/auth/getSession";
-import { loadFromJson, saveToJson, initializeStorage } from "@/core/services/jsonStorageService";
+import { Investment } from "@/shared/types";
+import { paginate } from "@/shared/utils/pagination";
+import { getSession } from "@/server/auth/session";
+import { listInvestments, createInvestment } from "@/server/finance/investments/service";
+import { errorResponse } from "@/server/http/errors";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +13,7 @@ export async function GET(request: NextRequest) {
     }
     const userId = session.userId;
 
-    initializeStorage();
-    const jsonData = await loadFromJson<Investment>("investments", userId);
+    const jsonData = await listInvestments(userId);
     const normalizedData = jsonData.map(inv => ({
       ...inv,
       isPublished: inv.isPublished ?? false
@@ -68,23 +68,10 @@ export async function POST(request: NextRequest) {
     }
     const userId = session.userId;
 
-    initializeStorage();
-    const jsonData = await loadFromJson<Investment>("investments", userId);
-    const normalizedData = jsonData.map(inv => ({
-      ...inv,
-      isPublished: inv.isPublished ?? false
-    }));
-
-    const investment: Investment = await request.json();
-    const investmentToAdd = { ...investment, isPublished: investment.isPublished ?? true };
-    const updatedData = [...normalizedData, investmentToAdd];
-    await saveToJson("investments", updatedData, userId);
-
-    return NextResponse.json(investmentToAdd, { status: 201 });
+    const body = await request.json();
+    const created = await createInvestment(userId, body, { isPublished: body?.isPublished ?? true });
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to create investment" },
-      { status: 500 }
-    );
+    return errorResponse(error, "Failed to create investment");
   }
 }

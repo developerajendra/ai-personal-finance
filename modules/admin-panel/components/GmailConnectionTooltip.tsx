@@ -100,10 +100,10 @@ export function GmailConnectionTooltip({ onClose }: GmailConnectionTooltipProps)
 
   if (isLoading) {
     return (
-      <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-4 min-w-[320px]">
+      <div className="bg-gray-800 rounded-lg shadow-lg border border-neutral-500 p-4 min-w-[320px]">
         <div className="flex items-center gap-3">
-          <Mail className="w-5 h-5 text-gray-400" />
-          <div className="text-sm text-gray-300">Checking Gmail status...</div>
+          <Mail className="w-5 h-5 text-neutral-500" />
+          <div className="text-sm text-neutral-400">Checking Gmail status...</div>
         </div>
       </div>
     );
@@ -112,22 +112,22 @@ export function GmailConnectionTooltip({ onClose }: GmailConnectionTooltipProps)
   const isConnected = status?.isConnected || false;
 
   return (
-    <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-4 min-w-[320px] max-w-[400px]">
+    <div className="bg-gray-800 rounded-lg shadow-lg border border-neutral-500 p-4 min-w-[320px] max-w-[400px]">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Mail className={`w-5 h-5 ${isConnected ? 'text-green-400' : 'text-gray-400'}`} />
+          <Mail className={`w-5 h-5 ${isConnected ? 'text-gain' : 'text-neutral-500'}`} />
           <h3 className="text-sm font-semibold text-white">Gmail Integration</h3>
         </div>
         <div className="flex items-center gap-2">
           {isConnected ? (
-            <CheckCircle className="w-5 h-5 text-green-400" />
+            <CheckCircle className="w-5 h-5 text-gain" />
           ) : (
-            <XCircle className="w-5 h-5 text-gray-400" />
+            <XCircle className="w-5 h-5 text-neutral-500" />
           )}
           {onClose && (
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-neutral-500 hover:text-white transition-colors"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -136,14 +136,14 @@ export function GmailConnectionTooltip({ onClose }: GmailConnectionTooltipProps)
         </div>
       </div>
 
-      <p className="text-xs text-gray-400 mb-3">
+      <p className="text-xs text-neutral-500 mb-3">
         {isConnected
           ? 'Connected - Agent monitoring emails for investments'
           : 'Not connected - Connect to enable email-based investment creation'}
       </p>
 
       {status?.isExpired && (
-        <div className="mb-3 p-2 bg-yellow-900/30 border border-yellow-700 rounded text-xs text-yellow-300">
+        <div className="mb-3 p-2 bg-warn-bg border border-warn rounded text-xs text-warn">
           Token expired. Please reconnect your Gmail account.
         </div>
       )}
@@ -154,7 +154,7 @@ export function GmailConnectionTooltip({ onClose }: GmailConnectionTooltipProps)
             <button
               onClick={handleProcessEmails}
               disabled={isProcessing}
-              className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-accent text-white hover:bg-accent-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm rounded-pill font-medium">
               <RefreshCw className={`w-4 h-4 ${isProcessing ? 'animate-spin' : ''}`} />
               {isProcessing ? 'Processing...' : 'Process Emails Now'}
             </button>
@@ -162,13 +162,13 @@ export function GmailConnectionTooltip({ onClose }: GmailConnectionTooltipProps)
               <button
                 onClick={handleDisconnect}
                 disabled={isDisconnecting}
-                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-loss text-white hover:bg-loss disabled:opacity-50 disabled:cursor-not-allowed text-sm rounded-pill font-medium">
                 <LogOut className="w-4 h-4" />
                 {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
               </button>
               <button
                 onClick={checkStatus}
-                className="flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 text-sm">
+                className="flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 text-neutral-400 rounded hover:bg-gray-600 text-sm">
                 <RefreshCw className="w-4 h-4" />
               </button>
             </div>
@@ -177,7 +177,7 @@ export function GmailConnectionTooltip({ onClose }: GmailConnectionTooltipProps)
           <button
             onClick={handleLogin}
             disabled={isConnecting}
-            className="flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-md hover:shadow-lg transition-all">
+            className="flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-accent to-accent-700 text-white rounded hover:from-accent hover:to-accent-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-md hover:shadow-lg transition-all">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
               <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
             </svg>
@@ -189,8 +189,8 @@ export function GmailConnectionTooltip({ onClose }: GmailConnectionTooltipProps)
       {processStatus && (
         <div className={`mt-3 p-2 rounded text-xs ${
           processStatus.success 
-            ? 'bg-green-900/30 border border-green-700 text-green-300' 
-            : 'bg-red-900/30 border border-red-700 text-red-300'
+            ? 'bg-gain-bg border border-gain text-gain' 
+            : 'bg-loss-bg border border-loss text-loss'
         }`}>
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
@@ -200,7 +200,7 @@ export function GmailConnectionTooltip({ onClose }: GmailConnectionTooltipProps)
       )}
 
       {isConnected && (
-        <div className="mt-3 p-2 bg-blue-900/30 border border-blue-700 rounded text-xs text-blue-300">
+        <div className="mt-3 p-2 bg-accent-100 border border-accent-700 rounded text-xs text-accent-300">
           <strong>How it works:</strong> The Portfolio Management Agent automatically monitors
           your Gmail for investment-related emails and creates draft investments for review.
         </div>

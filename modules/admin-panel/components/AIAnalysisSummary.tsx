@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Investment, Loan, Property } from "@/core/types";
+import { Investment, Loan, Property } from "@/shared/types";
 import { TrendingUp, TrendingDown, Home, CheckCircle, AlertCircle } from "lucide-react";
 import { Loader } from "@/shared/components/Loader";
 
@@ -52,7 +52,7 @@ export function AIAnalysisSummary() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
+      <div className="panel p-4">
         <Loader text="Loading AI analysis summary..." />
       </div>
     );
@@ -60,12 +60,12 @@ export function AIAnalysisSummary() {
 
   if (aiGeneratedItems.length === 0) {
     return (
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-accent-100 border border-accent-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-accent-700 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-blue-900">AI Analysis Ready</h3>
-            <p className="text-sm text-blue-700 mt-1">
+            <h3 className="font-semibold text-accent-800">AI Analysis Ready</h3>
+            <p className="text-sm text-accent-700 mt-1">
               Upload an Excel file to automatically extract and categorize your financial data.
               The AI will identify investments, loans, and properties from your Excel sheet.
             </p>
@@ -76,47 +76,47 @@ export function AIAnalysisSummary() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-200 p-2">
+    <div className="panel p-2">
       <div className="flex items-center gap-1.5 mb-1">
-        <CheckCircle className="w-3 h-3 text-green-600" />
+        <CheckCircle className="w-3 h-3 text-gain" />
         <h2 className="text-base font-semibold">AI Analysis Results</h2>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-muted">
           ({aiGeneratedItems.length})
         </span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5 mb-1.5">
-        <div className="bg-green-50 rounded-lg p-1.5 border border-green-200">
+        <div className="bg-gain-bg rounded-lg p-1.5 border border-divider">
           <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-green-600" />
-            <h3 className="text-xs font-semibold text-green-900">Investments</h3>
+            <TrendingUp className="w-3 h-3 text-gain" />
+            <h3 className="text-xs font-semibold text-gain">Investments</h3>
           </div>
-          <p className="text-lg font-bold text-green-700">
+          <p className="text-lg font-bold text-gain">
             {investments.length}
           </p>
-          <p className="text-xs text-green-600">
+          <p className="text-xs text-gain">
             ₹{totalInvestments.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-red-50 rounded-lg p-1.5 border border-red-200">
+        <div className="bg-loss-bg rounded-lg p-1.5 border border-divider">
           <div className="flex items-center gap-1">
-            <TrendingDown className="w-3 h-3 text-red-600" />
-            <h3 className="text-xs font-semibold text-red-900">Loans</h3>
+            <TrendingDown className="w-3 h-3 text-loss" />
+            <h3 className="text-xs font-semibold text-loss">Loans</h3>
           </div>
-          <p className="text-lg font-bold text-red-700">{loans.length}</p>
-          <p className="text-xs text-red-600">
+          <p className="text-lg font-bold text-loss">{loans.length}</p>
+          <p className="text-xs text-loss">
             ₹{totalLoans.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-blue-50 rounded-lg p-1.5 border border-blue-200">
+        <div className="bg-accent-100 rounded-lg p-1.5 border border-accent-200">
           <div className="flex items-center gap-1">
-            <Home className="w-3 h-3 text-blue-600" />
-            <h3 className="text-xs font-semibold text-blue-900">Properties</h3>
+            <Home className="w-3 h-3 text-accent-700" />
+            <h3 className="text-xs font-semibold text-accent-800">Properties</h3>
           </div>
-          <p className="text-lg font-bold text-blue-700">{properties.length}</p>
-          <p className="text-xs text-blue-600">
+          <p className="text-lg font-bold text-accent-700">{properties.length}</p>
+          <p className="text-xs text-accent-700">
             ₹{totalProperties.toLocaleString()}
           </p>
         </div>
@@ -133,7 +133,7 @@ export function AIAnalysisSummary() {
                 return (
                   <span
                     key={`investment-${type}`}
-                    className="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs"
+                    className="px-1 py-0.5 bg-gain-bg text-gain rounded text-xs"
                   >
                     {type} ({count})
                   </span>
@@ -149,7 +149,7 @@ export function AIAnalysisSummary() {
                 return (
                   <span
                     key={`loan-${type}`}
-                    className="px-1 py-0.5 bg-red-100 text-red-800 rounded text-xs"
+                    className="px-1 py-0.5 bg-loss-bg text-loss rounded text-xs"
                   >
                     {type} ({count})
                   </span>
@@ -166,7 +166,7 @@ export function AIAnalysisSummary() {
                 return (
                   <span
                     key={`property-${type}`}
-                    className="px-1 py-0.5 bg-blue-100 text-blue-800 rounded text-xs"
+                    className="px-1 py-0.5 bg-accent-100 text-accent-800 rounded text-xs"
                   >
                     {type} ({count})
                   </span>

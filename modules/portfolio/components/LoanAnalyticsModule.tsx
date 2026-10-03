@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LoanMonthlySnapshot, Loan } from '@/core/types';
-import { formatIndianNumber } from '@/core/services/currencyService';
+import { LoanMonthlySnapshot, Loan } from '@/shared/types';
+import { formatIndianNumber } from '@/shared/utils/currency';
 import {
   TrendingUp,
   TrendingDown,
@@ -59,6 +59,42 @@ const FULL_MONTHS = [
 ];
 
 const PAYMENT_DAY = 4; // Loan EMI is paid on the 4th of every month
+
+/** Loads every loan snapshot across all years, latest first (shared by the loan hero). */
+export async function fetchLoanSnapshots(): Promise<{ snapshots: Array<{ snapshot: LoanMonthlySnapshot; growth: any }> }> {
+  // Get all available years first
+  const yearsResponse = await fetch('/api/loans/analytics?action=years');
+  if (!yearsResponse.ok) {
+    return { snapshots: [] };
+  }
+  const yearsData = await yearsResponse.json();
+  const years = yearsData.years || [];
+
+  // Fetch snapshots for all years
+  const allSnapshots: Array<{
+    snapshot: LoanMonthlySnapshot;
+    growth: any;
+  }> = [];
+  for (const year of years) {
+    const response = await fetch(`/api/loans/analytics?year=${year}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.snapshots) {
+        allSnapshots.push(...data.snapshots);
+      }
+    }
+  }
+
+  // Sort by year and month (latest first)
+  allSnapshots.sort((a, b) => {
+    if (a.snapshot.year !== b.snapshot.year) {
+      return b.snapshot.year - a.snapshot.year;
+    }
+    return b.snapshot.month - a.snapshot.month;
+  });
+
+  return { snapshots: allSnapshots };
+}
 
 export function LoanAnalyticsModule() {
   const currentYear = new Date().getFullYear();
@@ -127,40 +163,7 @@ export function LoanAnalyticsModule() {
     snapshots: Array<{ snapshot: LoanMonthlySnapshot; growth: any }>;
   }>({
     queryKey: ['loan-analytics-snapshots'],
-    queryFn: async () => {
-      // Get all available years first
-      const yearsResponse = await fetch('/api/loans/analytics?action=years');
-      if (!yearsResponse.ok) {
-        return { snapshots: [] };
-      }
-      const yearsData = await yearsResponse.json();
-      const years = yearsData.years || [];
-
-      // Fetch snapshots for all years
-      const allSnapshots: Array<{
-        snapshot: LoanMonthlySnapshot;
-        growth: any;
-      }> = [];
-      for (const year of years) {
-        const response = await fetch(`/api/loans/analytics?year=${year}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.snapshots) {
-            allSnapshots.push(...data.snapshots);
-          }
-        }
-      }
-
-      // Sort by year and month (latest first)
-      allSnapshots.sort((a, b) => {
-        if (a.snapshot.year !== b.snapshot.year) {
-          return b.snapshot.year - a.snapshot.year;
-        }
-        return b.snapshot.month - a.snapshot.month;
-      });
-
-      return { snapshots: allSnapshots };
-    },
+    queryFn: fetchLoanSnapshots,
   });
 
   const snapshots = snapshotsData?.snapshots || [];
@@ -207,11 +210,7 @@ export function LoanAnalyticsModule() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div>
-          <h1 className="text-3xl font-bold">Loan Analytics</h1>
-          <p className="text-gray-600 mt-1">View historical loan data</p>
-        </div>
+      <div>
         <div className="mt-8">
           <Loader text="Loading loan analytics..." size="lg" />
         </div>
@@ -220,24 +219,24 @@ export function LoanAnalyticsModule() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div>
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as 'analytics' | 'settings')}>
-        <TabsList className="mt-6">
+        <TabsList>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="settings">Email Patterns</TabsTrigger>
         </TabsList>
 
         <TabsContent value="analytics">
           {/* Fetch Latest Email Button */}
-          <div className="mt-6 bg-white rounded-lg border border-gray-200 p-4">
+          <div className="mt-4 panel px-6 py-[22px]">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Loan Analytics
+                <h2 className="text-[19px] text-ink">
+                  Monthly snapshots
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-muted mt-1">
                   Automatically fetch and process loan-related emails (quarterly
                   summaries and interest rate changes)
                 </p>
@@ -283,7 +282,7 @@ export function LoanAnalyticsModule() {
                     }
                   }}
                   disabled={isProcessing}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  className="btn btn-secondary">
                   {isProcessing ? (
                     <>
                       <Loader text="" size="sm" />
@@ -292,7 +291,7 @@ export function LoanAnalyticsModule() {
                   ) : (
                     <>
                       <Mail className="w-5 h-5" />
-                      <span>Fetch Latest Quarterly Summary</span>
+                      <span>Fetch quarterly summary</span>
                     </>
                   )}
                 </button>
@@ -343,7 +342,7 @@ export function LoanAnalyticsModule() {
                     }
                   }}
                   disabled={isProcessing}
-                  className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                  className="btn btn-secondary">
                   {isProcessing ? (
                     <>
                       <Loader text="" size="sm" />
@@ -352,7 +351,7 @@ export function LoanAnalyticsModule() {
                   ) : (
                     <>
                       <Percent className="w-5 h-5" />
-                      <span>Fetch Interest Rate Change</span>
+                      <span>Check rate change</span>
                     </>
                   )}
                 </button>
@@ -362,8 +361,8 @@ export function LoanAnalyticsModule() {
               <div
                 className={`mt-4 p-3 rounded-lg ${
                   processStatus.success
-                    ? 'bg-green-50 text-green-800 border border-green-200'
-                    : 'bg-red-50 text-red-800 border border-red-200'
+                    ? 'bg-gain-bg text-gain border border-divider'
+                    : 'bg-loss-bg text-loss border border-divider'
                 }`}>
                 <p className="text-sm">{processStatus.message}</p>
               </div>
@@ -375,8 +374,8 @@ export function LoanAnalyticsModule() {
             emailMetadataData.metadata.length > 0 && (
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Left Column: Data Source Information */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-blue-900 mb-3">
+                <div className="rounded-[14px] bg-tile p-4">
+                  <h3 className="text-sm font-semibold text-accent-800 mb-3">
                     Data Source Information
                   </h3>
                   <div className="space-y-4">
@@ -385,7 +384,7 @@ export function LoanAnalyticsModule() {
                       const lastEmailDate = new Date(meta.lastEmailDate);
 
                       return (
-                        <div key={meta.loanId} className="text-sm text-blue-800">
+                        <div key={meta.loanId} className="text-sm text-accent-800">
                           <div className="mb-2">
                             <p className="font-medium">
                               📧 First Email:{' '}
@@ -393,7 +392,7 @@ export function LoanAnalyticsModule() {
                                 {meta.firstEmailTitle}
                               </span>
                             </p>
-                            <p className="text-xs text-blue-600 mt-1">
+                            <p className="text-xs text-accent-700 mt-1">
                               Date: {firstEmailDate.toLocaleDateString()} |
                               Starting Point:{' '}
                               {firstEmailDate.toLocaleDateString()}
@@ -408,7 +407,7 @@ export function LoanAnalyticsModule() {
                                   {meta.lastEmailTitle}
                                 </span>
                               </p>
-                              <p className="text-xs text-blue-600 mt-1">
+                              <p className="text-xs text-accent-700 mt-1">
                                 Date: {lastEmailDate.toLocaleDateString()} | Total
                                 Emails Processed: {meta.totalEmailsProcessed}
                               </p>
@@ -427,8 +426,8 @@ export function LoanAnalyticsModule() {
                   );
                   if (allEmails.length === 0) return null;
                   return (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h3 className="text-sm font-semibold text-blue-900 mb-3">
+                    <div className="rounded-[14px] bg-tile p-4">
+                      <h3 className="text-sm font-semibold text-accent-800 mb-3">
                         All Processed Emails ({allEmails.length})
                       </h3>
                       <div className="space-y-1 max-h-48 overflow-y-auto">
@@ -444,20 +443,20 @@ export function LoanAnalyticsModule() {
                           return (
                             <div
                               key={email.emailId || idx}
-                              className="text-xs bg-blue-100 rounded px-2 py-1">
+                              className="text-xs bg-panel rounded-md px-2 py-1">
                               <div className="flex items-center gap-2">
                                 <span
                                   className={
                                     isRateChange
-                                      ? 'text-orange-600'
-                                      : 'text-blue-600'
+                                      ? 'text-warn'
+                                      : 'text-accent-700'
                                   }>
                                   {isRateChange ? '📊' : '📧'}
                                 </span>
                                 <span className="font-medium truncate flex-1">
                                   {email.emailTitle}
                                 </span>
-                                <span className="text-blue-500 whitespace-nowrap">
+                                <span className="text-accent-700 whitespace-nowrap">
                                   {emailDate.toLocaleDateString()}
                                 </span>
                               </div>
@@ -473,41 +472,41 @@ export function LoanAnalyticsModule() {
 
           {/* Summary Header */}
           {snapshots.length > 0 && (
-            <div className="mt-6 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-6 text-white">
+            <div className="mt-4 panel px-6 py-[22px]">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-2xl font-bold">Loan Analytics Summary</h2>
-                  <p className="text-purple-100 mt-1">
+                  <h2 className="text-[19px] text-ink">Loan analytics summary</h2>
+                  <p className="text-muted text-[13.5px] mt-1">
                     {snapshots.length} snapshot
                     {snapshots.length !== 1 ? 's' : ''} recorded
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-xs text-purple-200">
+                    <p className="eyebrow">
                       Latest Outstanding
                     </p>
-                    <p className="text-xl font-bold">
+                    <p className="text-xl font-bold text-ink mt-1">
                       {formatIndianNumber(
                         snapshots[0]?.snapshot.outstandingAmount || 0,
                       )}
                     </p>
                   </div>
-                  <div className="w-px h-12 bg-white/20"></div>
+                  <div className="w-px h-12 bg-divider"></div>
                   <div className="text-right">
-                    <p className="text-xs text-purple-200">
+                    <p className="eyebrow">
                       Total Principal Paid
                     </p>
-                    <p className="text-xl font-bold">
+                    <p className="text-xl font-bold text-ink mt-1">
                       {formatIndianNumber(yearTotals.totalPrincipalPaid)}
                     </p>
                   </div>
-                  <div className="w-px h-12 bg-white/20"></div>
+                  <div className="w-px h-12 bg-divider"></div>
                   <div className="text-right">
-                    <p className="text-xs text-purple-200">
+                    <p className="eyebrow">
                       Total Interest Paid
                     </p>
-                    <p className="text-xl font-bold">
+                    <p className="text-xl font-bold text-ink mt-1">
                       {formatIndianNumber(yearTotals.totalInterestPaid)}
                     </p>
                   </div>
@@ -518,52 +517,52 @@ export function LoanAnalyticsModule() {
 
           {/* Monthly Grid */}
           {snapshotKeys.length === 0 ? (
-            <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-              <p className="text-yellow-800 mb-4">
+            <div className="mt-4 bg-warn-bg rounded-panel p-6 text-center">
+              <p className="text-warn mb-4">
                 No loan snapshots available. Click "Fetch Latest Quarterly
                 Summary" to process the latest email.
               </p>
             </div>
           ) : (
-            <div className="mt-6 bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="mt-4 panel overflow-hidden">
               {/* Table Header */}
-              <div className="grid grid-cols-8 gap-3 p-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-purple-200 font-semibold text-xs text-gray-700">
+              <div className="grid grid-cols-8 gap-3 p-3 bg-tile font-semibold text-[11.5px] uppercase tracking-wide text-muted">
                 <div className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
                   <span>Month</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Wallet className="w-3 h-3 text-purple-600" />
+                  <Wallet className="w-3 h-3 text-accent-700" />
                   <span>Outstanding</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-green-600" />
+                  <TrendingUp className="w-3 h-3 text-gain" />
                   <span>Principal Paid</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <CreditCard className="w-3 h-3 text-red-600" />
+                  <CreditCard className="w-3 h-3 text-loss" />
                   <span>Interest Paid till date</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Wallet className="w-3 h-3 text-blue-600" />
+                  <Wallet className="w-3 h-3 text-accent-700" />
                   <span>EMI Amount</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Percent className="w-3 h-3 text-yellow-600" />
+                  <Percent className="w-3 h-3 text-warn" />
                   <span>Interest Rate</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-indigo-600" />
+                  <Clock className="w-3 h-3 text-accent-700" />
                   <span>Remaining Tenure</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-gray-600" />
+                  <Calendar className="w-3 h-3 text-muted" />
                   <span>Last Updated</span>
                 </div>
               </div>
 
               {/* Table Rows */}
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-divider">
                 {snapshotKeys.map((key) => {
                   const [year, month] = key.split('-').map(Number);
                   const monthSnapshots = snapshotMap.get(key) || [];
@@ -744,19 +743,19 @@ function EmailPatternsSettings() {
   return (
     <div className="mt-6 space-y-6">
       {/* Email Title Patterns - Combined */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+      <div className="panel p-6">
+        <h2 className="text-xl font-semibold text-ink mb-4">
           Email Title Patterns
         </h2>
 
         {/* Add New Pattern Form - Inline */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">
+        <div className="mb-6 p-4 bg-tile rounded-lg border border-divider">
+          <h3 className="text-sm font-semibold text-neutral-800 mb-3">
             Add New Pattern
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-muted mb-1">
                 Email Title Pattern
               </label>
               <input
@@ -764,14 +763,14 @@ function EmailPatternsSettings() {
                 value={newPatternTitle}
                 onChange={(e) => setNewPatternTitle(e.target.value)}
                 placeholder="e.g., Quarterly Loan Summary Update"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 text-sm border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleAddPattern();
                 }}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-muted mb-1">
                 Pattern Type
               </label>
               <select
@@ -784,7 +783,7 @@ function EmailPatternsSettings() {
                       | 'other',
                   )
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                className="w-full px-3 py-2 text-sm border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]">
                 <option value="quarterly-summary">Quarterly Summary</option>
                 <option value="interest-rate-change">
                   Interest Rate Change
@@ -795,7 +794,7 @@ function EmailPatternsSettings() {
             <div className="flex items-end">
               <button
                 onClick={handleAddPattern}
-                className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-sm">
+                className="w-full px-4 py-2 bg-accent text-white hover:bg-accent-700 transition-colors flex items-center justify-center gap-2 text-sm rounded-pill font-medium">
                 <Plus className="w-4 h-4" />
                 <span>Add Pattern</span>
               </button>
@@ -806,7 +805,7 @@ function EmailPatternsSettings() {
         {/* Existing Patterns */}
         <div>
           {patterns.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-muted text-center py-8">
               No email patterns configured. Add one above.
             </p>
           ) : (
@@ -814,7 +813,7 @@ function EmailPatternsSettings() {
               {patterns.map((pattern) => (
                 <div
                   key={pattern.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  className="flex items-center justify-between p-4 border border-divider rounded-lg hover:bg-tile transition-colors">
                   <div className="flex-1">
                     {editingId === pattern.id ? (
                       <div className="flex items-center gap-2">
@@ -822,7 +821,7 @@ function EmailPatternsSettings() {
                           type="text"
                           value={editTitle}
                           onChange={(e) => setEditTitle(e.target.value)}
-                          className="flex-1 px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="flex-1 px-3 py-1.5 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleSaveEdit(pattern.id);
                             if (e.key === 'Escape') handleCancelEdit();
@@ -831,28 +830,28 @@ function EmailPatternsSettings() {
                         />
                         <button
                           onClick={() => handleSaveEdit(pattern.id)}
-                          className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+                          className="px-3 py-1.5 bg-accent text-white hover:bg-accent-700 text-sm rounded-pill font-medium">
                           Save
                         </button>
                         <button
                           onClick={handleCancelEdit}
-                          className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm">
+                          className="px-3 py-1.5 bg-neutral-200 text-neutral-800 rounded hover:bg-neutral-300 text-sm">
                           Cancel
                         </button>
                       </div>
                     ) : (
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-ink">
                             {pattern.title}
                           </p>
                           <span
                             className={`px-2 py-0.5 text-xs font-medium rounded ${
                               pattern.type === 'quarterly-summary'
-                                ? 'bg-blue-100 text-blue-700'
+                                ? 'bg-accent-100 text-accent-700'
                                 : pattern.type === 'interest-rate-change'
-                                  ? 'bg-orange-100 text-orange-700'
-                                  : 'bg-gray-100 text-gray-700'
+                                  ? 'bg-warn-bg text-warn'
+                                  : 'bg-tile text-neutral-800'
                             }`}>
                             {pattern.type === 'quarterly-summary'
                               ? 'Quarterly'
@@ -863,13 +862,13 @@ function EmailPatternsSettings() {
                           <span
                             className={`px-2 py-0.5 text-xs font-medium rounded ${
                               pattern.enabled
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-gray-100 text-gray-700'
+                                ? 'bg-gain-bg text-gain'
+                                : 'bg-tile text-neutral-800'
                             }`}>
                             {pattern.enabled ? 'Enabled' : 'Disabled'}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted mt-1">
                           Created:{' '}
                           {new Date(pattern.createdAt).toLocaleDateString()}
                         </p>
@@ -884,20 +883,20 @@ function EmailPatternsSettings() {
                         }
                         className={`px-3 py-1.5 rounded text-sm transition-colors ${
                           pattern.enabled
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'bg-gain-bg text-gain hover:bg-gain-bg'
+                            : 'bg-tile text-neutral-800 hover:bg-neutral-200'
                         }`}>
                         {pattern.enabled ? 'Disable' : 'Enable'}
                       </button>
                       <button
                         onClick={() => handleStartEdit(pattern)}
-                        className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                        className="p-1.5 text-muted hover:text-ink hover:bg-tile rounded transition-colors"
                         title="Edit pattern">
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeletePattern(pattern.id)}
-                        className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                        className="p-1.5 text-loss hover:text-loss hover:bg-loss-bg rounded transition-colors"
                         title="Delete pattern">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1037,24 +1036,24 @@ function LoanReferenceDataSettings() {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">
+    <div className="panel p-6">
+      <h2 className="text-xl font-semibold text-ink mb-4">
         Loan Reference Data
       </h2>
-      <p className="text-sm text-gray-600 mb-4">
+      <p className="text-sm text-muted mb-4">
         Add loan details that are not in the email (e.g., Disbursement Amount).
         AI will analyze this data FIRST before processing emails and use it for
         calculations.
       </p>
 
       {/* Add New Key-Value */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+      <div className="mb-6 p-4 bg-tile rounded-lg border border-divider">
+        <h3 className="text-sm font-semibold text-neutral-800 mb-3">
           Add Reference Data
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               Key (e.g., Disbursement Amount)
             </label>
             <input
@@ -1062,14 +1061,14 @@ function LoanReferenceDataSettings() {
               value={newKey}
               onChange={(e) => setNewKey(e.target.value)}
               placeholder="e.g., Disbursement Amount"
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 text-sm border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAddKeyValue();
               }}
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               Value
             </label>
             <input
@@ -1077,7 +1076,7 @@ function LoanReferenceDataSettings() {
               value={newValue}
               onChange={(e) => setNewValue(e.target.value)}
               placeholder="e.g., 23,11,386"
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 text-sm border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAddKeyValue();
               }}
@@ -1086,7 +1085,7 @@ function LoanReferenceDataSettings() {
           <div className="flex items-end">
             <button
               onClick={handleAddKeyValue}
-              className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-sm">
+              className="w-full px-4 py-2 bg-accent text-white hover:bg-accent-700 transition-colors flex items-center justify-center gap-2 text-sm rounded-pill font-medium">
               <Plus className="w-4 h-4" />
               <span>Add</span>
             </button>
@@ -1096,11 +1095,11 @@ function LoanReferenceDataSettings() {
 
       {/* Existing Reference Data */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+        <h3 className="text-sm font-semibold text-neutral-800 mb-3">
           Existing Reference Data
         </h3>
         {dataEntries.length === 0 ? (
-          <p className="text-gray-500 text-center py-8 text-sm">
+          <p className="text-muted text-center py-8 text-sm">
             No reference data configured. Add key-value pairs above.
           </p>
         ) : (
@@ -1108,17 +1107,17 @@ function LoanReferenceDataSettings() {
             {dataEntries.map(([key, value]) => (
               <div
                 key={key}
-                className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                className="flex items-center justify-between p-3 border border-divider rounded-lg hover:bg-tile transition-colors">
                 {editingKey === key ? (
                   <div className="flex items-center gap-2 flex-1">
-                    <span className="text-sm font-medium text-gray-700 min-w-[150px]">
+                    <span className="text-sm font-medium text-neutral-800 min-w-[150px]">
                       {key}:
                     </span>
                     <input
                       type="text"
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="flex-1 px-3 py-1.5 text-sm border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSaveEdit();
                         if (e.key === 'Escape') handleCancelEdit();
@@ -1127,22 +1126,22 @@ function LoanReferenceDataSettings() {
                     />
                     <button
                       onClick={handleSaveEdit}
-                      className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+                      className="px-3 py-1.5 bg-accent text-white hover:bg-accent-700 text-sm rounded-pill font-medium">
                       Save
                     </button>
                     <button
                       onClick={handleCancelEdit}
-                      className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm">
+                      className="px-3 py-1.5 bg-neutral-200 text-neutral-800 rounded hover:bg-neutral-300 text-sm">
                       Cancel
                     </button>
                   </div>
                 ) : (
                   <>
                     <div className="flex-1">
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-ink">
                         {key}:
                       </span>
-                      <span className="text-sm text-gray-700 ml-2">
+                      <span className="text-sm text-neutral-800 ml-2">
                         {typeof value === 'number'
                           ? formatIndianNumber(value)
                           : String(value ?? '')}
@@ -1151,13 +1150,13 @@ function LoanReferenceDataSettings() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleStartEdit(key, typeof value === 'number' || typeof value === 'string' ? value : String(value))}
-                        className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                        className="p-1.5 text-muted hover:text-ink hover:bg-tile rounded transition-colors"
                         title="Edit value">
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteKey(key)}
-                        className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                        className="p-1.5 text-loss hover:text-loss hover:bg-loss-bg rounded transition-colors"
                         title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1221,25 +1220,25 @@ function LoanMonthRow({
 
   return (
     <div
-      className={`grid grid-cols-8 gap-3 p-3 hover:bg-gray-50 transition-colors border-l-4 ${
+      className={`grid grid-cols-8 gap-3 p-3 hover:bg-tile transition-colors border-l-4 ${
         isCurrentMonth
-          ? 'bg-purple-50 border-purple-500'
-          : 'bg-white border-green-500'
+          ? 'bg-accent-100 border-accent'
+          : 'bg-panel border-gain'
       }`}>
       {/* Month Column */}
       <div className="flex items-center min-w-0">
         <div className="flex items-center gap-2 min-w-0">
-          <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-gain flex-shrink-0" />
           <div className="min-w-0">
-            <p className="text-xs font-medium text-gray-500">
+            <p className="text-xs font-medium text-muted">
               {MONTHS[month - 1]} {year}
             </p>
-            <p className="text-sm font-semibold text-gray-900 truncate">
+            <p className="text-sm font-semibold text-ink truncate">
               {monthName} {year}
             </p>
-            <p className="text-xs text-gray-500 truncate">{loanName}</p>
+            <p className="text-xs text-muted truncate">{loanName}</p>
             {isCurrentMonth && (
-              <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+              <span className="inline-block mt-0.5 px-1.5 py-0.5 bg-accent-100 text-accent-700 text-xs font-medium rounded">
                 Latest
               </span>
             )}
@@ -1250,19 +1249,19 @@ function LoanMonthRow({
       {/* Outstanding Amount Column */}
       <div className="flex items-center">
         <div>
-          <p className="text-sm font-semibold text-purple-700">
+          <p className="text-sm font-semibold text-accent-700">
             {formatIndianNumber(snapshot.outstandingAmount)}
           </p>
           {outstandingDiff && (
             <div className="flex items-center gap-0.5 mt-0.5">
               {outstandingDiff.isPositive ? (
-                <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                <TrendingUp className="w-2.5 h-2.5 text-gain" />
               ) : (
-                <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                <TrendingDown className="w-2.5 h-2.5 text-loss" />
               )}
               <span
                 className={`text-xs font-medium ${
-                  outstandingDiff.isPositive ? 'text-green-600' : 'text-red-600'
+                  outstandingDiff.isPositive ? 'text-gain' : 'text-loss'
                 }`}>
                 {outstandingDiff.sign}
                 {formatIndianNumber(outstandingDiff.value)}
@@ -1275,19 +1274,19 @@ function LoanMonthRow({
       {/* Principal Paid Column */}
       <div className="flex items-center">
         <div>
-          <p className="text-sm font-semibold text-green-700">
+          <p className="text-sm font-semibold text-gain">
             {formatIndianNumber(snapshot.principalPaid)}
           </p>
           {principalDiff && (
             <div className="flex items-center gap-0.5 mt-0.5">
               {principalDiff.isPositive ? (
-                <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                <TrendingUp className="w-2.5 h-2.5 text-gain" />
               ) : (
-                <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                <TrendingDown className="w-2.5 h-2.5 text-loss" />
               )}
               <span
                 className={`text-xs font-medium ${
-                  principalDiff.isPositive ? 'text-green-600' : 'text-red-600'
+                  principalDiff.isPositive ? 'text-gain' : 'text-loss'
                 }`}>
                 {principalDiff.sign}
                 {formatIndianNumber(principalDiff.value)}
@@ -1300,19 +1299,19 @@ function LoanMonthRow({
       {/* Interest Paid Column */}
       <div className="flex items-center">
         <div>
-          <p className="text-sm font-semibold text-red-700">
+          <p className="text-sm font-semibold text-loss">
             {formatIndianNumber(snapshot.interestPaid)}
           </p>
           {interestDiff && (
             <div className="flex items-center gap-0.5 mt-0.5">
               {interestDiff.isPositive ? (
-                <TrendingUp className="w-2.5 h-2.5 text-green-600" />
+                <TrendingUp className="w-2.5 h-2.5 text-gain" />
               ) : (
-                <TrendingDown className="w-2.5 h-2.5 text-red-600" />
+                <TrendingDown className="w-2.5 h-2.5 text-loss" />
               )}
               <span
                 className={`text-xs font-medium ${
-                  interestDiff.isPositive ? 'text-green-600' : 'text-red-600'
+                  interestDiff.isPositive ? 'text-gain' : 'text-loss'
                 }`}>
                 {interestDiff.sign}
                 {formatIndianNumber(interestDiff.value)}
@@ -1324,7 +1323,7 @@ function LoanMonthRow({
 
       {/* EMI Amount Column */}
       <div className="flex items-center">
-        <p className="text-sm font-semibold text-blue-700">
+        <p className="text-sm font-semibold text-accent-700">
           {formatIndianNumber(snapshot.emiAmount)}
         </p>
       </div>
@@ -1332,19 +1331,19 @@ function LoanMonthRow({
       {/* Interest Rate Column */}
       <div className="flex items-center">
         <div>
-          <p className="text-sm font-semibold text-yellow-700">
+          <p className="text-sm font-semibold text-warn">
             {snapshot.interestRate.toFixed(2)}%
           </p>
           {rateDiff && rateDiff.value > 0 && (
             <div className="flex items-center gap-0.5 mt-0.5">
               {rateDiff.isPositive ? (
-                <TrendingUp className="w-2.5 h-2.5 text-red-600" />
+                <TrendingUp className="w-2.5 h-2.5 text-loss" />
               ) : (
-                <TrendingDown className="w-2.5 h-2.5 text-green-600" />
+                <TrendingDown className="w-2.5 h-2.5 text-gain" />
               )}
               <span
                 className={`text-xs font-medium ${
-                  rateDiff.isPositive ? 'text-red-600' : 'text-green-600'
+                  rateDiff.isPositive ? 'text-loss' : 'text-gain'
                 }`}>
                 {rateDiff.sign}
                 {rateDiff.value.toFixed(2)}%
@@ -1357,19 +1356,19 @@ function LoanMonthRow({
       {/* Remaining Tenure Column */}
       <div className="flex items-center">
         <div>
-          <p className="text-sm font-semibold text-indigo-700">
+          <p className="text-sm font-semibold text-accent-700">
             {snapshot.remainingTenureMonths} months
           </p>
           {tenureDiff && tenureDiff.value > 0 && (
             <div className="flex items-center gap-0.5 mt-0.5">
               {tenureDiff.isPositive ? (
-                <TrendingUp className="w-2.5 h-2.5 text-red-600" />
+                <TrendingUp className="w-2.5 h-2.5 text-loss" />
               ) : (
-                <TrendingDown className="w-2.5 h-2.5 text-green-600" />
+                <TrendingDown className="w-2.5 h-2.5 text-gain" />
               )}
               <span
                 className={`text-xs font-medium ${
-                  tenureDiff.isPositive ? 'text-red-600' : 'text-green-600'
+                  tenureDiff.isPositive ? 'text-loss' : 'text-gain'
                 }`}>
                 {tenureDiff.sign}
                 {tenureDiff.value} months
@@ -1381,7 +1380,7 @@ function LoanMonthRow({
 
       {/* Last Updated Column */}
       <div className="flex items-center">
-        <div className="text-xs text-gray-600">
+        <div className="text-xs text-muted">
           <p className="font-medium">
             {new Date(snapshot.updatedAt).toLocaleDateString('en-US', {
               month: 'short',
@@ -1389,7 +1388,7 @@ function LoanMonthRow({
               year: 'numeric',
             })}
           </p>
-          <p className="text-gray-500 mt-0.5">
+          <p className="text-muted mt-0.5">
             {new Date(snapshot.updatedAt).toLocaleTimeString('en-US', {
               hour: '2-digit',
               minute: '2-digit',

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getSession } from '@/core/auth/getSession';
+import { getSession } from '@/server/auth/session';
 
 export async function GET() {
   try {
@@ -19,7 +19,7 @@ export async function GET() {
     let hasAgentTokens = false;
     try {
       if (userId) {
-        const { getMainOrchestrator } = await import('@/core/agents/agentManager');
+        const { getMainOrchestrator } = await import('@/server/integrations/gmail/agents/agentManager');
         const orchestrator = getMainOrchestrator(userId);
         const portfolioAgent = orchestrator.getPortfolioAgent();
         hasAgentTokens = portfolioAgent.isGmailAuthenticated();

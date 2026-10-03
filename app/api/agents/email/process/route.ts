@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMainOrchestrator } from '@/core/agents/agentManager';
+import { getMainOrchestrator } from '@/server/integrations/gmail/agents/agentManager';
 import { cookies } from 'next/headers';
-import { getSession } from "@/core/auth/getSession";
+import { getSession } from "@/server/auth/session";
 
 export async function POST(request: NextRequest) {
   try {
