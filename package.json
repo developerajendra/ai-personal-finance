@@ -13,6 +13,7 @@
     "clean": "rm -rf .next",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:preflight": "node scripts/db-preflight.mjs",
     "db:studio": "drizzle-kit studio",
     "db:migrate-data": "npx tsx scripts/migrate-json-to-sqlite.ts",
     "db:assign-owner": "npx tsx scripts/assign-data-owner-email.ts",

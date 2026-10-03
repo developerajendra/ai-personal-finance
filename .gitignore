@@ -53,3 +53,6 @@ next-env.d.ts
 
 # PPF PDF files (contains sensitive financial data)
 /data/pfData/*.pdf
+
+# database backups from scripts/db-preflight.mjs (contain personal data)
+/backups/
