@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useChatbot } from "../hooks/useChatbot";
-import { X, Minimize2, Maximize2, Mic, MicOff } from "lucide-react";
+import { X, Minimize2, Maximize2, MicOff, AudioLines, ArrowUp, Sparkles } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { ChatMessage } from "@/shared/types";
 import { useFinancialData } from "@/shared/hooks/useFinancialData";
@@ -33,6 +34,19 @@ export function ChatbotBoard() {
   }, [messages.length]);
   const router = useRouter();
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const firstName = (session?.user?.name || session?.user?.email || "").split(/[\s@]/)[0] || "there";
+  // Play the close animation before unmounting the popup
+  const [closing, setClosing] = useState(false);
+  const handleClose = () => {
+    setClosing(true);
+    setTimeout(() => {
+      setClosing(false);
+      closeChatbot();
+    }, 170);
+  };
+  // Suggestion tiles fill the input and send it on the next render
+  const [queued, setQueued] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [operationPrefix, setOperationPrefix] = useState<string>(""); // Track selected operation
   const [selectedAgent, setSelectedAgent] = useState<"ask" | "audit-finance">("ask"); // Agent selector
@@ -119,7 +133,7 @@ export function ChatbotBoard() {
         const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: data.response,
+          content: data.response || (data.error ? `The assistant isn't available right now: ${data.error}` : "Sorry, I didn't get a reply. Please try again."),
           timestamp: new Date(),
         };
         addMessage(assistantMessage);
@@ -263,6 +277,22 @@ export function ChatbotBoard() {
     }
   };
 
+  useEffect(() => {
+    if (queued !== null && input === queued) {
+      setQueued(null);
+      handleSend();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queued, input]);
+
+  useEffect(() => {
+    if (!isOpen || isMinimized) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && handleClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, isMinimized]);
+
   if (!isOpen) return null;
 
   const speakText = (text: string, onEnd?: () => void) => {
@@ -382,7 +412,7 @@ export function ChatbotBoard() {
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response,
+        content: data.response || (data.error ? `The assistant isn't available right now: ${data.error}` : "Sorry, I didn't get a reply. Please try again."),
         timestamp: new Date(),
       };
 
@@ -489,7 +519,7 @@ export function ChatbotBoard() {
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response,
+        content: data.response || (data.error ? `The assistant isn't available right now: ${data.error}` : "Sorry, I didn't get a reply. Please try again."),
         timestamp: new Date(),
       };
 
@@ -548,9 +578,12 @@ export function ChatbotBoard() {
 
   if (isMinimized) {
     return (
-      <div className="dialog fixed bottom-[104px] right-4 z-50 w-80 md:bottom-7 md:right-7">
-        <div className="flex items-center justify-between p-3 border-b">
-          <h3 className="text-[15px] font-semibold">Ask Ledger AI</h3>
+      <div className={`dialog fixed bottom-[172px] right-4 z-50 w-80 md:bottom-[100px] md:right-7 ${closing ? "chat-out" : "chat-in"}`}>
+        <div className="flex items-center justify-between gap-3 p-3">
+          <span className="flex items-center gap-2.5">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-accent text-white"><Sparkles className="h-4 w-4" /></span>
+            <h3 className="text-[15px] font-semibold">Ledger AI</h3>
+          </span>
           <div className="flex gap-2">
             <button
               onClick={expandChatbot}
@@ -559,8 +592,9 @@ export function ChatbotBoard() {
               <Maximize2 className="w-4 h-4" />
             </button>
             <button
-              onClick={closeChatbot}
+              onClick={handleClose}
               className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
+              aria-label="Close"
             >
               <X className="w-4 h-4" />
             </button>
@@ -571,7 +605,11 @@ export function ChatbotBoard() {
   }
 
   return (
-    <div className="dialog fixed bottom-[104px] right-4 z-50 flex h-[min(600px,70vh)] w-[min(400px,calc(100vw-32px))] flex-col overflow-hidden md:bottom-7 md:right-7">
+    <div
+      role="dialog"
+      aria-label="Ledger AI assistant"
+      className={`dialog fixed bottom-[172px] right-4 z-50 flex h-[min(620px,calc(100vh-200px))] w-[min(400px,calc(100vw-32px))] flex-col overflow-hidden md:bottom-[100px] md:right-7 ${closing ? "chat-out" : "chat-in"}`}
+    >
       {/* Voice Mode Overlay - shows within popup */}
       {isVoiceMode && (
         <div className="absolute inset-0 z-50 flex flex-col rounded-dialog bg-gradient-to-br from-accent-900 via-accent-700 to-accent">
@@ -588,28 +626,39 @@ export function ChatbotBoard() {
       {/* Regular chat interface - hidden when in voice mode */}
       {!isVoiceMode && (
         <>
-      <div className="p-3 border-b">
-        <div className="flex items-center justify-between">
-          <h3 className="text-[16px] font-semibold">Ask Ledger AI</h3>
-          <div className="flex gap-1.5">
+      <div className="border-b border-divider px-4 pb-3 pt-3.5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-accent text-white">
+              <Sparkles className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            </span>
+            <div className="min-w-0 leading-tight">
+              <h3 className="text-[15px] font-semibold">Ledger AI</h3>
+              <p className="truncate text-[12.5px] text-muted">Answers from your portfolio data</p>
+            </div>
+          </div>
+          <div className="flex gap-0.5">
             <button
               onClick={minimizeChatbot}
               className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
               title="Minimize"
+              aria-label="Minimize"
             >
               <Minimize2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => router.push("/chatbot")}
               className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
-              title="Full Screen"
+              title="Full screen"
+              aria-label="Open full screen"
             >
               <Maximize2 className="w-4 h-4" />
             </button>
             <button
-              onClick={closeChatbot}
+              onClick={handleClose}
               className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
               title="Close"
+              aria-label="Close"
             >
               <X className="w-4 h-4" />
             </button>
@@ -620,18 +669,19 @@ export function ChatbotBoard() {
             value={selectedAgent}
             onChange={(e) => handleAgentChange(e.target.value as "ask" | "audit-finance")}
             disabled={isLoading || agentStatus === "connecting"}
-            className={`flex-1 px-2.5 py-1.5 text-xs font-medium border rounded-md focus:outline-none focus:ring-2 focus:ring-accent transition-colors ${
+            aria-label="Assistant mode"
+            className={`input !min-h-[32px] flex-1 !py-1 !text-[12.5px] ${
               selectedAgent === "audit-finance"
                 ? agentStatus === "connected"
                   ? "bg-gain-bg border-gain text-gain"
                   : agentStatus === "failed"
                     ? "bg-loss-bg border-loss text-loss"
                     : "bg-warn-bg border-warn text-warn"
-                : "bg-panel border-divider text-neutral-800"
+                : ""
             } disabled:opacity-50`}
           >
-            <option value="ask">Ask (Default)</option>
-            <option value="audit-finance">Audit Finance</option>
+            <option value="ask">Ask — answers only</option>
+            <option value="audit-finance">Audit finance</option>
           </select>
           {selectedAgent === "audit-finance" && (
             <span className="flex-shrink-0">
@@ -649,17 +699,40 @@ export function ChatbotBoard() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 && (
-          <div className="text-center text-muted mt-8">
-            <p>Ask me anything about your finances!</p>
-            <p className="text-sm mt-2">Try: "Give me a financial summary" or "What are my investments?"</p>
+          <div className="msg-in pt-2">
+            <h4 className="font-heading text-[20px] font-bold leading-snug tracking-[-0.01em]">Hi {firstName}, what would you like to know?</h4>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-muted">
+              Ask in chat, talk in voice mode, or continue on WhatsApp. Record changes are always shown for review first.
+            </p>
+            <div className="mt-4 space-y-2">
+              {[
+                ["Portfolio summary", "show me my portfolio summary"],
+                ["What's my net worth?", "What's my total net worth?"],
+                ["Show my loans", "show me my loans and outstanding amounts"],
+                ["Who owes me?", "Who owes me money?"],
+              ].map(([label, prompt]) => (
+                <button
+                  key={label}
+                  onClick={() => {
+                    setOperationPrefix("");
+                    setInput(prompt!);
+                    setQueued(prompt!);
+                  }}
+                  disabled={isLoading}
+                  className="block w-full rounded-[12px] bg-tile px-4 py-3 text-left text-[14px] transition-colors hover:bg-accent-100 hover:text-accent-800 disabled:opacity-50"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${
+            className={`msg-in flex ${
               message.role === "user" ? "justify-end" : "justify-start"
             }`}
           >
@@ -800,9 +873,9 @@ export function ChatbotBoard() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 border-t">
+      <div className="px-3 pb-3 pt-2">
         {/* Operation Tags */}
-        <div className="mb-2">
+        <div className={messages.length === 0 ? "hidden" : "mb-2"}>
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => {
@@ -880,28 +953,31 @@ export function ChatbotBoard() {
                 }
               }}
               placeholder={operationPrefix ? "Enter details..." : selectedAgent === "audit-finance" ? "Ask to audit your data or paste a calculator URL..." : "Ask about your finances or click mic to speak..."}
-              className={`input ${operationPrefix ? '!pl-36' : ''}`}
+              className={`input !min-h-[44px] !rounded-full !border-transparent !bg-tile !pr-12 !pl-4 ${operationPrefix ? '!pl-36' : ''}`}
+              aria-label="Ask anything"
               disabled={isLoading || isListening}
             />
-          </div>
           <button
             onClick={isListening || isVoiceMode ? stopListening : startListening}
             disabled={isLoading}
-            className={`grid h-[38px] w-[38px] flex-none place-items-center rounded-full text-white transition-colors ${
+            aria-label={isListening || isVoiceMode ? "Stop talk mode" : "Start talk mode"}
+            className={`absolute right-[4px] top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-white transition-colors ${
               isListening || isVoiceMode
                 ? "bg-loss animate-pulse"
                 : "bg-[var(--logo-bg)] hover:opacity-90"
             } disabled:opacity-50 disabled:cursor-not-allowed`}
             title={isListening || isVoiceMode ? "Stop Talk Mode" : "Start Talk Mode - Speak naturally"}
           >
-            {isListening || isVoiceMode ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            {isListening || isVoiceMode ? <MicOff className="w-4 h-4" /> : <AudioLines className="w-4 h-4" />}
           </button>
+          </div>
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
-            className="btn btn-primary"
+            className={`btn btn-primary btn-icon !h-11 !w-11 transition-all ${input.trim() ? "" : "hidden"}`}
+            aria-label="Send"
           >
-            Send
+            <ArrowUp className="h-[18px] w-[18px]" />
           </button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { Transaction } from "@/shared/types";
 import { analyzeExcelData, ExcelAnalysisResult } from "@/server/imports/excelAnalyzer";
 import { generateCacheKey, saveToCache, loadFromCache } from "@/server/imports/analysisCache";
 import { importPortfolio, type PortfolioImportResult } from "@/server/imports/portfolioImport";
+import { isLedgerWorkbook, importLedgerWorkbook } from "@/server/imports/workbookImport";
 import { getSession } from "@/server/auth/session";
 import { errorResponse } from "@/server/http/errors";
 
@@ -50,6 +51,34 @@ export async function POST(request: NextRequest) {
       const buffer = await file.arrayBuffer();
       const bufferNode = Buffer.from(buffer);
       fileInfoForCache = { name: file.name, buffer: bufferNode };
+
+      // Ledger portfolio workbooks (multi-sheet export) have known columns:
+      // import every sheet directly instead of guessing with AI.
+      if (/\.(xlsx|xls)$/i.test(file.name)) {
+        const workbook = XLSX.read(buffer, { type: "buffer" });
+        if (isLedgerWorkbook(workbook)) {
+          const result = await importLedgerWorkbook(userId, workbook);
+          const added = newlyCreatedCount(result);
+          return NextResponse.json({
+            success: true,
+            transactions: [],
+            count: result.transactions.inserted,
+            portfolioItems: { ...result.totals, newlyCreated: added },
+            importSummary: result,
+            aiAnalysisSuccess: true,
+            aiError: null,
+            validDataRows: 0,
+            cached: false,
+            workbook: true,
+            message:
+              `Imported portfolio workbook: ${result.added.investments} investments, ${result.added.bankBalances} bank balances & receivables, ` +
+              `${result.added.loans} loans, ${result.added.properties} properties, ${result.transactions.inserted} transactions ` +
+              `(${result.transactions.skipped} already imported), ${result.holdings.stocks} stocks, ${result.holdings.mutualFunds} mutual funds and ` +
+              `${result.holdings.ppfAccounts} provident fund accounts. Records that already existed were kept.` +
+              (result.rejected.length ? ` ${result.rejected.length} rows were skipped as invalid.` : ""),
+          });
+        }
+      }
 
       // Check for cache bypass query parameter
       const url = new URL(request.url);

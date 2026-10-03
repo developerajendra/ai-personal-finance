@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageCircle, CheckCircle, Loader2, Trash2 } from "lucide-react";
+import { MessageCircle, CheckCircle, Loader2, Trash2, XCircle } from "lucide-react";
 
 interface LinkStatus {
   status: "none" | "pending" | "verified";
@@ -16,6 +16,18 @@ export function WhatsAppLinkCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [health, setHealth] = useState<{ ready: boolean; webhookUrl: string; checks: { key: string; label: string; ok: boolean; detail: string }[] } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const runHealth = async () => {
+    setChecking(true);
+    try {
+      const res = await fetch("/api/integrations/whatsapp/health");
+      if (res.ok) setHealth(await res.json());
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const load = async () => {
     const res = await fetch("/api/integrations/whatsapp/link");
     if (res.ok) setStatus(await res.json());
@@ -23,6 +35,7 @@ export function WhatsAppLinkCard() {
 
   useEffect(() => {
     load();
+    runHealth();
   }, []);
 
   const startLink = async () => {
@@ -113,6 +126,33 @@ export function WhatsAppLinkCard() {
           </button>
         )}
       </div>
+
+      {/* Setup checklist: which server settings WhatsApp + AI replies still need */}
+      {health && (
+        <div className="mt-5 rounded-[14px] bg-tile p-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <span className="text-[14px] font-semibold">{health.ready ? "WhatsApp is fully configured" : "Server setup needed"}</span>
+            <button onClick={runHealth} disabled={checking} className="btn btn-ghost btn-sm">
+              {checking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              Re-check
+            </button>
+          </div>
+          <ul className="space-y-2">
+            {health.checks.map((c) => (
+              <li key={c.key} className="flex items-start gap-2 text-[13px]">
+                {c.ok ? <CheckCircle className="mt-0.5 h-4 w-4 flex-none text-gain" /> : <XCircle className="mt-0.5 h-4 w-4 flex-none text-loss" />}
+                <span>
+                  <span className="font-medium">{c.label}</span>
+                  <span className="block text-muted">{c.detail}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-[12.5px] text-muted">
+            Webhook callback URL for Meta: <code className="rounded bg-panel px-1.5 py-0.5 text-ink">{health.webhookUrl}</code> · subscribe to the <code className="rounded bg-panel px-1.5 py-0.5 text-ink">messages</code> field.
+          </p>
+        </div>
+      )}
     </section>
   );
 }

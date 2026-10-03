@@ -296,7 +296,7 @@ export function ChatbotPage() {
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response,
+        content: data.response || (data.error ? `The assistant isn't available right now: ${data.error}` : "Sorry, I didn't get a reply. Please try again."),
         timestamp: new Date(),
       };
 
@@ -403,7 +403,7 @@ export function ChatbotPage() {
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response,
+        content: data.response || (data.error ? `The assistant isn't available right now: ${data.error}` : "Sorry, I didn't get a reply. Please try again."),
         timestamp: new Date(),
       };
 
@@ -558,17 +558,18 @@ export function ChatbotPage() {
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${
+            className={`msg-in flex ${
               message.role === "user" ? "justify-end" : "justify-start"
             }`}
           >
             <div
-              className={`max-w-[85%] rounded-[18px] px-4 py-3 text-[15px] ${
+              className={`max-w-[85%] text-[15px] leading-relaxed ${
                 message.role === "user"
-                  ? "bg-accent text-white"
-                  : "bg-tile text-ink"
+                  ? "rounded-[16px] bg-accent-100 px-4 py-3 text-ink"
+                  : "panel px-4 py-3.5 text-ink"
               }`}
             >
+              <div className="eyebrow mb-1.5">{message.role === "user" ? "You" : "Assistant"}</div>
               {message.role === "assistant" ? (
                 <div>
                   {(() => {
@@ -687,7 +688,7 @@ export function ChatbotPage() {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-tile rounded-[18px] px-4 py-3.5" aria-label="Assistant is typing">
+            <div className="panel msg-in px-4 py-3.5" aria-label="Assistant is typing">
               <div className="flex gap-1.5">
                 <div className="w-2 h-2 bg-neutral-500 rounded-full [animation:lgDot_1.2s_infinite]" />
                 <div className="w-2 h-2 bg-neutral-500 rounded-full [animation:lgDot_1.2s_.2s_infinite]" />

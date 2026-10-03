@@ -20,6 +20,9 @@ export interface PortfolioSnapshot {
  * canonical totals (moved here unchanged from PortfolioAnalytics so the sidebar,
  * Overview and Portfolio screens share one query cache).
  */
+/** Stable empty list so memoised totals don't recompute every render while loading */
+const EMPTY: never[] = [];
+
 export function usePortfolioData() {
   const { data, isLoading } = useQuery<PortfolioSnapshot>({
     queryKey: ['portfolio-snapshot'],
@@ -30,13 +33,13 @@ export function usePortfolioData() {
     },
   });
 
-  const investments = data?.investments ?? [];
-  const loans = data?.loans ?? [];
-  const properties = data?.properties ?? [];
-  const bankBalances = data?.bankBalances ?? [];
-  const stocks = data?.stocks ?? [];
-  const mutualFunds = data?.mutualFunds ?? [];
-  const ppfAccounts = data?.ppfAccounts ?? [];
+  const investments = data?.investments ?? (EMPTY as PortfolioSnapshot['investments']);
+  const loans = data?.loans ?? (EMPTY as PortfolioSnapshot['loans']);
+  const properties = data?.properties ?? (EMPTY as PortfolioSnapshot['properties']);
+  const bankBalances = data?.bankBalances ?? (EMPTY as PortfolioSnapshot['bankBalances']);
+  const stocks = data?.stocks ?? (EMPTY as PortfolioSnapshot['stocks']);
+  const mutualFunds = data?.mutualFunds ?? (EMPTY as PortfolioSnapshot['mutualFunds']);
+  const ppfAccounts = data?.ppfAccounts ?? (EMPTY as PortfolioSnapshot['ppfAccounts']);
 
   const stocksData = useMemo(() => ({ stocks }), [stocks]);
   const mutualFundsData = useMemo(() => ({ mutualFunds }), [mutualFunds]);
@@ -191,14 +194,6 @@ export function usePortfolioData() {
         'Total All Assets (sum of all categories)': totalAllAssets,
         'Total from Fixed + Liquid': totalAssetsFromCategories,
         'Difference': difference,
-      });
-    } else {
-      console.log('✅ Net Worth calculation verified:', {
-        'Fixed Assets': totalFixedAssets,
-        'Liquid Assets': totalLiquidAssets,
-        'Total Assets': totalAssetsFromCategories,
-        'Loans': totalLoans,
-        'Net Worth': netWorth,
       });
     }
   }

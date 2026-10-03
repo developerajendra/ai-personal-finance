@@ -5,9 +5,10 @@ import { SessionProvider } from "next-auth/react";
 import { useState } from "react";
 import { ChatbotProvider } from "@/modules/chatbot/hooks/useChatbot";
 import { ChatbotIcon } from "@/modules/chatbot/components/ChatbotIcon";
-import { ChatbotBoard } from "@/modules/chatbot/components/ChatbotBoard";
+import { ChatbotHost } from "@/modules/chatbot/components/ChatbotHost";
 import { SessionGate } from "@/shared/components/SessionGate";
 import { ThemeProvider } from "@/shared/providers/ThemeProvider";
+import { AppFrame } from "@/shared/components/AppShell";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -28,9 +29,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <ThemeProvider>
           <ChatbotProvider>
             <SessionGate>
-              {children}
+              <AppFrame>{children}</AppFrame>
               <ChatbotIcon />
-              <ChatbotBoard />
+              <ChatbotHost />
             </SessionGate>
           </ChatbotProvider>
         </ThemeProvider>

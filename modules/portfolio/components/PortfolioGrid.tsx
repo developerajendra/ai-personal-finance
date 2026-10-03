@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/shared/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck, Clock, XOctagon, Undo2, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck, Clock, XOctagon, Undo2, Search, Download } from 'lucide-react';
 import { UnderlineTabs } from '@/shared/components/ui';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
@@ -11,6 +11,7 @@ import { BankBalanceForm } from './BankBalanceForm';
 import { Loader } from '@/shared/components/Loader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { convertFromINR } from '@/shared/utils/currency';
+import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 import { useChatbot } from '@/modules/chatbot/hooks/useChatbot';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
@@ -1038,6 +1039,10 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
                 </>
               )}
             </button>
+            <a href="/api/portfolio/export" className="btn btn-secondary" download>
+              <Download className="w-4 h-4" />
+              Export
+            </a>
           </div>
         </div>
 
@@ -1784,19 +1789,22 @@ function InvestmentGrid({
                       return `₹${currentValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     })()
                   ) : (
-                    'N/A'
+                    // No growth rule: the current value is the principal (same figure net worth uses)
+                    <span className="font-normal text-ink">
+                      ₹{getCurrentInvestmentValue(item as Investment).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {item.startDate ? new Date(item.startDate).toLocaleDateString() : 'N/A'}
+                  {item.startDate ? new Date(item.startDate).toLocaleDateString() : <span className="text-muted">—</span>}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {item.maturityDate
                     ? new Date(item.maturityDate).toLocaleDateString()
-                    : 'N/A'}
+                    : <span className="text-muted">—</span>}
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold text-accent-700">
-                  {item.maturityAmount !== undefined ? (
+                  {item.maturityAmount !== undefined && item.maturityAmount !== null && item.maturityAmount > 0 ? (
                     (() => {
                       const currency = (item.originalCurrency || item.currency || 'INR') as 'INR' | 'NPR' | 'USD';
                       if (currency !== 'INR' && item.originalMaturityAmount !== undefined) {
@@ -1813,7 +1821,7 @@ function InvestmentGrid({
                       return `₹${item.maturityAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     })()
                   ) : (
-                    'N/A'
+                    <span className="font-normal text-muted">—</span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">

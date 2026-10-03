@@ -369,9 +369,9 @@ export function Dot({ color, size = 8, className }: { color: string; size?: numb
 }
 
 /** Thin share bar (3px) — percentage of total in a class colour. */
-export function ShareBar({ value, color, height = 3, className }: { value: number; color: string; height?: number; className?: string }) {
+export function ShareBar({ value, color, height = 3, className, track }: { value: number; color: string; height?: number; className?: string; track?: string }) {
   return (
-    <div className={cn('w-full overflow-hidden rounded-full bg-neutral-200', className)} style={{ height }}>
+    <div className={cn('w-full overflow-hidden rounded-full', !track && 'bg-neutral-200', className)} style={{ height, background: track }}>
       <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color }} />
     </div>
   );

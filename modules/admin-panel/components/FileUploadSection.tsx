@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Upload, File, X, Link, Loader2 } from "lucide-react";
 import { Segmented } from "@/shared/components/ui";
 
@@ -12,6 +13,8 @@ export function FileUploadSection() {
   const [uploadMethod, setUploadMethod] = useState<"file" | "drive">("file");
   const [activeTab, setActiveTab] = useState<"general" | "ppf">("general");
   const [dragOver, setDragOver] = useState(false);
+  const [notice, setNotice] = useState<{ tone: "gain" | "loss"; text: string } | null>(null);
+  const queryClient = useQueryClient();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -28,6 +31,7 @@ export function FileUploadSection() {
     setUploading(true);
     try {
       let totalPortfolioItems = { investments: 0, loans: 0, properties: 0, bankBalances: 0 };
+      const workbookMessages: string[] = [];
       
       for (const file of files) {
         const formData = new FormData();
@@ -44,6 +48,7 @@ export function FileUploadSection() {
 
         const result = await response.json();
         console.log("Upload result:", result);
+        if (result.workbook) workbookMessages.push(result.message);
         
         if (result.aiError) {
           console.error("AI Analysis Error:", result.aiError);
@@ -79,28 +84,22 @@ export function FileUploadSection() {
       }
 
       let message = "Files uploaded successfully!";
-      if (portfolioSummary.length > 0) {
-        message += `\n\nAI Analysis created:\n${portfolioSummary.join("\n")}\n\nCheck the Portfolio tab to view them.`;
+      if (workbookMessages.length > 0) {
+        message = workbookMessages.join("\n");
+      } else if (portfolioSummary.length > 0) {
+        message += ` AI analysis created ${portfolioSummary.join(", ")} as drafts — publish them from Portfolio to include them in net worth.`;
       } else {
-        message += `\n\nNote: No portfolio items were detected.`;
-        message += `\n\nPlease check the browser console (F12) and server logs for detailed information.`;
-        message += `\n\nCommon issues:`;
-        message += `\n- Ollama might not be running or accessible`;
-        message += `\n- Ollama model might not support JSON format`;
-        message += `\n- Check server console for Ollama connection errors`;
-        message += `\n\nMake sure your Excel has columns like: Entity, Debit IC, Debit NC, Credit, YTD Value, Start Date, Maturity Date.`;
+        message += " No portfolio items were detected. AI extraction needs Ollama running on the server, or upload a Ledger portfolio workbook (Investments, Loans, Properties… sheets).";
       }
 
-      alert(message);
+      setNotice({ tone: "gain", text: message });
       setFiles([]);
-      
-      // Refresh page to show new portfolio items after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Refresh every cached screen (portfolio, transactions, snapshots) without a full reload
+      await queryClient.invalidateQueries();
+      window.dispatchEvent(new CustomEvent("portfolioCategoriesUpdated"));
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload files: " + (error as Error).message);
+      setNotice({ tone: "loss", text: "Failed to upload files: " + (error as Error).message });
     } finally {
       setUploading(false);
     }
@@ -311,6 +310,15 @@ export function FileUploadSection() {
             ]}
             ariaLabel="Source"
           />
+        </div>
+      )}
+
+      {notice && (
+        <div
+          role="status"
+          className={`mt-5 whitespace-pre-line rounded-[12px] px-4 py-3 text-[13.5px] ${notice.tone === "gain" ? "bg-gain-bg text-gain" : "bg-loss-bg text-loss"}`}
+        >
+          {notice.text}
         </div>
       )}
 

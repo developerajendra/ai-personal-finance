@@ -105,5 +105,6 @@ export function usePortfolioTotals() {
       activeLoans: loans.filter((l) => l.status === 'active'),
       holdings: classes.reduce((s, c) => s + c.count, 0),
     };
-  }, [data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `data` is rebuilt each render; its inputs below are stable references
+  }, [data.investments, data.loans, data.properties, data.bankBalances, data.stocksData, data.mutualFundsData, data.ppfAccounts, data.isLoading]);
 }

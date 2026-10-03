@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Search, LogOut, Mail, X, Tag as TagIcon } from 'lucide-react';
+import { ChevronRight, PanelLeftClose, Search, LogOut, Mail, X, Tag as TagIcon } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { cn } from '@/shared/utils/cn';
 import { PortfolioCategory } from '@/shared/types';
@@ -25,10 +25,21 @@ export function LedgerLogo({ size = 30 }: { size?: number }) {
   );
 }
 
+/** Label that fades and folds away when the sidebar collapses (animated, not unmounted). */
+function Fold({ collapsed, children, className }: { collapsed: boolean; children: React.ReactNode; className?: string }) {
+  return (
+    <span className={cn('nav-fold', collapsed && 'nav-fold-off', className)} aria-hidden={collapsed || undefined}>
+      {children}
+    </span>
+  );
+}
+
 export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
   const pathname = usePathname() || '';
   const { data: session } = useSession();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsedState] = useState(false);
+  // The route the user just clicked: highlighted immediately, before the page finishes loading
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [portfolioOpen, setPortfolioOpen] = useState<boolean | null>(null);
   const [flyout, setFlyout] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -48,6 +59,24 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
     () => buildCashEvents({ loans: totals.loans, investments: totals.investments, bankBalances: totals.bankBalances }, 3).overdue.length,
     [totals.loans, totals.investments, totals.bankBalances],
   );
+
+  useEffect(() => {
+    try {
+      setIsCollapsedState(localStorage.getItem('ledger-nav-collapsed') === '1');
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+  const setIsCollapsed = (v: boolean) => {
+    setIsCollapsedState(v);
+    setFlyout(false);
+    try {
+      localStorage.setItem('ledger-nav-collapsed', v ? '1' : '0');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  useEffect(() => setPendingHref(null), [pathname]);
 
   // Fetch portfolio categories
   const fetchPortfolioCategories = async () => {
@@ -124,8 +153,16 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
       }
     };
     checkGmailStatus();
-    const interval = setInterval(checkGmailStatus, 10000); // Check every 10 seconds
-    return () => clearInterval(interval);
+    // Once a minute, and only while the tab is visible (was every 10s on every page)
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') checkGmailStatus();
+    }, 60000);
+    const onVisible = () => document.visibilityState === 'visible' && checkGmailStatus();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   // Close user menu when clicking outside
@@ -175,10 +212,15 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
     .sort((a, b) => a.name.localeCompare(b.name))
     .filter((cat) => !classHrefs.has(cat.href));
 
-  const portfolioActive = NAV.portfolio.match(pathname);
+  const current = pendingHref ?? pathname;
+  const portfolioActive = NAV.portfolio.match(current);
   const showKids = portfolioOpen ?? portfolioActive;
   const isActiveHref = (href: string) =>
-    pathname === href || (href === '/portfolio/stocks' && pathname === '/portfolio/mutual-funds');
+    current === href || (href === '/portfolio/stocks' && current === '/portfolio/mutual-funds');
+  const go = (href: string) => () => {
+    if (href !== pathname) setPendingHref(href);
+    setFlyout(false);
+  };
 
   const userName = session?.user?.name || session?.user?.email?.split('@')[0] || 'You';
 
@@ -188,11 +230,11 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
         <Link
           key={c.key}
           href={c.href}
-          onClick={() => setFlyout(false)}
+          onClick={go(c.href)}
           aria-current={isActiveHref(c.href) ? 'page' : undefined}
           className={cn(
-            'block rounded-[8px] px-2.5 py-2 transition-colors',
-            isActiveHref(c.href) ? 'bg-nav-sel font-semibold' : 'hover:bg-nav-hover',
+            'nav-item block rounded-[8px] px-2.5 py-2',
+            isActiveHref(c.href) ? 'nav-item-on font-semibold' : '',
           )}>
           <span className="flex items-center gap-2.5 text-[14px]">
             <span className="h-2 w-2 flex-none rounded-[2px]" style={{ background: c.color }} />
@@ -200,7 +242,7 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
             <span className="flex-none text-[12px] font-semibold tabular-nums">{C(c.value)}</span>
           </span>
           <span className="mt-1.5 flex items-center gap-2 pl-[18px]">
-            <ShareBar value={c.share} color={c.color} height={2} className="flex-1" />
+            <ShareBar value={c.share} color={c.color} height={2} className="flex-1" track="color-mix(in srgb, var(--side-fg) 14%, transparent)" />
             <span className="w-10 flex-none text-right text-[11px] text-side-muted tabular-nums">{pct(c.share)}</span>
           </span>
         </Link>
@@ -208,8 +250,8 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
       {dynamicRows.map((cat) => {
         const deletable = cat.slug !== 'receivables'; // Don't allow deleting receivables
         return (
-          <div key={cat.id} className={cn('group/item flex items-center rounded-[8px]', isActiveHref(cat.href) ? 'bg-nav-sel' : 'hover:bg-nav-hover')}>
-            <Link href={cat.href} onClick={() => setFlyout(false)} className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2 text-[14px]">
+          <div key={cat.id} className={cn('nav-item group/item flex items-center rounded-[8px]', isActiveHref(cat.href) && 'nav-item-on')}>
+            <Link href={cat.href} onClick={go(cat.href)} className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2 text-[14px]">
               <TagIcon className="h-3.5 w-3.5 flex-none text-side-muted" strokeWidth={1.75} />
               <span className="truncate">{cat.name}</span>
             </Link>
@@ -233,31 +275,27 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
   );
 
   const row = (item: NavItem, extra?: { badge?: number; trailing?: React.ReactNode; below?: React.ReactNode }) => {
-    const on = item.match(pathname);
+    const on = item.match(current);
     const Icon = item.icon;
     return (
       <Link
         href={item.href}
+        onClick={go(item.href)}
         aria-current={on ? 'page' : undefined}
+        aria-label={isCollapsed ? item.label : undefined}
         title={isCollapsed ? item.label : undefined}
-        className={cn(
-          'relative flex min-h-[38px] items-center gap-3 rounded-[10px] px-2.5 text-[15px] transition-colors',
-          isCollapsed && 'justify-center px-0',
-          on ? 'bg-nav-sel font-semibold text-nav-sel-fg' : 'hover:bg-nav-hover',
-        )}>
-        <Icon className="h-[19px] w-[19px] flex-none" strokeWidth={1.75} />
-        {!isCollapsed && (
-          <span className="min-w-0 flex-1">
-            <span className="block truncate">{item.label}</span>
-            {extra?.below}
-          </span>
-        )}
-        {!isCollapsed && extra?.trailing}
+        className={cn('nav-item relative flex min-h-[38px] items-center gap-3 rounded-[10px] px-[14px] text-[15px]', on && 'nav-item-on font-semibold')}>
+        <Icon className="h-[19px] w-[19px] flex-none" strokeWidth={on ? 2 : 1.75} />
+        <Fold collapsed={isCollapsed} className="min-w-0 flex-1">
+          <span className="block truncate">{item.label}</span>
+          {extra?.below}
+        </Fold>
+        {extra?.trailing && <Fold collapsed={isCollapsed} className="flex-none">{extra.trailing}</Fold>}
         {!!extra?.badge && (
           <span
             className={cn(
-              'flex h-[18px] min-w-[18px] flex-none items-center justify-center rounded-full bg-loss px-1 text-[11px] font-semibold text-white',
-              isCollapsed && 'absolute right-2 top-1',
+              'flex h-[18px] min-w-[18px] flex-none items-center justify-center rounded-full bg-loss px-1 text-[11px] font-semibold text-white transition-all duration-200',
+              isCollapsed && 'absolute right-1.5 top-0.5 scale-90',
             )}>
             {extra.badge}
           </span>
@@ -269,27 +307,27 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
   return (
     <aside
       data-sidebar
+      data-collapsed={isCollapsed || undefined}
       className={cn(
-        'glass-side sticky top-0 z-30 hidden h-screen flex-none flex-col gap-4 overflow-y-auto px-2.5 pb-3.5 pt-[18px] text-side-fg transition-[width] duration-200 md:flex',
+        'glass-side sidebar-anim sticky top-0 z-30 hidden h-screen flex-none flex-col gap-4 overflow-y-auto overflow-x-hidden px-2.5 pb-3.5 pt-[18px] text-side-fg md:flex',
         isCollapsed ? 'w-sidebar-collapsed' : 'w-sidebar',
       )}>
       {/* Logo + collapse */}
-      <div className={cn('flex items-center gap-2 px-1.5', isCollapsed ? 'flex-col' : 'justify-between')}>
-        <Link href="/dashboard" aria-label="Ledger home" className="flex min-w-0 items-center gap-2.5">
+      <div className={cn('flex min-h-[34px] items-center gap-2 pl-[10px]', isCollapsed ? 'flex-col items-start' : 'justify-between pr-1.5')}>
+        <Link href="/dashboard" onClick={go('/dashboard')} aria-label="Ledger home" className="flex min-w-0 items-center gap-2.5">
           <LedgerLogo />
-          {!isCollapsed && (
-            <span className="flex min-w-0 flex-col leading-tight">
-              <span className="font-heading text-[16px] font-bold">Ledger</span>
-              <span className="truncate text-[12px] text-side-muted">Net worth {C(totals.netWorth)}</span>
-            </span>
-          )}
+          <Fold collapsed={isCollapsed} className="flex min-w-0 flex-col leading-tight">
+            <span className="font-heading text-[16px] font-bold">Ledger</span>
+            <span className="truncate text-[12px] text-side-muted">Net worth {C(totals.netWorth)}</span>
+          </Fold>
         </Link>
         <button
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="flex h-8 w-8 flex-none items-center justify-center rounded-lg text-side-muted hover:bg-nav-hover hover:text-side-fg"
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
-          {isCollapsed ? <PanelLeftOpen className="h-[18px] w-[18px]" strokeWidth={1.75} /> : <PanelLeftClose className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+          className={cn('nav-item flex h-8 w-8 flex-none items-center justify-center rounded-lg text-side-muted hover:text-side-fg', isCollapsed && '-ml-[1px]')}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!isCollapsed}>
+          <PanelLeftClose className={cn('h-[18px] w-[18px] transition-transform duration-300', isCollapsed && 'rotate-180')} strokeWidth={1.75} />
         </button>
       </div>
 
@@ -297,25 +335,24 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
       <button
         type="button"
         onClick={() => onOpenSearch?.()}
-        className={cn(
-          'flex h-9 items-center gap-2 rounded-[10px] bg-[var(--search-bg)] px-3 text-[14px] text-side-muted',
-          isCollapsed && 'justify-center px-0',
-        )}
+        className="flex h-9 items-center gap-2 rounded-[10px] bg-[var(--search-bg)] px-[14px] text-[14px] text-side-muted transition-colors hover:text-side-fg"
         aria-label="Search (⌘K)">
         <Search className="h-4 w-4 flex-none" strokeWidth={1.9} />
-        {!isCollapsed && (
-          <>
-            <span className="flex-1 text-left">Search</span>
-            <kbd className="text-[11px] font-sans">⌘K</kbd>
-          </>
-        )}
+        <Fold collapsed={isCollapsed} className="flex flex-1 items-center">
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="font-sans text-[11px]">⌘K</kbd>
+        </Fold>
       </button>
 
       {/* Groups */}
       <nav className="flex flex-col gap-4" aria-label="Main">
         {NAV_GROUPS.map((g) => (
           <div key={g.label} className="flex flex-col gap-0.5">
-            {!isCollapsed && g.label && <div className="px-2.5 pb-1.5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-side-muted">{g.label}</div>}
+            {g.label && (
+              <div className={cn('nav-group-label px-2.5 pb-1.5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-side-muted', isCollapsed && 'nav-group-label-off')}>
+                {g.label}
+              </div>
+            )}
             {g.items.map((item) => {
               if (item.key === 'portfolio') {
                 return (
@@ -332,19 +369,17 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
                       flyTimer.current = setTimeout(() => setFlyout(false), 180);
                     }}>
                     {row(item, {
-                      below: !showKids ? (
-                        <StackBar
-                          className="mt-1"
-                          height={3}
-                          gap={1}
-                          segments={classRows.map((c) => ({ value: c.value, color: c.color }))}
-                        />
-                      ) : undefined,
+                      below: (
+                        <span className={cn('block overflow-hidden transition-all duration-300', showKids ? 'max-h-0 opacity-0' : 'max-h-2 opacity-100')}>
+                          <StackBar className="mt-1" height={3} gap={1} segments={classRows.map((c) => ({ value: c.value, color: c.color }))} />
+                        </span>
+                      ),
                       trailing: (
                         <span
                           role="button"
                           tabIndex={0}
                           aria-label={showKids ? 'Hide asset classes' : 'Show asset classes'}
+                          aria-expanded={showKids}
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -356,16 +391,21 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
                               setPortfolioOpen(!showKids);
                             }
                           }}
-                          className="flex h-6 w-6 flex-none items-center justify-center rounded-md text-side-muted hover:bg-nav-hover">
-                          {showKids ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                          className="flex h-6 w-6 items-center justify-center rounded-md text-side-muted hover:bg-nav-hover">
+                          <ChevronRight className={cn('h-3.5 w-3.5 transition-transform duration-300', showKids && 'rotate-90')} />
                         </span>
                       ),
                     })}
-                    {!isCollapsed && showKids && <div className="mx-1.5 mt-1 rounded-[12px] bg-nav-hover p-1.5">{richList}</div>}
+                    {/* Animated expand/collapse of the asset-class list */}
+                    <div className={cn('grid transition-[grid-template-rows,opacity] duration-300 ease-out', !isCollapsed && showKids ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
+                      <div className="overflow-hidden">
+                        <div className="mx-1.5 mt-1 rounded-[12px] bg-nav-hover p-1.5">{richList}</div>
+                      </div>
+                    </div>
                     {isCollapsed && flyout && (
-                      <div className="dialog absolute left-full top-0 z-50 ml-2 w-[270px] p-2 text-ink">
+                      <div className="dialog pop-in absolute left-full top-0 z-50 ml-2 w-[270px] p-2 text-ink">
                         <div className="flex items-baseline justify-between px-2.5 pb-2 pt-1">
-                          <Link href="/portfolio" className="text-[15px] font-semibold">
+                          <Link href="/portfolio" onClick={go('/portfolio')} className="text-[15px] font-semibold">
                             Portfolio
                           </Link>
                           <span className="text-[12px] text-muted">{C(totals.assets)}</span>
@@ -396,25 +436,23 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
         <button
           type="button"
           onClick={() => setShowUserMenu(!showUserMenu)}
-          className={cn('flex w-full items-center gap-2.5 rounded-[10px] p-1.5 text-left hover:bg-nav-hover', isCollapsed && 'justify-center')}
+          className="nav-item flex w-full items-center gap-2.5 rounded-[10px] py-1.5 pl-[7px] pr-1.5 text-left"
           aria-expanded={showUserMenu}
           aria-label="Account menu">
-          <span className="relative">
+          <span className="relative flex-none">
             <Avatar name={userName} size={32} />
             {gmailStatus?.isConnected && (
               <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--color-bg)] bg-gain" title="Gmail connected" />
             )}
           </span>
-          {!isCollapsed && (
-            <span className="min-w-0 flex-1 leading-tight">
-              <span className="block truncate text-[14px] font-semibold">{userName}</span>
-              <span className="block truncate text-[12px] text-side-muted">{session?.user?.email || 'Signed in'}</span>
-            </span>
-          )}
+          <Fold collapsed={isCollapsed} className="min-w-0 flex-1 leading-tight">
+            <span className="block truncate text-[14px] font-semibold">{userName}</span>
+            <span className="block truncate text-[12px] text-side-muted">{session?.user?.email || 'Signed in'}</span>
+          </Fold>
         </button>
 
         {showUserMenu && (
-          <div className={cn('dialog absolute bottom-full z-[100] mb-2 w-60 py-2', isCollapsed ? 'left-full ml-2' : 'left-0')}>
+          <div className={cn('dialog pop-in absolute bottom-full z-[100] mb-2 w-60 py-2', isCollapsed ? 'left-full ml-2' : 'left-0')}>
             <div className="flex items-center gap-3 border-b border-divider px-4 pb-3 pt-1">
               <Avatar name={userName} size={36} />
               <div className="min-w-0">
@@ -436,7 +474,6 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
           </div>
         )}
       </div>
-
     </aside>
   );
 }
