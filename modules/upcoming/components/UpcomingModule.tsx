@@ -74,7 +74,7 @@ export function UpcomingModule() {
   return (
     <div>
       <PageHeader
-        crumbs={[{ label: 'Overview', href: '/dashboard' }, { label: 'Upcoming' }]}
+        crumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Upcoming' }]}
         title="Upcoming cash events"
         hero={{
           value: S(net),

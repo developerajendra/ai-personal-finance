@@ -303,7 +303,7 @@ export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSear
         <Link href="/dashboard" onClick={go('/dashboard')} aria-label="Ledger home" className="flex min-w-0 items-center gap-2.5">
           <LedgerLogo />
           <Fold collapsed={isCollapsed} className="flex min-w-0 flex-col leading-tight">
-            <span className="font-heading text-[16px] font-bold">Ledger</span>
+            <span className="font-heading text-[16px] font-bold">Personal Finance</span>
             <span className="truncate text-[12px] text-side-muted">Net worth {C(totals.netWorth)}</span>
           </Fold>
         </Link>

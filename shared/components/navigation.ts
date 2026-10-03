@@ -24,7 +24,7 @@ export interface NavItem {
 const starts = (...prefixes: string[]) => (p: string) => prefixes.some((x) => p === x || p.startsWith(x + '/'));
 
 export const NAV: Record<string, NavItem> = {
-  overview: { key: 'overview', label: 'Overview', href: '/dashboard', icon: LayoutGrid, match: (p) => p === '/dashboard' || p === '/dashboard/chart' },
+  overview: { key: 'overview', label: 'Dashboard', href: '/dashboard', icon: LayoutGrid, match: (p) => p === '/dashboard' || p === '/dashboard/chart' },
   performance: { key: 'performance', label: 'Performance', href: '/performance', icon: LineChart, match: starts('/performance') },
   portfolio: {
     key: 'portfolio',
@@ -70,5 +70,5 @@ export const SEARCH_EXTRA: { label: string; href: string; group: string }[] = [
   { label: 'Monthly snapshots', href: '/dashboard/archive', group: 'Cash flow' },
   { label: 'Transaction categories', href: '/transactions/categories', group: 'Cash flow' },
   { label: 'AI analysis', href: '/data/analysis', group: 'Imports & data' },
-  { label: 'Net worth chart', href: '/dashboard/chart', group: 'Overview' },
+  { label: 'Net worth chart', href: '/dashboard/chart', group: 'Dashboard' },
 ];

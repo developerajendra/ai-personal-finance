@@ -6,7 +6,6 @@ import { Wallet, TrendingUp, PiggyBank, CreditCard } from 'lucide-react';
 import { useFinancialData } from '@/shared/hooks/useFinancialData';
 import { usePortfolioTotals, daysUntil } from '@/shared/hooks/usePortfolioTotals';
 import { useMoney, fmtDate } from '@/shared/hooks/useMoney';
-import { LinkButton, PageHeader } from '@/shared/components/ui';
 import { buildCashEvents } from '@/shared/utils/upcoming';
 import { healthChecks, liquidityLadder, monthlyFlows, referenceMonth } from '@/shared/utils/insights';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
@@ -124,11 +123,7 @@ export function DashboardModule() {
 
   return (
     <div>
-      <PageHeader
-        title="Overview"
-        actions={<LinkButton href="/transactions">Add transaction</LinkButton>}
-        meta={<>{new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).replace(',', '')} · market prices cached</>}
-      />
+      <h1 className="sr-only">Dashboard</h1>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <NetWorthPanel netWorth={t.netWorth} isLoading={t.isLoading} />
