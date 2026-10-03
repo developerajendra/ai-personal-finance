@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sparkles, X } from "lucide-react";
 import { useChatbot } from "../hooks/useChatbot";
+import { isBarePath } from "@/shared/components/publicPaths";
 
 export function ChatbotIcon() {
   const { openChatbot, closeChatbot, isOpen } = useChatbot();
@@ -17,7 +18,7 @@ export function ChatbotIcon() {
     return () => clearTimeout(t);
   }, []);
 
-  if (pathname.startsWith("/chatbot") || pathname.startsWith("/auth")) return null;
+  if (pathname.startsWith("/chatbot") || isBarePath(pathname)) return null;
 
   return (
     <div className="fixed bottom-[104px] right-4 z-50 flex items-center gap-3 md:bottom-7 md:right-7">

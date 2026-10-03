@@ -4,19 +4,18 @@ import { useSession } from "next-auth/react";
 import { ReactNode } from "react";
 import { Loader2, LogIn } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import { isPublicPath } from "@/shared/components/publicPaths";
 
 interface SessionGateProps {
   children: ReactNode;
 }
-
-const PUBLIC_PATHS = ["/auth/signin", "/auth/register"];
 
 export function SessionGate({ children }: SessionGateProps) {
   const { status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
 
-  const isPublicPage = PUBLIC_PATHS.some((p) => pathname?.startsWith(p));
+  const isPublicPage = isPublicPath(pathname);
 
   if (isPublicPage) {
     return <>{children}</>;

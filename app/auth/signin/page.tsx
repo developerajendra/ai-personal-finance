@@ -173,6 +173,11 @@ export default function SignInPage() {
             Create one
           </Link>
         </p>
+        <p className="mt-4 text-center text-xs text-muted">
+          <Link href="/terms" className="hover:underline">Terms of Service</Link>
+          {" · "}
+          <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+        </p>
       </div>
     </div>
   );

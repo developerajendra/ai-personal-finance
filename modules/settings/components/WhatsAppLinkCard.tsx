@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MessageCircle, CheckCircle, Loader2, Trash2, XCircle } from "lucide-react";
 
@@ -126,6 +127,12 @@ export function WhatsAppLinkCard() {
           </button>
         )}
       </div>
+
+      <p className="mt-3 text-[12.5px] text-muted">
+        Linking means messages from this number can read and update your records. See how WhatsApp messages are handled in the{" "}
+        <Link href="/privacy#whatsapp" className="text-accent-700 hover:underline">Privacy Policy</Link> and{" "}
+        <Link href="/terms#whatsapp" className="text-accent-700 hover:underline">Terms</Link>.
+      </p>
 
       {/* Setup checklist: which server settings WhatsApp + AI replies still need */}
       {health && (

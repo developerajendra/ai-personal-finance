@@ -8,8 +8,7 @@ import { Sidebar, LedgerLogo } from '@/shared/components/Sidebar';
 import { MobileTabBar } from '@/shared/components/MobileTabBar';
 import { CommandPalette } from '@/shared/components/CommandPalette';
 import { cn } from '@/shared/utils/cn';
-
-const BARE_PATHS = ['/auth'];
+import { isBarePath } from '@/shared/components/publicPaths';
 
 /**
  * Persistent app frame from the design: sticky glass sidebar (desktop), floating tab bar (mobile)
@@ -20,7 +19,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname() || '';
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navHidden, setNavHidden] = useState(false);
-  const bare = BARE_PATHS.some((p) => pathname.startsWith(p));
+  const bare = isBarePath(pathname);
 
   // Whether the whole sidebar is hidden, remembered across visits
   useEffect(() => {
