@@ -306,3 +306,28 @@ export interface PPFAccount {
   lastUpdated?: string;
   rawData?: unknown;
 }
+
+// ─── Subscriptions ──────────────────────────────────────────────────
+
+export interface Subscription {
+  id: string;
+  name: string;
+  plan?: string;
+  category: "AI tools" | "Entertainment" | "Cloud & storage" | "Other";
+  /** Price per billing cycle, in `currency` */
+  amount: number;
+  currency: "INR" | "USD" | "NPR";
+  cycle: "Monthly" | "Yearly";
+  /** yyyy-mm-dd — next renewal, or the end date when `ends` is true */
+  nextDate: string;
+  ends: boolean;
+  status: "Active" | "Cancelled";
+  paidWith?: string;
+  notes?: string;
+  /** Remind 3 days before nextDate */
+  remind: boolean;
+  color?: string;
+  monogram?: string;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -181,3 +181,27 @@ export const portfolioCategoryInputSchema = z.object({
   description: optionalString(),
 });
 export const portfolioCategoryUpdateSchema = portfolioCategoryInputSchema.partial();
+
+export const SUBSCRIPTION_CATEGORIES = ["AI tools", "Entertainment", "Cloud & storage", "Other"] as const;
+export const SUBSCRIPTION_CURRENCIES = ["INR", "USD", "NPR"] as const;
+export const SUBSCRIPTION_CYCLES = ["Monthly", "Yearly"] as const;
+export const SUBSCRIPTION_STATUSES = ["Active", "Cancelled"] as const;
+
+export const subscriptionInputSchema = z.object({
+  name: z.string().trim().min(1, "Enter a name.").max(120),
+  plan: optionalString(120),
+  category: z.enum(SUBSCRIPTION_CATEGORIES).default("Other"),
+  amount: z.preprocess(toNumber, z.number().finite().gt(0, "Enter an amount above 0.")).transform(toMoney),
+  currency: z.enum(SUBSCRIPTION_CURRENCIES).default("INR"),
+  cycle: z.enum(SUBSCRIPTION_CYCLES).default("Monthly"),
+  nextDate: dateStringSchema,
+  ends: z.boolean().default(false),
+  status: z.enum(SUBSCRIPTION_STATUSES).default("Active"),
+  paidWith: optionalString(120),
+  notes: optionalString(1000),
+  remind: z.boolean().default(true),
+  color: optionalString(32),
+  monogram: optionalString(4),
+});
+export const subscriptionUpdateSchema = subscriptionInputSchema.partial();
+export type SubscriptionInput = z.input<typeof subscriptionInputSchema>;

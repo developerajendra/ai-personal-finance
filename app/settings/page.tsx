@@ -176,6 +176,11 @@ export default function SettingsPage() {
               <p className="mt-4 text-[13.5px] text-muted">
                 Numbers use Indian grouping (₹1,00,000.00). Money shows at most two decimals; units keep full precision internally.
               </p>
+              <p className="mt-2 text-[13.5px] text-muted">
+                Positive amounts show in <span className="font-semibold text-gain">green (+₹1,250.00)</span> and negative amounts in{" "}
+                <span className="font-semibold text-loss">red (−₹1,250.00)</span>, everywhere. The exact shades come from your theme, so they stay
+                readable in every skin, and they never change with your accent colour.
+              </p>
             </Panel>
 
             {/* Appearance */}

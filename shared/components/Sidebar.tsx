@@ -34,10 +34,11 @@ function Fold({ collapsed, children, className }: { collapsed: boolean; children
   );
 }
 
-export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
+export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSearch?: () => void; hidden?: boolean; onToggle?: () => void } = {}) {
   const pathname = usePathname() || '';
   const { data: session } = useSession();
-  const [isCollapsed, setIsCollapsedState] = useState(false);
+  // The whole sidebar hides/shows (state owned by AppFrame); labels are always shown when visible.
+  const isCollapsed = false;
   // The route the user just clicked: highlighted immediately, before the page finishes loading
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [portfolioOpen, setPortfolioOpen] = useState<boolean | null>(null);
@@ -60,22 +61,6 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
     [totals.loans, totals.investments, totals.bankBalances],
   );
 
-  useEffect(() => {
-    try {
-      setIsCollapsedState(localStorage.getItem('ledger-nav-collapsed') === '1');
-    } catch {
-      /* storage unavailable */
-    }
-  }, []);
-  const setIsCollapsed = (v: boolean) => {
-    setIsCollapsedState(v);
-    setFlyout(false);
-    try {
-      localStorage.setItem('ledger-nav-collapsed', v ? '1' : '0');
-    } catch {
-      /* storage unavailable */
-    }
-  };
   useEffect(() => setPendingHref(null), [pathname]);
 
   // Fetch portfolio categories
@@ -307,10 +292,11 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
   return (
     <aside
       data-sidebar
-      data-collapsed={isCollapsed || undefined}
+      data-hidden={hidden || undefined}
+      aria-hidden={hidden || undefined}
       className={cn(
-        'glass-side sidebar-anim sticky top-0 z-30 hidden h-screen flex-none flex-col gap-4 overflow-y-auto overflow-x-hidden px-2.5 pb-3.5 pt-[18px] text-side-fg md:flex',
-        isCollapsed ? 'w-sidebar-collapsed' : 'w-sidebar',
+        'glass-side sidebar-anim sticky top-0 z-30 hidden h-screen flex-none flex-col gap-4 overflow-y-auto overflow-x-hidden pb-3.5 pt-[18px] text-side-fg md:flex',
+        hidden ? 'sidebar-hidden w-0 px-0' : 'w-sidebar px-2.5',
       )}>
       {/* Logo + collapse */}
       <div className={cn('flex min-h-[34px] items-center gap-2 pl-[10px]', isCollapsed ? 'flex-col items-start' : 'justify-between pr-1.5')}>
@@ -323,11 +309,11 @@ export function Sidebar({ onOpenSearch }: { onOpenSearch?: () => void } = {}) {
         </Link>
         <button
           type="button"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={cn('nav-item flex h-8 w-8 flex-none items-center justify-center rounded-lg text-side-muted hover:text-side-fg', isCollapsed && '-ml-[1px]')}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-expanded={!isCollapsed}>
-          <PanelLeftClose className={cn('h-[18px] w-[18px] transition-transform duration-300', isCollapsed && 'rotate-180')} strokeWidth={1.75} />
+          onClick={() => onToggle?.()}
+          className="nav-item flex h-8 w-8 flex-none items-center justify-center rounded-lg text-side-muted hover:text-side-fg"
+          aria-label="Hide sidebar"
+          title="Hide sidebar (⌘\)">
+          <PanelLeftClose className="h-[18px] w-[18px]" strokeWidth={1.75} />
         </button>
       </div>
 

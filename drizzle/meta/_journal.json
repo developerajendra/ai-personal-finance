@@ -15,6 +15,13 @@
       "when": 1790952705920,
       "tag": "0001_whatsapp_conversations_idempotency",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791005587770,
+      "tag": "0002_subscriptions",
+      "breakpoints": true
     }
   ]
 }

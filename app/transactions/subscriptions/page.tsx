@@ -1,14 +1,6 @@
-import { AppShell } from "@/shared/components/AppShell";
-import { PageHeader } from "@/shared/components/ui";
-import { CashFlowTabs } from "@/shared/components/SectionTabs";
-import { SubscriptionsModule } from "@/modules/cashflow/components/SubscriptionsModule";
+import { redirect } from "next/navigation";
 
-export default function SubscriptionsPage() {
-  return (
-    <AppShell>
-      <PageHeader crumbs={[{ label: "Cash flow", href: "/transactions" }, { label: "Subscriptions" }]} title="Subscriptions" />
-      <CashFlowTabs />
-      <SubscriptionsModule />
-    </AppShell>
-  );
+// Subscriptions moved to its own section in the sidebar.
+export default function LegacySubscriptionsPage() {
+  redirect("/subscriptions");
 }

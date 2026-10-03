@@ -12,9 +12,15 @@ import { AppearancePicker } from '@/shared/components/AppearancePicker';
 export function MobileTabBar({ onOpenSearch }: { onOpenSearch: () => void }) {
   const pathname = usePathname() || '';
   const [more, setMore] = useState(false);
-  const moreActive = MOBILE_MORE.some((n) => n.match(pathname));
+  // The tapped tab lights up immediately instead of waiting for the route to finish loading
+  const [pending, setPending] = useState<string | null>(null);
+  const current = pending ?? pathname;
+  const moreActive = MOBILE_MORE.some((n) => n.match(current));
 
-  useEffect(() => setMore(false), [pathname]);
+  useEffect(() => {
+    setMore(false);
+    setPending(null);
+  }, [pathname]);
 
   return (
     <>
@@ -24,15 +30,19 @@ export function MobileTabBar({ onOpenSearch }: { onOpenSearch: () => void }) {
         className="glass-tabbar fixed bottom-3 left-3 right-3 z-40 flex items-stretch justify-around rounded-[26px] px-1 pt-2 md:hidden"
         style={{ paddingBottom: 'max(6px, env(safe-area-inset-bottom))' }}>
         {MOBILE_TABS.map(({ item, label }) => {
-          const on = item.match(pathname) && !more;
+          const on = item.match(current) && !more;
           const Icon = item.icon;
           return (
             <Link
               key={item.key}
               href={item.href}
               aria-current={on ? 'page' : undefined}
-              className={cn('flex min-w-0 flex-1 flex-col items-center gap-1 py-0.5 text-[11px]', on ? 'font-semibold text-accent-800' : 'text-ink')}>
-              <span className={cn('flex h-8 w-[52px] items-center justify-center rounded-full', on && 'bg-accent-100')}>
+              onClick={() => {
+                setMore(false);
+                if (!item.match(pathname)) setPending(item.href);
+              }}
+              className={cn('tab-btn flex min-w-0 flex-1 flex-col items-center gap-1 py-0.5 text-[11px]', on ? 'font-semibold text-accent-800' : 'text-ink')}>
+              <span className={cn('tab-pill flex h-8 w-[52px] items-center justify-center rounded-full', on && 'bg-accent-100')}>
                 <Icon className="h-[21px] w-[21px]" strokeWidth={on ? 2 : 1.75} />
               </span>
               {label}
@@ -43,8 +53,8 @@ export function MobileTabBar({ onOpenSearch }: { onOpenSearch: () => void }) {
           type="button"
           onClick={() => setMore(!more)}
           aria-expanded={more}
-          className={cn('flex min-w-0 flex-1 flex-col items-center gap-1 py-0.5 text-[11px]', more || moreActive ? 'font-semibold text-accent-800' : 'text-ink')}>
-          <span className={cn('flex h-8 w-[52px] items-center justify-center rounded-full', (more || moreActive) && 'bg-accent-100')}>
+          className={cn('tab-btn flex min-w-0 flex-1 flex-col items-center gap-1 py-0.5 text-[11px]', more || moreActive ? 'font-semibold text-accent-800' : 'text-ink')}>
+          <span className={cn('tab-pill flex h-8 w-[52px] items-center justify-center rounded-full', (more || moreActive) && 'bg-accent-100')}>
             <MoreHorizontal className="h-[21px] w-[21px]" strokeWidth={1.75} />
           </span>
           More
@@ -74,7 +84,14 @@ export function MobileTabBar({ onOpenSearch }: { onOpenSearch: () => void }) {
               {MOBILE_MORE.map((n) => {
                 const Icon = n.icon;
                 return (
-                  <Link key={n.key} href={n.href} className={cn('panel flex items-center gap-3 px-4 py-3.5 text-[15px]', n.match(pathname) && 'font-semibold')}>
+                  <Link
+                    key={n.key}
+                    href={n.href}
+                    onClick={() => {
+                      setMore(false);
+                      if (!n.match(pathname)) setPending(n.href);
+                    }}
+                    className={cn('panel flex items-center gap-3 px-4 py-3.5 text-[15px] active:scale-[0.98]', n.match(current) && 'font-semibold text-accent-800')}>
                     <Icon className="h-5 w-5 text-accent-700" strokeWidth={1.75} />
                     {n.label}
                   </Link>

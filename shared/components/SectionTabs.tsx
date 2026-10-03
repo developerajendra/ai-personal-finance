@@ -14,7 +14,6 @@ export function CashFlowTabs() {
       value={path}
       tabs={[
         { value: '/transactions', label: 'Transactions', href: '/transactions' },
-        { value: '/transactions/subscriptions', label: 'Subscriptions', href: '/transactions/subscriptions' },
         { value: '/dashboard/archive', label: 'Monthly snapshots', href: '/dashboard/archive' },
         { value: '/transactions/categories', label: 'Categories', href: '/transactions/categories' },
       ]}

@@ -11,6 +11,8 @@ import { buildCashEvents } from '@/shared/utils/upcoming';
 import { healthChecks, liquidityLadder, monthlyFlows, referenceMonth } from '@/shared/utils/insights';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 import { NetWorthPanel } from './NetWorthPanel';
+import { SubscriptionsCard } from '@/modules/subscriptions/components/SubscriptionsModule';
+import { useSubscriptions } from '@/modules/subscriptions/useSubscriptions';
 import {
   AllocationPanel,
   AttentionPanel,
@@ -45,9 +47,10 @@ export function DashboardModule() {
 
   const flows = useMemo(() => monthlyFlows(transactions), [transactions]);
   const ref = referenceMonth(flows);
+  const { active: subscriptions } = useSubscriptions();
   const events = useMemo(
-    () => buildCashEvents({ loans: t.loans, investments: t.investments, bankBalances: t.bankBalances, transactions }, 3),
-    [t.loans, t.investments, t.bankBalances, transactions],
+    () => buildCashEvents({ loans: t.loans, investments: t.investments, bankBalances: t.bankBalances, transactions, subscriptions }, 3),
+    [t.loans, t.investments, t.bankBalances, transactions, subscriptions],
   );
 
   const cash = t.byKey.bank.value;
@@ -157,6 +160,10 @@ export function DashboardModule() {
           sub={mainLoan ? `EMI ${M(emi)}/mo · ${mainLoan.interestRate}%` : 'No active loans'}
           href="/portfolio/loans"
         />
+      </div>
+
+      <div className="mt-4">
+        <SubscriptionsCard />
       </div>
 
       <div className="mt-4 grid grid-cols-1 items-start gap-4 lg:grid-cols-2">

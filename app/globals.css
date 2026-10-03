@@ -304,8 +304,17 @@
 
 /* Sidebar collapse / expand */
 .sidebar-anim {
-  transition: width 0.28s cubic-bezier(0.2, 0.9, 0.25, 1);
+  transition: width 0.3s cubic-bezier(0.2, 0.9, 0.25, 1), padding 0.3s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.2s ease;
   will-change: width;
+}
+/* Whole sidebar hidden: slides to zero width, then leaves the tab order (visibility flips after the slide) */
+.sidebar-hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: width 0.3s cubic-bezier(0.2, 0.9, 0.25, 1), padding 0.3s cubic-bezier(0.2, 0.9, 0.25, 1), opacity 0.2s ease, visibility 0s linear 0.3s;
+}
+.sidebar-anim > * {
+  min-width: 232px;
 }
 .nav-fold {
   display: block;
@@ -400,7 +409,8 @@
   animation: fadeIn 0.18s ease-out both;
 }
 .page-enter {
-  animation: pageEnter 0.28s ease-out both;
+  /* backwards, not both: a filled transform animation would keep trapping fixed overlays (dialogs, drawers) */
+  animation: pageEnter 0.28s ease-out backwards;
 }
 .chat-in {
   animation: chatIn 0.26s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
@@ -490,6 +500,170 @@
 }
 .bg-accent .prose,
 .bg-accent .prose * { color: inherit; }
+
+/* ---------- ⌘K command palette (self-contained so it renders identically everywhere) ---------- */
+.cmdk-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 16px 16px;
+  background: rgba(29, 29, 31, 0.4);
+}
+.cmdk {
+  width: 100%;
+  max-width: 620px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  transform-origin: top center;
+}
+.cmdk-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.cmdk-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 17px;
+  color: var(--color-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.cmdk-input:focus,
+.cmdk-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.cmdk-input::placeholder {
+  color: var(--color-neutral-500);
+}
+.cmdk-kbd {
+  flex: none;
+  font-size: 11px;
+  padding: 2px 6px;
+  border: 1px solid var(--color-divider);
+  border-radius: 3px;
+  color: var(--color-neutral-700);
+}
+.cmdk-list {
+  max-height: 52vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+}
+.cmdk-item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cmdk-item[aria-selected="true"] {
+  background: var(--color-accent-100);
+}
+@media (hover: hover) {
+  .cmdk-item:hover {
+    background: var(--color-accent-100);
+  }
+}
+.cmdk-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent-700);
+}
+.cmdk-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+.cmdk-sub {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--color-neutral-700);
+}
+.cmdk-kind {
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-neutral-700);
+}
+.cmdk-foot {
+  display: flex;
+  gap: 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-divider);
+  font-size: 12px;
+  color: var(--color-neutral-700);
+}
+@media (max-width: 640px) {
+  .cmdk-overlay {
+    padding: 12px;
+  }
+  .cmdk-list {
+    max-height: 60vh;
+  }
+  .cmdk-kind,
+  .cmdk-foot {
+    display: none;
+  }
+}
+
+/* ---------- Floating AI button (solid colours, no color-mix dependency) ---------- */
+.ai-fab {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #0e8a9b;
+  background-color: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 0 0 3px var(--panel-bg), 0 8px 24px rgba(0, 0, 0, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ai-fab:hover {
+  transform: scale(1.05);
+}
+.ai-fab:active {
+  transform: scale(0.96);
+}
+
+/* Mobile tab bar: instant press feedback (the pill tints and shrinks while the finger is down) */
+.tab-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.tab-pill {
+  transition: background-color 0.18s ease, transform 0.12s ease;
+}
+.tab-btn:active .tab-pill {
+  transform: scale(0.92);
+  background-color: var(--color-accent-100);
+}
 
 @tailwind utilities;
 

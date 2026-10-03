@@ -31,8 +31,7 @@ export function ChatbotIcon() {
         onClick={isOpen ? closeChatbot : openChatbot}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        className="grid h-14 w-14 place-items-center rounded-full bg-accent text-white transition-transform hover:scale-105"
-        style={{ boxShadow: "0 8px 24px color-mix(in srgb, var(--color-accent) 45%, transparent)" }}
+        className="ai-fab"
         title={isOpen ? "Close AI Assistant" : "Open AI Assistant"}
         aria-label={isOpen ? "Close AI Assistant" : "Open AI Assistant"}
         aria-expanded={isOpen}

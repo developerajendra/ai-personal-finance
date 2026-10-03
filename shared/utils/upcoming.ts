@@ -1,4 +1,5 @@
-import type { BankBalance, Investment, Loan, Transaction } from '@/shared/types';
+import type { BankBalance, Investment, Loan, Subscription, Transaction } from '@/shared/types';
+import { convertToINR, type Currency } from '@/shared/utils/currency';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 
 export interface CashEvent {
@@ -40,7 +41,7 @@ function receivableTotal(bb: BankBalance) {
  * from the last two salary credits.
  */
 export function buildCashEvents(
-  input: { loans: Loan[]; investments: Investment[]; bankBalances: BankBalance[]; transactions?: Transaction[] },
+  input: { loans: Loan[]; investments: Investment[]; bankBalances: BankBalance[]; transactions?: Transaction[]; subscriptions?: Subscription[] },
   months = 12,
 ) {
   const today = startOfToday();
@@ -131,6 +132,30 @@ export function buildCashEvents(
         amount: avg,
         expected: true,
         href: '/transactions',
+      });
+    }
+  }
+
+  // Subscription renewals (USD plans include 18% GST, matching the Subscriptions page)
+  for (const sub of input.subscriptions ?? []) {
+    if (sub.status !== 'Active' || sub.ends) continue;
+    const cost = (sub.currency === 'USD' ? 1.18 : 1) * convertToINR(sub.amount, sub.currency as Currency);
+    const step = sub.cycle === 'Yearly' ? 12 : 1;
+    const first = new Date(`${sub.nextDate}T00:00:00`);
+    if (Number.isNaN(first.getTime())) continue;
+    // A renewal date left in the past rolls forward to its next occurrence
+    for (let guard = 0; first < today && guard < 600; guard++) first.setMonth(first.getMonth() + step);
+    for (let i = 0; i <= months; i += step) {
+      const d = new Date(first.getFullYear(), first.getMonth() + i, first.getDate());
+      if (d < today) continue;
+      if (d > horizon) break;
+      upcoming.push({
+        id: `sub-${sub.id}-${ymd(d)}`,
+        date: ymd(d),
+        title: `${sub.name} renews`,
+        sub: `${sub.plan ? `${sub.plan} · ` : ''}${sub.cycle === 'Yearly' ? 'Yearly' : 'Monthly'} subscription${sub.paidWith ? ` · ${sub.paidWith}` : ''}`,
+        amount: -cost,
+        href: '/subscriptions',
       });
     }
   }

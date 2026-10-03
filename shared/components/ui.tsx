@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { forwardRef, useEffect, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from 'react';
 import { ChevronRight, X, type LucideIcon } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
-import { fmtDay } from '@/shared/hooks/useMoney';
+import { fmtDay, useMoney } from '@/shared/hooks/useMoney';
 
 /* ------------------------------------------------------------------ Panel */
 
@@ -236,6 +236,41 @@ export const toneText: Record<Tone | 'muted', string> = {
   warn: 'text-warn',
   accent: 'text-accent-700',
 };
+
+/* ----------------------------------------------------------------- Amount */
+
+/**
+ * Sign colour rule (applies in every theme):
+ *   positive → gain (green), negative → loss (red), zero → muted.
+ * The exact shades come from the active skin's --fin-gain / --fin-loss tokens
+ * (e.g. #1d8a3a / #d70015 in Light, #30d158 / #ff453a in Midnight), never the accent.
+ */
+export const signClass = (value: number | null | undefined) =>
+  value == null || Math.abs(value) < 0.005 ? 'text-muted' : value > 0 ? 'text-gain' : 'text-loss';
+
+/** Signed money amount (+₹1,200 / −₹1,200) coloured by its sign. */
+export function Amount({
+  value,
+  dec = 0,
+  compact,
+  arrow,
+  className,
+}: {
+  value: number;
+  dec?: number;
+  compact?: boolean;
+  /** prefix ▲ / ▼ */
+  arrow?: boolean;
+  className?: string;
+}) {
+  const { S } = useMoney();
+  return (
+    <span className={cn('tabular-nums', signClass(value), className)}>
+      {arrow && Math.abs(value) >= 0.005 ? (value > 0 ? '▲ ' : '▼ ') : ''}
+      {S(value, { dec, compact })}
+    </span>
+  );
+}
 
 /* ------------------------------------------------------------- PageHeader */
 

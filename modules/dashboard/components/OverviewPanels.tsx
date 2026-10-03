@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
-import { Dot, IconTile, Panel, PanelHeader, PanelLink, StackBar, Tag, type Tone } from '@/shared/components/ui';
+import { Amount, Dot, IconTile, Panel, PanelHeader, PanelLink, StackBar, Tag, type Tone } from '@/shared/components/ui';
 import { useMoney, pct, fmtDate } from '@/shared/hooks/useMoney';
 import type { AssetClass } from '@/shared/hooks/usePortfolioTotals';
 import type { HealthCheck, LadderRung } from '@/shared/utils/insights';
@@ -214,7 +214,7 @@ export function NextDaysPanel({ overdue, upcoming }: { overdue: CashEvent[]; upc
                   <span className="block truncate text-[14.5px]">{e.title}</span>
                   <span className="block truncate text-[12.5px] text-muted">{e.sub}</span>
                 </span>
-                <span className={cn('text-[14.5px] font-semibold tabular-nums', e.amount >= 0 ? 'text-gain' : 'text-ink')}>{S(e.amount)}</span>
+                <Amount value={e.amount} className="text-[14.5px] font-semibold" />
               </Link>
             </li>
           ))}

@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
-import { EmptyState, PageHeader, Panel, Segmented, Tag } from '@/shared/components/ui';
+import { Amount, EmptyState, PageHeader, Panel, Segmented, Tag, signClass } from '@/shared/components/ui';
 import { useMoney } from '@/shared/hooks/useMoney';
 import { useFinancialData } from '@/shared/hooks/useFinancialData';
 import { usePortfolioTotals } from '@/shared/hooks/usePortfolioTotals';
 import { buildCashEvents, type CashEvent } from '@/shared/utils/upcoming';
+import { useSubscriptions } from '@/modules/subscriptions/useSubscriptions';
 
 type Horizon = '3' | '6' | '12';
 type Flow = 'All' | 'Inflows' | 'Outflows';
@@ -20,9 +21,10 @@ export function UpcomingModule() {
   const [horizon, setHorizon] = useState<Horizon>('6');
   const [flow, setFlow] = useState<Flow>('All');
 
+  const { active: subscriptions } = useSubscriptions();
   const { upcoming, overdue } = useMemo(
-    () => buildCashEvents({ loans: t.loans, investments: t.investments, bankBalances: t.bankBalances, transactions }, Number(horizon)),
-    [t.loans, t.investments, t.bankBalances, transactions, horizon],
+    () => buildCashEvents({ loans: t.loans, investments: t.investments, bankBalances: t.bankBalances, transactions, subscriptions }, Number(horizon)),
+    [t.loans, t.investments, t.bankBalances, transactions, subscriptions, horizon],
   );
 
   const keep = (e: CashEvent) => flow === 'All' || (flow === 'Inflows' ? e.amount > 0 : e.amount < 0);
@@ -63,7 +65,7 @@ export function UpcomingModule() {
             </span>
             <span className="mt-0.5 block text-[13px] text-muted">{e.sub}</span>
           </span>
-          <span className={cn('text-[15px] tabular-nums', isLate ? 'text-ink' : e.amount > 0 ? 'text-gain' : 'text-ink')}>{S(e.amount)}</span>
+          <Amount value={e.amount} className="text-[15px]" />
         </Link>
       </li>
     );
@@ -76,10 +78,11 @@ export function UpcomingModule() {
         title="Upcoming cash events"
         hero={{
           value: S(net),
+          tone: Math.abs(net) < 0.005 ? 'neutral' : net > 0 ? 'gain' : 'loss',
           metas: [
             { label: 'Expected in', value: M(expectedIn), tone: 'gain' },
-            { label: 'Committed out', value: M(committedOut) },
-            { label: 'Overdue to you', value: M(overdueIn), tone: overdueIn > 0 ? 'loss' : 'neutral' },
+            { label: 'Committed out', value: M(committedOut), tone: committedOut > 0 ? 'loss' : 'neutral' },
+            { label: 'Overdue to you', value: M(overdueIn), tone: overdueIn > 0 ? 'gain' : 'neutral' },
             { label: 'Horizon', value: `Next ${horizon} months` },
           ],
         }}
@@ -105,7 +108,7 @@ export function UpcomingModule() {
           <Panel>
             <div className="mb-1 flex items-baseline justify-between border-b border-divider pb-3">
               <h2 className="text-[19px] text-loss">Overdue</h2>
-              <span className="text-[13px] text-muted">{M(late.reduce((s, e) => s + e.amount, 0))}</span>
+              <Amount value={late.reduce((s, e) => s + e.amount, 0)} className="text-[13px]" />
             </div>
             <ul>{late.map((e) => row(e, true))}</ul>
           </Panel>
@@ -129,8 +132,8 @@ export function UpcomingModule() {
                 <h2 className="text-[19px]">{new Date(y!, m! - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h2>
                 <span className="flex gap-4 text-[13px] tabular-nums">
                   <span className="text-gain">In {M(inn)}</span>
-                  <span>Out {M(out)}</span>
-                  <span className={cn('font-semibold', inn - out >= 0 ? 'text-gain' : 'text-loss')}>Net {S(inn - out)}</span>
+                  <span className={out > 0 ? 'text-loss' : 'text-muted'}>Out {M(out)}</span>
+                  <span className={cn('font-semibold', signClass(inn - out))}>Net {S(inn - out)}</span>
                 </span>
               </div>
               <ul>{list.map((e) => row(e))}</ul>

@@ -1765,7 +1765,7 @@ function InvestmentGrid({
                     })()}
                     {item.pnl !== undefined && (
                       <div className={`text-xs mt-1 ${item.pnl >= 0 ? 'text-gain' : 'text-loss'}`}>
-                        ({item.pnl >= 0 ? '+' : ''}₹{item.pnl.toLocaleString()})
+                        ({item.pnl >= 0 ? '+' : '−'}₹{Math.abs(item.pnl).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                       </div>
                     )}
                   </div>

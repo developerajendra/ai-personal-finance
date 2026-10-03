@@ -5,7 +5,7 @@ import { Transaction } from "@/shared/types";
 import { useMemo, useState } from "react";
 import { Edit2, Trash2 } from "lucide-react";
 import { ButtonLoader } from "@/shared/components/Loader";
-import { EmptyState, Panel } from "@/shared/components/ui";
+import { Amount, EmptyState, Panel } from "@/shared/components/ui";
 import { fmtDate, useMoney } from "@/shared/hooks/useMoney";
 
 export function DataGrid() {
@@ -142,7 +142,7 @@ export function DataGrid() {
         </div>
         <div>
           <dt className="eyebrow">Money out</dt>
-          <dd className="mt-2 text-[26px] font-bold tracking-[-0.02em]">{M(moneyOut)}</dd>
+          <dd className={`mt-2 text-[26px] font-bold tracking-[-0.02em] ${moneyOut > 0 ? "text-loss" : ""}`}>{M(moneyOut)}</dd>
         </div>
         <div>
           <dt className="eyebrow">Net</dt>
@@ -258,9 +258,11 @@ export function DataGrid() {
                   <span className="block text-[13px] text-muted">{transaction.category}</span>
                 </span>
                 <span className="hidden truncate text-center text-[14px] md:block">{transaction.account || sourceLabel(transaction.source)}</span>
-                <span className={`text-right text-[15px] tabular-nums ${transaction.type === "credit" ? "text-gain" : "text-ink"}`}>
-                  {S(transaction.type === "credit" ? Math.abs(transaction.amount) : -Math.abs(transaction.amount), { dec: 2 })}
-                </span>
+                <Amount
+                  value={transaction.type === "credit" ? Math.abs(transaction.amount) : -Math.abs(transaction.amount)}
+                  dec={2}
+                  className="text-right text-[15px]"
+                />
                 <span className="order-4 flex justify-end gap-1 md:order-none md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:focus-within:opacity-100">
                   <button
                     onClick={() => handleEdit(transaction)}

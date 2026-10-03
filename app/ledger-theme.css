@@ -8,6 +8,15 @@
  * Default: apple / apple / teal (also applied on :root so the page never renders untokened).
  *
  * Tailwind maps these variables in tailwind.config.ts (bg-panel, text-muted, bg-accent, text-gain …).
+ *
+ * Sign colours — one rule across the whole app:
+ *   amount > 0  → text-gain  (var(--fin-gain), a green)
+ *   amount < 0  → text-loss  (var(--fin-loss), a red)
+ *   amount = 0  → text-muted
+ * Each skin defines its own --fin-gain / --fin-loss (and the *-bg tints) so the green and red stay
+ * readable on that skin's surfaces, but they are never derived from the accent: picking a red or
+ * green accent can't make a loss look like a gain. Use <Amount> or signClass() from
+ * shared/components/ui.tsx instead of choosing a colour by hand.
  */
 
 /* ---------- Apple (default) ---------- */
@@ -481,4 +490,25 @@ html[data-theme="private"] {
 :root {
   --fin-gain-bg: color-mix(in srgb, var(--fin-gain) 12%, transparent);
   --fin-loss-bg: color-mix(in srgb, var(--fin-loss) 10%, transparent);
+}
+
+/*
+ * Fallbacks for browsers without color-mix() (Safari < 16.2, older Chromium/Firefox).
+ * Without these, tinted surfaces (selected rows, gain/loss pills, Midnight accent tints)
+ * would resolve to transparent.
+ */
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  :root {
+    --fin-gain-bg: rgba(29, 138, 58, 0.12);
+    --fin-loss-bg: rgba(215, 0, 21, 0.1);
+  }
+  html[data-skin="midnight"] {
+    --color-accent-100: rgba(14, 138, 155, 0.22);
+    --color-accent-200: rgba(14, 138, 155, 0.32);
+    --color-accent-300: #6fc3cf;
+    --color-accent-700: #8fd3dc;
+    --color-accent-800: #a9dde5;
+    --fin-gain-bg: rgba(48, 209, 88, 0.16);
+    --fin-loss-bg: rgba(255, 69, 58, 0.16);
+  }
 }

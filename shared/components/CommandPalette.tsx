@@ -15,6 +15,7 @@ import {
   Eye,
   Palette,
   FileText,
+  Repeat,
   type LucideIcon,
 } from 'lucide-react';
 import { NAV, SEARCH_EXTRA } from '@/shared/components/navigation';
@@ -22,6 +23,7 @@ import { usePortfolioTotals } from '@/shared/hooks/usePortfolioTotals';
 import { useMoney } from '@/shared/hooks/useMoney';
 import { useTheme } from '@/shared/providers/ThemeProvider';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
+import { priceLabel, useSubscriptions } from '@/modules/subscriptions/useSubscriptions';
 
 interface Result {
   key: string;
@@ -38,6 +40,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const t = usePortfolioTotals();
   const { M } = useMoney();
   const { hidden, setHidden } = useTheme();
+  const { all: subscriptions } = useSubscriptions();
   const [q, setQ] = useState('');
   const [i, setI] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -84,11 +87,19 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       })),
       ...t.receivables.map((r) => ({ key: `recv-${r.id}`, label: r.bankName, sub: `Receivable · ${M(r.balance)}`, kind: 'Person', icon: HandCoins, run: nav('/portfolio/receivables') })),
       ...t.properties.map((p) => ({ key: `prop-${p.id}`, label: p.name, sub: `${p.type}${p.location ? ` · ${p.location}` : ''}`, kind: 'Property', icon: Building2, run: nav('/portfolio/properties') })),
+      ...subscriptions.map((s) => ({
+        key: `sub-${s.id}`,
+        label: s.name,
+        sub: `Subscription · ${priceLabel(s)}${s.status === 'Cancelled' ? ' · cancelled' : ''}`,
+        kind: 'Record',
+        icon: Repeat,
+        run: nav('/subscriptions'),
+      })),
       { key: 'act-tx', label: 'Add transaction', sub: 'Action', kind: 'Action', icon: Plus, run: nav('/transactions') },
       { key: 'act-privacy', label: hidden ? 'Show amounts' : 'Toggle privacy mode', sub: hidden ? 'Reveal hidden amounts' : 'Hide or show amounts', kind: 'Action', icon: hidden ? Eye : EyeOff, run: () => setHidden(!hidden) },
       { key: 'act-theme', label: 'Change appearance', sub: 'Theme and accent colour', kind: 'Action', icon: Palette, run: nav('/settings') },
     ];
-  }, [t.investments, t.stocks, t.funds, t.cashAccounts, t.receivables, t.properties, M, hidden, setHidden, router]);
+  }, [t.investments, t.stocks, t.funds, t.cashAccounts, t.receivables, t.properties, subscriptions, M, hidden, setHidden, router]);
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -117,12 +128,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const cur = Math.min(i, Math.max(0, results.length - 1));
 
   return (
-    <div
-      className="fade-in fixed inset-0 z-[90] flex items-start justify-center px-4 pb-4 pt-[12vh]"
-      style={{ background: 'color-mix(in srgb, var(--color-neutral-900) 40%, transparent)' }}
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-modal="true" aria-label="Search" className="pop-in w-full max-w-[620px] overflow-hidden rounded-lg bg-bg shadow-lg [transform-origin:top_center]">
-        <div className="flex items-center gap-2.5 border-b border-divider px-4 py-3.5">
+    <div className="cmdk-overlay fade-in" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div role="dialog" aria-modal="true" aria-label="Search" className="cmdk pop-in">
+        <div className="cmdk-head">
           <Search className="h-5 w-5 flex-none text-neutral-700" strokeWidth={1.75} />
           <input
             ref={inputRef}
@@ -147,11 +155,15 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               }
             }}
             placeholder="Jump to a page, account, holding or person…"
-            className="min-w-0 flex-1 border-0 bg-transparent text-[17px] text-ink outline-none placeholder:text-neutral-500 focus:outline-none focus-visible:outline-none"
+            className="cmdk-input"
+            autoComplete="off"
+            spellCheck={false}
           />
-          <kbd className="flex-none rounded-[3px] border border-divider px-1.5 py-0.5 font-sans text-[11px] text-neutral-700">Esc</kbd>
+          <button type="button" className="cmdk-kbd" onClick={onClose} aria-label="Close search">
+            Esc
+          </button>
         </div>
-        <div ref={listRef} className="max-h-[52vh] overflow-y-auto p-1.5" role="listbox" aria-label="Results">
+        <div ref={listRef} className="cmdk-list" role="listbox" aria-label="Results">
           {results.length === 0 && <div className="px-3 py-[22px] text-[14px] text-neutral-700">Nothing matches “{q}”.</div>}
           {results.map((r, idx) => {
             const Icon = r.icon;
@@ -164,18 +176,18 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 aria-selected={idx === cur}
                 onMouseMove={() => idx !== cur && setI(idx)}
                 onClick={() => run(r)}
-                className={`grid min-h-[46px] w-full grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-x-3 rounded-md px-2.5 py-2 text-left transition-colors ${idx === cur ? 'bg-accent-100' : 'hover:bg-accent-100'}`}>
-                <Icon className="h-[18px] w-[18px] text-accent-700" strokeWidth={1.75} />
-                <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-[15px] text-ink">{r.label}</span>
-                  <span className="truncate text-[12.5px] text-neutral-700">{r.sub}</span>
+                className="cmdk-item">
+                <Icon className="cmdk-icon" strokeWidth={1.75} />
+                <span className="min-w-0">
+                  <span className="cmdk-label">{r.label}</span>
+                  <span className="cmdk-sub">{r.sub}</span>
                 </span>
-                <span className="text-[11.5px] uppercase tracking-[0.06em] text-neutral-700">{r.kind}</span>
+                <span className="cmdk-kind">{r.kind}</span>
               </button>
             );
           })}
         </div>
-        <div className="flex gap-4 border-t border-divider px-4 py-2.5 text-[12px] text-neutral-700">
+        <div className="cmdk-foot">
           <span>↑↓ move</span>
           <span>↵ open</span>
           <span>Esc close</span>
