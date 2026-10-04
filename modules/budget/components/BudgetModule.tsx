@@ -27,6 +27,8 @@ import {
   type Tone,
 } from '../useBudget';
 
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
 const TONE_TEXT: Record<Tone, string> = {
   gain: 'text-gain',
   loss: 'text-loss',
@@ -110,8 +112,12 @@ export function BudgetModule() {
     return { name: c, planned: sum(rs, 'planned'), actual: sum(rs, 'actual') };
   }).filter((r) => r.planned > 0 || r.actual > 0);
   const overBudget = expenseRows.filter((r) => r.item.costType === 'variable' && r.actual > r.planned).length;
-  // Month dropdown: a year back to a year ahead, always including the selected month
-  const monthOptions = Array.from(new Set([...Array.from({ length: 25 }, (_, k) => shiftMonth(monthKey(), k - 12)), month])).sort().reverse();
+  // Month + year filters (both default to today); together they are the yyyy-mm being viewed
+  const selYear = Number(month.slice(0, 4));
+  const selMonth = Number(month.slice(5, 7));
+  const thisYear = new Date().getFullYear();
+  const yearOptions = Array.from(new Set([...Array.from({ length: 7 }, (_, k) => thisYear - 5 + k), selYear])).sort((a, b) => b - a);
+  const pick = (y: number, m: number) => setMonth(`${y}-${String(m).padStart(2, '0')}`);
 
   const byCategory = BUDGET_EXPENSE_CATEGORIES.map((c) => ({
     name: c,
@@ -126,14 +132,25 @@ export function BudgetModule() {
         title="Budget"
         actions={
           <>
-            <select aria-label="Month" value={month} onChange={(e) => setMonth(e.target.value)} className="input !w-auto min-w-[170px] font-semibold">
-              {monthOptions.map((m) => (
-                <option key={m} value={m}>
-                  {monthLabel(m)}
-                  {m === monthKey() ? ' (this month)' : ''}
+            <select aria-label="Month" value={selMonth} onChange={(e) => pick(selYear, Number(e.target.value))} className="input !w-auto min-w-[140px] font-semibold">
+              {MONTH_NAMES.map((name, i) => (
+                <option key={name} value={i + 1}>
+                  {name}
                 </option>
               ))}
             </select>
+            <select aria-label="Year" value={selYear} onChange={(e) => pick(Number(e.target.value), selMonth)} className="input !w-auto min-w-[96px] font-semibold">
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+            {!isCurrent && (
+              <Button variant="ghost" size="sm" onClick={() => setMonth(monthKey())}>
+                Today
+              </Button>
+            )}
             <Button icon={Plus} onClick={() => open({ type: 'form', kind: 'expense' })}>
               Add
             </Button>

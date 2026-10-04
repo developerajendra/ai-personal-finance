@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { ArrowUpRight, Check, ChevronDown, RotateCcw, Search } from 'lucide-react';
-import { Dot, Panel, Segmented, ShareBar, UnderlineTabs } from '@/shared/components/ui';
+import { Dot, LinkButton, Panel, Segmented, ShareBar, UnderlineTabs } from '@/shared/components/ui';
 import { DataTable } from '@/shared/components/DataTable';
 import { useMoney, pct, fmtDate } from '@/shared/hooks/useMoney';
 import { usePortfolioTotals, receivableExpected, isFixedDeposit, type AssetClassKey } from '@/shared/hooks/usePortfolioTotals';
@@ -193,7 +192,6 @@ type Tab = AssetClassKey | 'loans';
 /** Read-only holdings, one tab per asset class plus Loans, with search — independent of the chart filters. */
 function HoldingsTable({ holdings }: { holdings: Holding[] }) {
   const t = usePortfolioTotals();
-  const router = useRouter();
   const { M, S } = useMoney();
   const [query, setQuery] = useState('');
 
@@ -218,12 +216,18 @@ function HoldingsTable({ holdings }: { holdings: Holding[] }) {
       <div className="flex flex-wrap items-end justify-between gap-3 px-6 pb-2 pt-[22px]">
         <div>
           <h2 className="text-[19px]">Holdings</h2>
-          <p className="mt-1 text-[13px] text-muted">Read-only · tap a row to manage it on the {meta.label} page</p>
+          <p className="mt-1 text-[13px] text-muted">Read-only · add, edit or delete on the {meta.label} page</p>
         </div>
-        <label className="relative w-full max-w-[260px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${meta.label.toLowerCase()}…`} className="input !pl-9" aria-label="Search holdings" />
-        </label>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <label className="relative min-w-0 flex-1 sm:w-[260px] sm:flex-none">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${meta.label.toLowerCase()}…`} className="input !pl-9" aria-label="Search holdings" />
+          </label>
+          {/* One way out to the class page that owns these records, instead of an arrow on every row */}
+          <LinkButton href={meta.href} variant="secondary" icon={ArrowUpRight}>
+            View details<span className="sr-only"> for {meta.label}</span>
+          </LinkButton>
+        </div>
       </div>
       <UnderlineTabs<Tab>
         className="px-6"
@@ -235,7 +239,6 @@ function HoldingsTable({ holdings }: { holdings: Holding[] }) {
         key={active}
         rows={rows}
         rowKey={(h) => h.id}
-        onRowClick={() => router.push(meta.href)}
         defaultSort={{ key: 'value', dir: 'desc' }}
         empty={q ? 'Nothing matches your search.' : `Nothing in ${meta.label} yet — add it from the ${meta.label} page.`}
         columns={[
@@ -300,15 +303,6 @@ function HoldingsTable({ holdings }: { holdings: Holding[] }) {
                 </span>
               );
             },
-          },
-          {
-            key: 'go',
-            label: '',
-            render: () => (
-              <span className="inline-flex text-muted" title={`Manage in ${meta.label}`}>
-                <ArrowUpRight className="h-4 w-4" />
-              </span>
-            ),
           },
         ]}
       />
