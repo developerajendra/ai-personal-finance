@@ -1,21 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import { ChatMessage } from "@/shared/types";
-import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChatChart } from "./ChatChart";
 import { AudioLines, MessageCircle, MicOff, X } from "lucide-react";
-import { Button, LinkButton, PageHeader } from "@/shared/components/ui";
+import { LinkButton, PageHeader } from "@/shared/components/ui";
 import { VoiceModeView } from "./VoiceModeView";
-import { scrapeCurrentPage } from "../utils/scrapePageData";
-import { capturePageScreenshot } from "../utils/captureScreenshot";
 
 export function ChatbotPage() {
-  const pathname = usePathname();
-  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   // Server-side conversation id so follow-up answers (e.g. a missing amount)
   // resolve against the same thread; reset when the chat is cleared.
@@ -25,8 +19,6 @@ export function ChatbotPage() {
   }, [messages.length]);
   const [input, setInput] = useState("");
   const [operationPrefix, setOperationPrefix] = useState<string>(""); // Track selected operation
-  const [selectedAgent, setSelectedAgent] = useState<"ask" | "audit-finance">("ask"); // Agent selector
-  const [agentStatus, setAgentStatus] = useState<"idle" | "connecting" | "connected" | "failed">("idle"); // MCP connection status
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
@@ -38,7 +30,6 @@ export function ChatbotPage() {
   const isVoiceInputRef = useRef(false); // Track if current input came from voice
   const isVoiceModeRef = useRef(false); // Ref to track voice mode for callbacks
   const isLoadingRef = useRef(false); // Ref to track loading state for callbacks
-  const { transactions, summary, categories } = useFinancialData();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -157,28 +148,6 @@ export function ChatbotPage() {
     setMessages((prev) => [...prev, message]);
   };
 
-  // Check MCP connection when switching to audit-finance agent
-  const handleAgentChange = async (agent: "ask" | "audit-finance") => {
-    setSelectedAgent(agent);
-
-    if (agent === "audit-finance") {
-      setAgentStatus("connecting");
-      try {
-        const res = await fetch("/api/modules/chatbot/audit-health");
-        const data = await res.json();
-        if (data.connected) {
-          setAgentStatus("connected");
-        } else {
-          setAgentStatus("failed");
-        }
-      } catch {
-        setAgentStatus("failed");
-      }
-    } else {
-      setAgentStatus("idle");
-    }
-  };
-
   const speakText = (text: string, onEnd?: () => void) => {
     if (!isVoiceEnabled || !synthRef.current) {
       if (onEnd) onEnd();
@@ -262,31 +231,12 @@ export function ChatbotPage() {
     isLoadingRef.current = true;
 
     try {
-      // If in audit mode, capture screenshot + DOM scrape (fallback)
-      let auditPayload: Record<string, any> = {};
-      if (selectedAgent === "audit-finance") {
-        const [screenshot, pageData] = await Promise.all([
-          capturePageScreenshot(),
-          Promise.resolve(scrapeCurrentPage()),
-        ]);
-        if (screenshot) auditPayload.screenshot = screenshot;
-        auditPayload.pageData = pageData;
-      }
-
       const response = await fetch("/api/modules/chatbot/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: conversationIdRef.current,
           message: transcript,
-          agent: selectedAgent,
-          currentPage: pathname,
-          ...auditPayload,
-          context: {
-            transactions,
-            summary,
-            categories,
-          },
         }),
       });
 
@@ -369,31 +319,12 @@ export function ChatbotPage() {
     setIsLoading(true);
 
     try {
-      // If in audit mode, capture screenshot + DOM scrape (fallback)
-      let auditPayload: Record<string, any> = {};
-      if (selectedAgent === "audit-finance") {
-        const [screenshot, pageData] = await Promise.all([
-          capturePageScreenshot(),
-          Promise.resolve(scrapeCurrentPage()),
-        ]);
-        if (screenshot) auditPayload.screenshot = screenshot;
-        auditPayload.pageData = pageData;
-      }
-
       const response = await fetch("/api/modules/chatbot/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: conversationIdRef.current,
           message: messageToSend,
-          agent: selectedAgent,
-          currentPage: pathname,
-          ...auditPayload,
-          context: {
-            transactions,
-            summary,
-            categories,
-          },
         }),
       });
 
@@ -477,73 +408,14 @@ export function ChatbotPage() {
     <div className="flex min-h-[calc(100vh-120px)] max-w-[860px] flex-col">
       <PageHeader title="Assistant" meta={false} />
       <div>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <label htmlFor="agent-select" className="field-label">
-              Mode
-            </label>
-            <div className="relative w-[270px] max-w-full">
-              <select
-                id="agent-select"
-                value={selectedAgent}
-                onChange={(e) => handleAgentChange(e.target.value as "ask" | "audit-finance")}
-                disabled={isLoading || agentStatus === "connecting"}
-                className={`input pr-8 ${
-                  selectedAgent === "audit-finance"
-                    ? agentStatus === "connected"
-                      ? "bg-gain-bg border-gain text-gain"
-                      : agentStatus === "failed"
-                        ? "bg-loss-bg border-loss text-loss"
-                        : "bg-warn-bg border-warn text-warn"
-                    : ""
-                } disabled:opacity-50`}
-              >
-                <option value="ask">Ask — answers only</option>
-                <option value="audit-finance">Audit finance</option>
-              </select>
-              {selectedAgent === "audit-finance" && (
-                <span className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none">
-                  {agentStatus === "connecting" && (
-                    <span className="inline-block w-3 h-3 border-2 border-warn border-t-transparent rounded-full animate-spin" />
-                  )}
-                  {agentStatus === "connected" && (
-                    <span className="inline-block w-2.5 h-2.5 bg-gain rounded-full" />
-                  )}
-                  {agentStatus === "failed" && (
-                    <span className="inline-block w-2.5 h-2.5 bg-loss rounded-full" />
-                  )}
-                </span>
-              )}
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-[14px] text-muted">Answers about your finances only — portfolio, loans, budget, subscriptions and more.</p>
           <div className="flex flex-wrap gap-2">
             <LinkButton href="/settings#whatsapp" variant="secondary" icon={MessageCircle}>
               WhatsApp
             </LinkButton>
-            <Button variant="secondary" onClick={() => router.back()}>
-              Exit full screen
-            </Button>
           </div>
         </div>
-        {selectedAgent === "audit-finance" && (
-          <div className={`mt-3 px-3 py-2 rounded-[12px] text-[13.5px] ${
-            agentStatus === "connected"
-              ? "bg-gain-bg text-gain"
-              : agentStatus === "failed"
-                ? "bg-loss-bg text-loss"
-                : "bg-warn-bg text-warn"
-          }`}>
-            {agentStatus === "connecting" && (
-              <><strong>Connecting...</strong> Verifying MCP connection to Finance Audit Agent</>
-            )}
-            {agentStatus === "connected" && (
-              <><strong>Connected</strong> — Finance Audit Agent is ready. Paste a calculator URL to audit.</>
-            )}
-            {agentStatus === "failed" && (
-              <><strong>Connection Failed</strong> — Could not reach the audit agent. Make sure <code className="bg-loss-bg px-1 rounded">finance-audit-agent</code> is built (<code className="bg-loss-bg px-1 rounded">npm run build</code>).</>
-            )}
-          </div>
-        )}
       </div>
 
       <div className="flex-1 space-y-4 py-6">
@@ -799,7 +671,7 @@ export function ChatbotPage() {
                   setOperationPrefix("");
                 }
               }}
-              placeholder={operationPrefix ? "Enter details..." : selectedAgent === "audit-finance" ? "Ask to audit your data or paste a calculator URL..." : "Ask about your finances or click mic to speak..."}
+              placeholder={operationPrefix ? "Enter details..." : "Ask about your finances or click mic to speak..."}
               className={`input !min-h-[46px] ${operationPrefix ? '!pl-44' : ''}`}
               disabled={isLoading || isListening}
             />

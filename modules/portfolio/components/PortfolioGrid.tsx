@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/shared/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck, Clock, XOctagon, Undo2, Search, Download, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, Clock, XOctagon, Undo2, Search, Download, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { UnderlineTabs } from '@/shared/components/ui';
 import { InvestmentForm } from './InvestmentForm';
@@ -13,7 +13,6 @@ import { Loader } from '@/shared/components/Loader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { convertFromINR } from '@/shared/utils/currency';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
-import { useChatbot } from '@/modules/chatbot/hooks/useChatbot';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
 type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance' | 'receivables';
@@ -74,9 +73,7 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
   const categoryFormRef = useRef<HTMLFormElement | null>(null);
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const contentContainerRef = useRef<HTMLDivElement>(null);
-  const { sendAuditData } = useChatbot();
   const queryClient = useQueryClient();
-  const [isAuditing, setIsAuditing] = useState(false);
 
   // Helper function to generate slug from name
   const generateSlug = (name: string): string => {
@@ -161,24 +158,6 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
     property: 'Properties',
     'bank-balance': 'Cash & bank',
     receivables: 'Receivables',
-  };
-
-  const handleAuditTable = () => {
-    if (!contentContainerRef.current) return;
-    const tableEl = contentContainerRef.current.querySelector('table');
-    if (!tableEl) return;
-    setIsAuditing(true);
-
-    const tableHtml = tableEl.outerHTML;
-    const label = tabLabels[activeTab];
-
-    sendAuditData({
-      tableHtml,
-      source: `${label} Table`,
-      message: `Audit this ${label} table. Validate all the calculations and data consistency. Check if the numbers are correct and flag any discrepancies.`,
-    });
-
-    setTimeout(() => setIsAuditing(false), 1500);
   };
 
   // Helper function to handle tab switching with auto-publish logic
@@ -1376,25 +1355,6 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
               isSaving={isSaving}
             />
           )}
-        </div>
-      )}
-
-      {/* Audit button for entire content area */}
-      {items.length > 0 && (
-        <div className="flex justify-end px-6 pb-3">
-          <button
-            onClick={handleAuditTable}
-            disabled={isAuditing || isLoading}
-            className="btn btn-secondary btn-sm"
-            title="Send table data to AI chatbot for audit validation"
-          >
-            {isAuditing ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <ShieldCheck className="w-3.5 h-3.5" />
-            )}
-            {isAuditing ? 'Sending to Audit...' : `Audit ${tabLabels[activeTab]} Table`}
-          </button>
         </div>
       )}
 

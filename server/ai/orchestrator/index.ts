@@ -15,6 +15,10 @@ import {
 import { FINANCE_TOOLS, WRITE_TOOLS, executeTool, type ToolContext } from "@/server/ai/tools/financeTools";
 import { buildSystemPrompt, type ChatContext } from "./prompts";
 import { loadMutualFunds, loadPortfolio, loadStocks } from "@/server/finance/portfolio/service";
+import { loadPPFAccounts } from "@/server/finance/provident-fund/ppfStorage";
+import { listSubscriptions } from "@/server/finance/subscriptions/service";
+import { getBudget } from "@/server/finance/budget/service";
+import { isSettledReceivable } from "@/shared/utils/receivables";
 import { summarizeTransactions } from "@/server/finance/transactions/service";
 
 /**
@@ -59,12 +63,20 @@ export interface OrchestratorDeps {
 const MAX_TOOL_ROUNDS = 3;
 const CANCEL_PATTERN = /^\s*(cancel|stop|never ?mind|forget it|abort)\s*[.!]*\s*$/i;
 
-async function loadChatContext(userId: string): Promise<ChatContext> {
-  const [portfolio, stocks, mutualFunds] = await Promise.all([
+async function loadChatContext(userId: string, now: Date): Promise<ChatContext> {
+  const month = now.toISOString().slice(0, 7);
+  // Optional areas degrade to empty rather than failing the whole reply (e.g. a database
+  // that hasn't had the budget migration yet)
+  const soft = <T,>(p: Promise<T>, fallback: T) => p.catch((e) => (console.warn("[Chat] context section unavailable:", e?.message ?? e), fallback));
+  const [portfolio, stocks, mutualFunds, ppfAccounts, subscriptions, budget] = await Promise.all([
     loadPortfolio(userId),
     loadStocks(userId),
     loadMutualFunds(userId),
+    soft(loadPPFAccounts(userId), []),
+    soft(listSubscriptions(userId), []),
+    soft(getBudget(userId, month), { items: [], entries: [] }),
   ]);
+  const published = portfolio.bankBalances.filter((b) => b.isPublished === true);
   // The assistant reasons over published data, as the dashboard does.
   return {
     transactions: portfolio.transactions,
@@ -73,9 +85,13 @@ async function loadChatContext(userId: string): Promise<ChatContext> {
     investments: portfolio.investments.filter((i) => i.isPublished === true),
     loans: portfolio.loans.filter((l) => l.isPublished === true),
     properties: portfolio.properties.filter((p) => p.isPublished === true),
-    bankBalances: portfolio.bankBalances.filter((b) => b.isPublished === true),
+    bankBalances: published.filter((b) => !b.tags?.includes("receivable")),
+    receivables: published.filter((b) => b.tags?.includes("receivable") && !isSettledReceivable(b)),
     stocks,
     mutualFunds,
+    ppfAccounts,
+    subscriptions,
+    budget: { month, ...budget },
   };
 }
 
@@ -131,7 +147,7 @@ export async function handleMessage(input: OrchestratorInput, deps: Orchestrator
 
   const [history, context] = await Promise.all([
     recentMessages(conversationId, input.userId),
-    loadChatContext(input.userId),
+    loadChatContext(input.userId, now),
   ]);
   const system = buildSystemPrompt({
     context,

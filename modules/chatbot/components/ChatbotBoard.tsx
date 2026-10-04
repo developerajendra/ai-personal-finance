@@ -4,36 +4,23 @@ import { useState, useRef, useEffect } from "react";
 import { useChatbot } from "../hooks/useChatbot";
 import { X, Minimize2, Maximize2, MicOff, AudioLines, ArrowUp, Sparkles } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useRouter, usePathname } from "next/navigation";
 import { ChatMessage } from "@/shared/types";
-import { useFinancialData } from "@/shared/hooks/useFinancialData";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChatChart } from "./ChatChart";
 import { VoiceModeView } from "./VoiceModeView";
-import { scrapeCurrentPage } from "../utils/scrapePageData";
-import { capturePageScreenshot } from "../utils/captureScreenshot";
+
+/** In full screen, keep messages and the input in a readable ~760px column. */
+const WIDE_GUTTER = "px-[max(1rem,calc((100%-760px)/2))]";
 
 export function ChatbotBoard() {
-  const {
-    isOpen,
-    isMinimized,
-    closeChatbot,
-    minimizeChatbot,
-    expandChatbot,
-    messages,
-    addMessage,
-    pendingAuditData,
-    clearPendingAuditData,
-  } = useChatbot();
+  const { isOpen, closeChatbot, messages, addMessage } = useChatbot();
   // Server-side conversation id so follow-up answers (e.g. a missing amount)
   // resolve against the same thread; reset when the chat is cleared.
   const conversationIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (messages.length === 0) conversationIdRef.current = null;
   }, [messages.length]);
-  const router = useRouter();
-  const pathname = usePathname();
   const { data: session } = useSession();
   const firstName = (session?.user?.name || session?.user?.email || "").split(/[\s@]/)[0] || "there";
   // Play the close animation before unmounting the popup
@@ -49,8 +36,8 @@ export function ChatbotBoard() {
   const [queued, setQueued] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [operationPrefix, setOperationPrefix] = useState<string>(""); // Track selected operation
-  const [selectedAgent, setSelectedAgent] = useState<"ask" | "audit-finance">("ask"); // Agent selector
-  const [agentStatus, setAgentStatus] = useState<"idle" | "connecting" | "connected" | "failed">("idle"); // MCP connection status
+  // Full screen keeps the same conversation; the toggle in the header switches back
+  const [fullScreen, setFullScreen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
@@ -62,7 +49,6 @@ export function ChatbotBoard() {
   const isVoiceInputRef = useRef(false); // Track if current input came from voice
   const isVoiceModeRef = useRef(false); // Ref to track voice mode for callbacks
   const isLoadingRef = useRef(false); // Ref to track loading state for callbacks
-  const { transactions, summary, categories } = useFinancialData();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,84 +62,6 @@ export function ChatbotBoard() {
   useEffect(() => {
     isLoadingRef.current = isLoading;
   }, [isLoading]);
-
-  // Handle pending audit data from external components (e.g., Audit button on Loans table)
-  useEffect(() => {
-    if (!pendingAuditData || isLoading) return;
-
-    const processAuditData = async () => {
-      // Auto-switch to audit-finance agent
-      setSelectedAgent("audit-finance");
-      setAgentStatus("connecting");
-      try {
-        const res = await fetch("/api/modules/chatbot/audit-health");
-        const data = await res.json();
-        setAgentStatus(data.connected ? "connected" : "failed");
-      } catch {
-        setAgentStatus("failed");
-      }
-
-      // Add the user message (visible in chat)
-      const userMessage: ChatMessage = {
-        id: Date.now().toString(),
-        role: "user",
-        content: pendingAuditData.message,
-        timestamp: new Date(),
-      };
-      addMessage(userMessage);
-      setIsLoading(true);
-
-      try {
-        const response = await fetch("/api/modules/chatbot/message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-          conversationId: conversationIdRef.current,
-            message: pendingAuditData.message,
-            agent: "audit-finance",
-            currentPage: pathname,
-            pageData: {
-              pageTitle: document.title || "",
-              pageUrl: pathname,
-              pageHeading: `Audit - ${pendingAuditData.source}`,
-              tables: [],
-              summaryCards: [],
-              rawHtml: pendingAuditData.tableHtml,
-            },
-            context: {
-              transactions,
-              summary,
-              categories,
-            },
-          }),
-        });
-
-        const data = await response.json();
-      if (data.conversationId) conversationIdRef.current = data.conversationId;
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: data.response || (data.error ? `The assistant isn't available right now: ${data.error}` : "Sorry, I didn't get a reply. Please try again."),
-          timestamp: new Date(),
-        };
-        addMessage(assistantMessage);
-      } catch (error) {
-        console.error("Error sending audit message:", error);
-        const errorMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: "Sorry, I encountered an error while auditing the data. Please try again.",
-          timestamp: new Date(),
-        };
-        addMessage(errorMessage);
-      } finally {
-        setIsLoading(false);
-        clearPendingAuditData();
-      }
-    };
-
-    processAuditData();
-  }, [pendingAuditData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialize speech recognition and synthesis
   useEffect(() => {
@@ -255,28 +163,6 @@ export function ChatbotBoard() {
     };
   }, []);
 
-  // Check MCP connection when switching to audit-finance agent
-  const handleAgentChange = async (agent: "ask" | "audit-finance") => {
-    setSelectedAgent(agent);
-
-    if (agent === "audit-finance") {
-      setAgentStatus("connecting");
-      try {
-        const res = await fetch("/api/modules/chatbot/audit-health");
-        const data = await res.json();
-        if (data.connected) {
-          setAgentStatus("connected");
-        } else {
-          setAgentStatus("failed");
-        }
-      } catch {
-        setAgentStatus("failed");
-      }
-    } else {
-      setAgentStatus("idle");
-    }
-  };
-
   useEffect(() => {
     if (queued !== null && input === queued) {
       setQueued(null);
@@ -286,12 +172,12 @@ export function ChatbotBoard() {
   }, [queued, input]);
 
   useEffect(() => {
-    if (!isOpen || isMinimized) return;
+    if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && handleClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, isMinimized]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -378,31 +264,12 @@ export function ChatbotBoard() {
     isLoadingRef.current = true;
 
     try {
-      // If in audit mode, capture screenshot + DOM scrape (fallback)
-      let auditPayload: Record<string, any> = {};
-      if (selectedAgent === "audit-finance") {
-        const [screenshot, pageData] = await Promise.all([
-          capturePageScreenshot(),
-          Promise.resolve(scrapeCurrentPage()),
-        ]);
-        if (screenshot) auditPayload.screenshot = screenshot;
-        auditPayload.pageData = pageData;
-      }
-
       const response = await fetch("/api/modules/chatbot/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: conversationIdRef.current,
           message: transcript,
-          agent: selectedAgent,
-          currentPage: pathname,
-          ...auditPayload,
-          context: {
-            transactions,
-            summary,
-            categories,
-          },
         }),
       });
 
@@ -485,31 +352,12 @@ export function ChatbotBoard() {
     setIsLoading(true);
 
     try {
-      // If in audit mode, capture screenshot + DOM scrape (fallback)
-      let auditPayload: Record<string, any> = {};
-      if (selectedAgent === "audit-finance") {
-        const [screenshot, pageData] = await Promise.all([
-          capturePageScreenshot(),
-          Promise.resolve(scrapeCurrentPage()),
-        ]);
-        if (screenshot) auditPayload.screenshot = screenshot;
-        auditPayload.pageData = pageData;
-      }
-
       const response = await fetch("/api/modules/chatbot/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: conversationIdRef.current,
           message: messageToSend,
-          agent: selectedAgent,
-          currentPage: pathname,
-          ...auditPayload,
-          context: {
-            transactions,
-            summary,
-            categories,
-          },
         }),
       });
 
@@ -576,39 +424,18 @@ export function ChatbotBoard() {
     }
   };
 
-  if (isMinimized) {
-    return (
-      <div className={`dialog fixed bottom-[172px] right-4 z-50 w-80 md:bottom-[100px] md:right-7 ${closing ? "chat-out" : "chat-in"}`}>
-        <div className="flex items-center justify-between gap-3 p-3">
-          <span className="flex items-center gap-2.5">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-accent text-white"><Sparkles className="h-4 w-4" /></span>
-            <h3 className="text-[15px] font-semibold">Ledger AI</h3>
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={expandChatbot}
-              className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleClose}
-              className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
-              aria-label="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <>
+    {fullScreen && <div aria-hidden className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]" onClick={() => setFullScreen(false)} />}
     <div
       role="dialog"
       aria-label="Ledger AI assistant"
-      className={`dialog fixed bottom-[172px] right-4 z-50 flex h-[min(620px,calc(100vh-200px))] w-[min(400px,calc(100vw-32px))] flex-col overflow-hidden md:bottom-[100px] md:right-7 ${closing ? "chat-out" : "chat-in"}`}
+      aria-modal={fullScreen || undefined}
+      className={`dialog fixed z-50 flex flex-col overflow-hidden ${
+        fullScreen
+          ? "inset-0 !rounded-none md:inset-6 md:!rounded-dialog"
+          : "bottom-[172px] right-4 h-[min(620px,calc(100vh-200px))] w-[min(400px,calc(100vw-32px))] md:bottom-[100px] md:right-7"
+      } ${closing ? "chat-out" : "chat-in"}`}
     >
       {/* Voice Mode Overlay - shows within popup */}
       {isVoiceMode && (
@@ -634,25 +461,18 @@ export function ChatbotBoard() {
             </span>
             <div className="min-w-0 leading-tight">
               <h3 className="text-[15px] font-semibold">Ledger AI</h3>
-              <p className="truncate text-[12.5px] text-muted">Answers from your portfolio data</p>
+              <p className="truncate text-[12.5px] text-muted">Answers about your finances only</p>
             </div>
           </div>
           <div className="flex gap-0.5">
             <button
-              onClick={minimizeChatbot}
+              onClick={() => setFullScreen((f) => !f)}
               className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
-              title="Minimize"
-              aria-label="Minimize"
+              title={fullScreen ? "Exit full screen" : "Full screen"}
+              aria-label={fullScreen ? "Exit full screen" : "Full screen"}
+              aria-pressed={fullScreen}
             >
-              <Minimize2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => router.push("/chatbot")}
-              className="rounded-full p-1.5 text-muted hover:bg-tile hover:text-ink"
-              title="Full screen"
-              aria-label="Open full screen"
-            >
-              <Maximize2 className="w-4 h-4" />
+              {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
             <button
               onClick={handleClose}
@@ -664,42 +484,9 @@ export function ChatbotBoard() {
             </button>
           </div>
         </div>
-        <div className="mt-2 flex items-center gap-2">
-          <select
-            value={selectedAgent}
-            onChange={(e) => handleAgentChange(e.target.value as "ask" | "audit-finance")}
-            disabled={isLoading || agentStatus === "connecting"}
-            aria-label="Assistant mode"
-            className={`input !min-h-[32px] flex-1 !py-1 !text-[12.5px] ${
-              selectedAgent === "audit-finance"
-                ? agentStatus === "connected"
-                  ? "bg-gain-bg border-gain text-gain"
-                  : agentStatus === "failed"
-                    ? "bg-loss-bg border-loss text-loss"
-                    : "bg-warn-bg border-warn text-warn"
-                : ""
-            } disabled:opacity-50`}
-          >
-            <option value="ask">Ask — answers only</option>
-            <option value="audit-finance">Audit finance</option>
-          </select>
-          {selectedAgent === "audit-finance" && (
-            <span className="flex-shrink-0">
-              {agentStatus === "connecting" && (
-                <span className="inline-block w-3 h-3 border-2 border-warn border-t-transparent rounded-full animate-spin" />
-              )}
-              {agentStatus === "connected" && (
-                <span className="inline-block w-3 h-3 bg-gain rounded-full" title="MCP Connected" />
-              )}
-              {agentStatus === "failed" && (
-                <span className="inline-block w-3 h-3 bg-loss rounded-full" title="MCP Connection Failed" />
-              )}
-            </span>
-          )}
-        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className={`flex-1 space-y-3 overflow-y-auto py-4 ${fullScreen ? WIDE_GUTTER : "px-4"}`}>
         {messages.length === 0 && (
           <div className="msg-in pt-2">
             <h4 className="font-heading text-[20px] font-bold leading-snug tracking-[-0.01em]">Hi {firstName}, what would you like to know?</h4>
@@ -873,7 +660,7 @@ export function ChatbotBoard() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="px-3 pb-3 pt-2">
+      <div className={`pb-3 pt-2 ${fullScreen ? WIDE_GUTTER : "px-3"}`}>
         {/* Operation Tags */}
         <div className={messages.length === 0 ? "hidden" : "mb-2"}>
           <div className="flex flex-wrap gap-1.5">
@@ -952,7 +739,7 @@ export function ChatbotBoard() {
                   setOperationPrefix("");
                 }
               }}
-              placeholder={operationPrefix ? "Enter details..." : selectedAgent === "audit-finance" ? "Ask to audit your data or paste a calculator URL..." : "Ask about your finances or click mic to speak..."}
+              placeholder={operationPrefix ? "Enter details..." : "Ask about your finances or click mic to speak..."}
               className={`input !min-h-[44px] !rounded-full !border-transparent !bg-tile !pr-12 !pl-4 ${operationPrefix ? '!pl-36' : ''}`}
               aria-label="Ask anything"
               disabled={isLoading || isListening}
@@ -984,6 +771,7 @@ export function ChatbotBoard() {
         </>
       )}
     </div>
+    </>
   );
 }
 
