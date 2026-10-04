@@ -1,18 +1,6 @@
-import { AppShell } from "@/shared/components/AppShell";
-import { PageHeader } from "@/shared/components/ui";
-import { CashFlowTabs } from "@/shared/components/SectionTabs";
-import { DynamicCategoriesView } from "@/modules/admin-panel/components/DynamicCategoriesView";
+import { redirect } from "next/navigation";
 
-export default function CategoriesPage() {
-  return (
-    <AppShell>
-      <PageHeader
-        crumbs={[{ label: 'Cash flow', href: '/transactions' }, { label: 'Categories' }]}
-        title="Cash flow"
-        meta="AI-generated categories and learned patterns"
-      />
-      <CashFlowTabs />
-      <DynamicCategoriesView />
-    </AppShell>
-  );
+// Transaction categories went with the Cash flow section; Budget has its own categories.
+export default function LegacyCategoriesPage() {
+  redirect("/budget");
 }

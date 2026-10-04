@@ -71,7 +71,7 @@ export function NetWorthPanel({ netWorth, isLoading }: { netWorth: number; isLoa
         {snapsLoading ? (
           <Skeleton className="h-full w-full" />
         ) : points.length < 2 ? (
-          <p className="pt-10 text-[13.5px] text-muted">The trend appears once the first month-end snapshot is saved (Cash flow → Monthly snapshots).</p>
+          <p className="pt-10 text-[13.5px] text-muted">The trend appears once the first month-end snapshot is saved (Performance → Monthly snapshots).</p>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>

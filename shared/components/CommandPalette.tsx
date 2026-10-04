@@ -95,7 +95,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         icon: Repeat,
         run: nav('/subscriptions'),
       })),
-      { key: 'act-tx', label: 'Add transaction', sub: 'Action', kind: 'Action', icon: Plus, run: nav('/transactions') },
+      { key: 'act-budget', label: 'Add budget item', sub: 'Action', kind: 'Action', icon: Plus, run: nav('/budget') },
       { key: 'act-privacy', label: hidden ? 'Show amounts' : 'Toggle privacy mode', sub: hidden ? 'Reveal hidden amounts' : 'Hide or show amounts', kind: 'Action', icon: hidden ? Eye : EyeOff, run: () => setHidden(!hidden) },
       { key: 'act-theme', label: 'Change appearance', sub: 'Theme and accent colour', kind: 'Action', icon: Palette, run: nav('/settings') },
     ];

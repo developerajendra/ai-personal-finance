@@ -131,7 +131,7 @@ export function buildCashEvents(
         sub: `Projected from the last ${salaries.length === 1 ? 'salary credit' : 'two salary credits'}`,
         amount: avg,
         expected: true,
-        href: '/transactions',
+        href: '/budget',
       });
     }
   }

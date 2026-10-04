@@ -158,7 +158,7 @@ export interface TabItem<T extends string = string> {
   href?: string;
 }
 
-/** Underline tab bar with optional count badges (Portfolio management, Cash flow, Loans). */
+/** Underline tab bar with optional count badges (Portfolio management, Loans). */
 export function UnderlineTabs<T extends string>({
   tabs,
   value,

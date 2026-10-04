@@ -147,7 +147,7 @@ export function PerformanceModule() {
       <PageHeader
         crumbs={[{ label: 'Performance', href: '/performance' }, { label: mode }]}
         title="Performance"
-        actions={<LinkButton href="/dashboard/archive" variant="secondary">Monthly snapshots</LinkButton>}
+        actions={<LinkButton href="/performance/snapshots" variant="secondary">Monthly snapshots</LinkButton>}
         meta={false}
       />
 
@@ -169,7 +169,7 @@ export function PerformanceModule() {
         {isLoading ? (
           <Skeleton className="h-[240px] w-full" />
         ) : rows.length < 2 ? (
-          <EmptyState title="No snapshots yet">Month-end snapshots are saved from Cash flow → Monthly snapshots. Once one exists, monthly change shows here.</EmptyState>
+          <EmptyState title="No snapshots yet">Month-end snapshots are saved from Performance → Monthly snapshots. Once one exists, monthly change shows here.</EmptyState>
         ) : (
           <div className="flex h-[260px] items-end gap-[clamp(6px,2vw,28px)] overflow-x-auto px-1 pb-1">
             {rows.map((r, i) => {

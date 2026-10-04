@@ -5,7 +5,6 @@ import {
   HandCoins,
   Landmark,
   Wallet,
-  ArrowDownUp,
   CalendarDays,
   Repeat,
   PlugZap,
@@ -38,7 +37,6 @@ export const NAV: Record<string, NavItem> = {
   },
   loans: { key: 'loans', label: 'Loans', href: '/portfolio/loans', icon: Landmark, match: starts('/portfolio/loans') },
   receivables: { key: 'receivables', label: 'Receivables', href: '/portfolio/receivables', icon: HandCoins, match: starts('/portfolio/receivables') },
-  cashflow: { key: 'cashflow', label: 'Cash flow', href: '/transactions', icon: ArrowDownUp, match: (p) => starts('/transactions', '/dashboard/archive')(p) && !p.startsWith('/transactions/subscriptions') },
   budget: { key: 'budget', label: 'Budget', href: '/budget', icon: Wallet, match: starts('/budget') },
   subscriptions: { key: 'subscriptions', label: 'Subscriptions', href: '/subscriptions', icon: Repeat, match: starts('/subscriptions', '/transactions/subscriptions') },
   upcoming: { key: 'upcoming', label: 'Upcoming', href: '/upcoming', icon: CalendarDays, match: starts('/upcoming') },
@@ -50,19 +48,19 @@ export const NAV: Record<string, NavItem> = {
 export const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
   { label: 'Overview', items: [NAV.overview, NAV.performance] },
   { label: 'Net worth', items: [NAV.portfolio, NAV.loans] },
-  { label: 'Planning', items: [NAV.budget, NAV.cashflow, NAV.subscriptions, NAV.upcoming] },
+  { label: 'Planning', items: [NAV.budget, NAV.subscriptions, NAV.upcoming] },
 ];
 
 export const NAV_BOTTOM: NavItem[] = [NAV.imports, NAV.assistant, NAV.settings];
 
-/** Mobile floating tab bar: Home · Trends · Portfolio · Cash flow · More */
+/** Mobile floating tab bar: Home · Trends · Portfolio · Budget · More */
 export const MOBILE_TABS: { item: NavItem; label: string }[] = [
   { item: NAV.overview, label: 'Home' },
   { item: NAV.performance, label: 'Trends' },
   { item: NAV.portfolio, label: 'Portfolio' },
-  { item: NAV.cashflow, label: 'Cash flow' },
+  { item: NAV.budget, label: 'Budget' },
 ];
-export const MOBILE_MORE: NavItem[] = [NAV.budget, NAV.loans, NAV.subscriptions, NAV.upcoming, NAV.imports, NAV.assistant, NAV.settings];
+export const MOBILE_MORE: NavItem[] = [NAV.loans, NAV.subscriptions, NAV.upcoming, NAV.imports, NAV.assistant, NAV.settings];
 
 /** Extra destinations reachable from ⌘K search */
 export const SEARCH_EXTRA: { label: string; href: string; group: string }[] = [
@@ -73,8 +71,7 @@ export const SEARCH_EXTRA: { label: string; href: string; group: string }[] = [
   { label: 'Retirement (EPF + NPS)', href: '/portfolio/provident-fund', group: 'Portfolio' },
   { label: 'Receivables', href: '/portfolio/receivables', group: 'Portfolio' },
   { label: 'Properties', href: '/portfolio/properties', group: 'Portfolio' },
-    { label: 'Monthly snapshots', href: '/dashboard/archive', group: 'Cash flow' },
-  { label: 'Transaction categories', href: '/transactions/categories', group: 'Cash flow' },
+  { label: 'Monthly snapshots', href: '/performance/snapshots', group: 'Performance' },
   { label: 'AI analysis', href: '/data/analysis', group: 'Imports & data' },
   { label: 'Net worth chart', href: '/dashboard/chart', group: 'Dashboard' },
 ];
