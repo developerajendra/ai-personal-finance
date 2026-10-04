@@ -33,7 +33,8 @@ export const NAV: Record<string, NavItem> = {
     label: 'Portfolio',
     href: '/portfolio',
     icon: Briefcase,
-    match: (p) => starts('/portfolio')(p) && !starts('/portfolio/loans', '/portfolio/receivables')(p),
+    // Receivables are an asset class (personal lending), so they live under Portfolio; loans are liabilities
+    match: (p) => starts('/portfolio')(p) && !starts('/portfolio/loans')(p),
   },
   loans: { key: 'loans', label: 'Loans', href: '/portfolio/loans', icon: Landmark, match: starts('/portfolio/loans') },
   receivables: { key: 'receivables', label: 'Receivables', href: '/portfolio/receivables', icon: HandCoins, match: starts('/portfolio/receivables') },
@@ -47,7 +48,8 @@ export const NAV: Record<string, NavItem> = {
 };
 
 export const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
-  { label: 'Wealth', items: [NAV.overview, NAV.performance, NAV.portfolio, NAV.loans, NAV.receivables] },
+  { label: 'Overview', items: [NAV.overview, NAV.performance] },
+  { label: 'Net worth', items: [NAV.portfolio, NAV.loans] },
   { label: 'Planning', items: [NAV.budget, NAV.cashflow, NAV.subscriptions, NAV.upcoming] },
 ];
 
@@ -60,7 +62,7 @@ export const MOBILE_TABS: { item: NavItem; label: string }[] = [
   { item: NAV.portfolio, label: 'Portfolio' },
   { item: NAV.cashflow, label: 'Cash flow' },
 ];
-export const MOBILE_MORE: NavItem[] = [NAV.budget, NAV.loans, NAV.receivables, NAV.subscriptions, NAV.upcoming, NAV.imports, NAV.assistant, NAV.settings];
+export const MOBILE_MORE: NavItem[] = [NAV.budget, NAV.loans, NAV.subscriptions, NAV.upcoming, NAV.imports, NAV.assistant, NAV.settings];
 
 /** Extra destinations reachable from ⌘K search */
 export const SEARCH_EXTRA: { label: string; href: string; group: string }[] = [
@@ -69,6 +71,7 @@ export const SEARCH_EXTRA: { label: string; href: string; group: string }[] = [
   { label: 'Deposits & bonds', href: '/portfolio/investments', group: 'Portfolio' },
   { label: 'Cash & bank', href: '/portfolio/bank-balances', group: 'Portfolio' },
   { label: 'Retirement (EPF + NPS)', href: '/portfolio/provident-fund', group: 'Portfolio' },
+  { label: 'Receivables', href: '/portfolio/receivables', group: 'Portfolio' },
   { label: 'Properties', href: '/portfolio/properties', group: 'Portfolio' },
     { label: 'Monthly snapshots', href: '/dashboard/archive', group: 'Cash flow' },
   { label: 'Transaction categories', href: '/transactions/categories', group: 'Cash flow' },

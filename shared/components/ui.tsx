@@ -306,8 +306,11 @@ export function PageHeader({
   className?: string;
 }) {
   const metaNode = meta === false ? null : meta ?? <span>{fmtDay()}</span>;
+  // crumbs={[]} with no actions drops the breadcrumb row (the title already says where you are)
+  const showTopRow = !(crumbs && crumbs.length === 0 && !actions);
   return (
     <header className={cn('mb-8', className)}>
+      {showTopRow && (
       <div className="flex min-h-[40px] flex-wrap items-center justify-between gap-3">
         <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-[14px] text-muted">
           {(crumbs ?? [{ label: typeof title === 'string' ? title : '' }]).map((c, i, arr) => (
@@ -325,9 +328,10 @@ export function PageHeader({
         </nav>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
+      )}
 
       {hero ? (
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+        <div className={cn('flex flex-wrap items-end justify-between gap-4', showTopRow && 'mt-5')}>
           <div className="min-w-0">
             <h1 className="text-[22px] leading-tight text-ink">{title}</h1>
             <div className={cn('mt-1 text-[clamp(40px,5.4vw,64px)] font-bold leading-[1.05] tracking-[-0.035em]', toneText[hero.tone ?? 'neutral'])}>
@@ -347,7 +351,7 @@ export function PageHeader({
           {metaNode && <p className="pb-1 text-[13px] text-muted">{metaNode}</p>}
         </div>
       ) : (
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+        <div className={cn('flex flex-wrap items-end justify-between gap-3', showTopRow && 'mt-5')}>
           <h1 className="text-[clamp(30px,3.4vw,40px)] leading-[1.1] text-ink">{title}</h1>
           {metaNode && <p className="pb-1.5 text-[13px] text-muted">{metaNode}</p>}
         </div>

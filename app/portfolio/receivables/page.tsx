@@ -6,7 +6,7 @@ import { ReceivablesSummary } from "@/modules/portfolio/components/ReceivablesSu
 export default function ReceivablesPage() {
   return (
     <AppShell>
-      <PageHeader crumbs={[{ label: "Receivables" }]} title="Receivables" meta="Track money owed to you" />
+      <PageHeader crumbs={[{ label: "Portfolio", href: "/portfolio" }, { label: "Receivables" }]} title="Receivables" meta="Track money owed to you" />
       <ReceivablesSummary />
       <PortfolioGrid lockedTab="receivables" />
     </AppShell>

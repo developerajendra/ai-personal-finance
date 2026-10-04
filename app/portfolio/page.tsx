@@ -14,7 +14,7 @@ export default function PortfolioPage() {
   return (
     <AppShell>
       <PageHeader
-        crumbs={[{ label: "Portfolio" }]}
+        crumbs={[]}
         title="Portfolio overview"
         meta={<>{new Date().toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).replace(",", "")} · market prices cached</>}
         hero={{
