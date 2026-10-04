@@ -82,3 +82,8 @@ The application follows a modular, feature-based architecture where each major f
 
 MIT
 
+##db sync
+
+env -u TURSO_DATABASE_URL -u TURSO_AUTH_TOKEN node --env-file=.env.production.local ./node_modules/drizzle-kit/bin.cjs migrate
+
+npm run db:preflight       
