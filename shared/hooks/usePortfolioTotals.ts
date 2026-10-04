@@ -99,7 +99,7 @@ export function usePortfolioTotals() {
       netWorth: assets - totalLoans,
       unrealised,
       deposits,
-      /** Manually tracked retirement schemes (NPS); EPFO passbook PF accounts are ppfAccounts */
+      /** Manually added retirement accounts (NPS, PF, other); EPFO passbook PF accounts are ppfAccounts */
       retirementInvestments: retInv,
       cashAccounts,
       receivables,

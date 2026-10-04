@@ -49,12 +49,12 @@ export const recordIdSchema = z
 
 const tagsSchema = z.preprocess(blankToUndefined, z.array(z.string().trim().max(100)).max(50).optional());
 
-export const INVESTMENT_TYPES = ["ppf", "nps", "fd", "mutual-fund", "stocks", "bonds", "other"] as const;
+export const INVESTMENT_TYPES = ["ppf", "epf", "nps", "retirement-other", "fd", "mutual-fund", "stocks", "bonds", "other"] as const;
 /**
  * Investment types that roll up into the Retirement asset class, alongside EPFO passbook
  * accounts. PPF is deliberately not here: it is tracked as a regular investment.
  */
-export const RETIREMENT_INVESTMENT_TYPES = ["nps"] as const;
+export const RETIREMENT_INVESTMENT_TYPES = ["nps", "epf", "retirement-other"] as const;
 export const INVESTMENT_STATUSES = ["active", "matured", "closed"] as const;
 export const ASSET_TYPES = ["fixed", "liquid"] as const;
 

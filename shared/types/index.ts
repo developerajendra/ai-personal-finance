@@ -65,7 +65,7 @@ export interface Investment {
   currency?: string; // Original currency: "INR" | "NPR" | "USD"
   originalAmount?: number; // Original amount in the selected currency (before conversion)
   originalCurrency?: string; // Original currency if different from currency field
-  type: "ppf" | "nps" | "fd" | "mutual-fund" | "stocks" | "bonds" | "other";
+  type: "ppf" | "epf" | "nps" | "retirement-other" | "fd" | "mutual-fund" | "stocks" | "bonds" | "other";
   assetType?: "fixed" | "liquid"; // Fixed Asset (Property, Gold) or Liquid Asset (others)
   startDate: string;
   endDate?: string; // Optional

@@ -53,11 +53,16 @@ export function ClassHeader({ classKey, actions, crumbs }: { classKey: AssetClas
       break;
     }
     case 'pf': {
-      const npsVal = t.retirementInvestments.reduce((s, i) => s + getCurrentInvestmentValue(i), 0);
+      const valueOf = (type: string) => t.retirementInvestments.filter((i) => i.type === type).reduce((s, i) => s + getCurrentInvestmentValue(i), 0);
+      const pfCount = t.ppfAccounts.length + t.retirementInvestments.filter((i) => i.type === 'epf').length;
+      const npsCount = t.retirementInvestments.filter((i) => i.type === 'nps').length;
+      const otherCount = t.retirementInvestments.length - npsCount - (pfCount - t.ppfAccounts.length);
+      const otherVal = valueOf('retirement-other');
       metas = [
-        { label: 'Provident fund', value: M(t.totalPPF) },
-        { label: 'NPS', value: M(npsVal) },
-        { label: 'Accounts', value: `${t.ppfAccounts.length} PF · ${t.retirementInvestments.length} NPS` },
+        { label: 'Provident fund', value: M(t.totalPPF + valueOf('epf')) },
+        { label: 'NPS', value: M(valueOf('nps')) },
+        ...(otherVal > 0 ? [{ label: 'Other', value: M(otherVal) }] : []),
+        { label: 'Accounts', value: `${pfCount} PF · ${npsCount} NPS${otherCount ? ` · ${otherCount} other` : ''}` },
         { label: 'Share of assets', value: pct(c.share) },
       ];
       const last = latest(t.ppfAccounts.map((p) => p.lastUpdated || p.extractedAt));
