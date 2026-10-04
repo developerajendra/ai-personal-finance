@@ -5,10 +5,10 @@ import { Loan } from '@/shared/types';
 import { useState } from 'react';
 import { Download, Edit2, Plus, Trash2, Upload } from 'lucide-react';
 import { Loader } from '@/shared/components/Loader';
-import { Button, DetailRow, Drawer, PageHeader, Panel, PanelHeader, Tag } from '@/shared/components/ui';
+import { Button, DetailRow, Drawer, PageHeader, Panel, Tag } from '@/shared/components/ui';
 import { DataTable } from '@/shared/components/DataTable';
 import { useMoney, fmtDate } from '@/shared/hooks/useMoney';
-import { BreakdownPanel } from './BreakdownPanel';
+import { BarsPanel, DonutPanel, toSlices } from './ClassCharts';
 import { LoanForm } from './LoanForm';
 import { LoanHero } from './LoanHero';
 import { LoanAnalyticsModule } from './LoanAnalyticsModule';
@@ -50,8 +50,6 @@ export function LoansDetailView({ mode, setMode }: { mode: Mode; setMode: (m: Mo
     refetchOnWindowFocus: false,
   });
 
-  const { M } = useMoney();
-
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -60,34 +58,32 @@ export function LoansDetailView({ mode, setMode }: { mode: Mode; setMode: (m: Mo
     );
   }
 
-  // Totals follow net worth: published loans only
+  // Charts follow net worth: published loans only
   const published = loans.filter((l) => l.isPublished);
-  const totalOutstanding = published.reduce((sum, loan) => sum + loan.outstandingAmount, 0);
-  const totalPrincipal = published.reduce((sum, loan) => sum + loan.principalAmount, 0);
   const totalEMI = published.filter((l) => l.status === 'active').reduce((sum, loan) => sum + loan.emiAmount, 0);
-  const totalPaid = totalPrincipal - totalOutstanding;
-
-  const loanChartData = Object.entries(
-    published.reduce((acc, loan) => {
-      acc[titleCase(loan.type)] = (acc[titleCase(loan.type)] || 0) + loan.outstandingAmount;
-      return acc;
-    }, {} as Record<string, number>),
-  ).map(([name, value]) => ({ name, value }));
+  const owing = published.filter((l) => l.outstandingAmount > 0);
+  const byType = toSlices(owing.map((l) => ({ name: titleCase(l.type), value: l.outstandingAmount })));
+  const repayment = owing
+    .sort((a, b) => b.principalAmount - a.principalAmount)
+    .map((l) => ({ name: l.name, repaid: Math.max(0, l.principalAmount - l.outstandingAmount), outstanding: l.outstandingAmount }));
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-      <LoansTable loans={loans} totalEMI={totalEMI} mode={mode} setMode={setMode} />
-      <div className="space-y-4">
-        <Panel>
-          <PanelHeader title="Repayment" />
-          <DetailRow label="Disbursed" value={M(totalPrincipal)} />
-          <DetailRow label="Repaid" value={M(totalPaid)} />
-          <DetailRow label="Outstanding" value={M(totalOutstanding)} />
-          <DetailRow label="EMI per month" value={M(totalEMI)} />
-        </Panel>
-        <BreakdownPanel title="By loan type" items={loanChartData} color="var(--c-loan)" />
+    <>
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        <DonutPanel title="By loan type" subtitle="Share of the outstanding balance" slices={byType} centreLabel="Owed" />
+        <BarsPanel
+          title="Repaid vs outstanding"
+          subtitle="Principal paid back so far and what is still owed on each loan"
+          rows={repayment}
+          series={[
+            { key: 'repaid', label: 'Repaid', color: 'var(--color-accent)' },
+            { key: 'outstanding', label: 'Outstanding', color: 'var(--c-loan)' },
+          ]}
+          stacked
+        />
       </div>
-    </div>
+      <LoansTable loans={loans} totalEMI={totalEMI} mode={mode} setMode={setMode} />
+    </>
   );
 }
 

@@ -140,3 +140,17 @@ export function BarsPanel({
     </Panel>
   );
 }
+
+/**
+ * Sum values by name, keep the largest `max` and fold the rest into "Others", then colour them —
+ * donut slices are keyed by name, so duplicates must be merged first.
+ */
+export function toSlices(items: { name: string; value: number }[], max = SERIES_COLORS.length - 1): Slice[] {
+  const totals = new Map<string, number>();
+  for (const { name, value } of items) if (value > 0) totals.set(name, (totals.get(name) || 0) + value);
+  const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  const top = sorted.slice(0, max);
+  const rest = sorted.slice(max).reduce((s, [, v]) => s + v, 0);
+  if (rest > 0) top.push(['Others', rest]);
+  return top.map(([name, value], i) => ({ name, value, color: SERIES_COLORS[i % SERIES_COLORS.length] }));
+}

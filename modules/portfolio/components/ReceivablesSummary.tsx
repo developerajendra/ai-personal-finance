@@ -3,8 +3,9 @@
 import { Dot, Panel, PanelHeader, StackBar } from '@/shared/components/ui';
 import { useMoney, pct } from '@/shared/hooks/useMoney';
 import { usePortfolioTotals, receivableExpected, daysUntil } from '@/shared/hooks/usePortfolioTotals';
+import { BarsPanel, DonutPanel, toSlices } from './ClassCharts';
 
-/** KPI row + ageing buckets (overdue / ≤90 days / later / no due date) for published receivables. */
+/** KPI row, per-person charts and ageing buckets (overdue / ≤90 days / later / no due date) for published receivables. */
 export function ReceivablesSummary() {
   const { M } = useMoney();
   const t = usePortfolioTotals();
@@ -20,6 +21,15 @@ export function ReceivablesSummary() {
 
   const expected = rows.reduce((s, x) => s + x.total, 0);
   const principal = rows.reduce((s, x) => s + x.principal, 0);
+  const byPerson = toSlices(rows.map((x) => ({ name: x.r.bankName, value: x.total })));
+  const perPerson = Object.values(
+    rows.reduce((acc, x) => {
+      const p = (acc[x.r.bankName] ??= { name: x.r.bankName, principal: 0, interest: 0 });
+      p.principal += x.principal;
+      p.interest += x.interest;
+      return acc;
+    }, {} as Record<string, { name: string; principal: number; interest: number }>),
+  ).sort((a, b) => b.principal + b.interest - (a.principal + a.interest));
   const overdue = buckets[0]!;
   const soon = buckets[1]!;
 
@@ -38,6 +48,19 @@ export function ReceivablesSummary() {
         {kpi('Principal', M(principal), `Interest ${M(expected - principal)}`)}
         {kpi('Overdue', M(overdue.value), `${overdue.items.length} ${overdue.items.length === 1 ? 'person' : 'people'}`, overdue.value > 0 ? 'text-loss' : 'text-ink')}
         {kpi('Due in 90 days', M(soon.value), `${soon.items.length} expected`)}
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        <DonutPanel title="By person" subtitle="Share of what you are owed, incl. agreed interest" slices={byPerson} centreLabel="Owed" />
+        <BarsPanel
+          title="Principal vs interest"
+          subtitle="Amount lent and the interest agreed on it, per person"
+          rows={perPerson}
+          series={[
+            { key: 'principal', label: 'Principal', color: 'var(--c-ret)' },
+            { key: 'interest', label: 'Interest', color: 'var(--color-accent)' },
+          ]}
+          stacked
+        />
       </div>
       <Panel>
         <PanelHeader title="Ageing" action={<span className="text-[13px] text-muted">Expected totals including agreed interest</span>} />

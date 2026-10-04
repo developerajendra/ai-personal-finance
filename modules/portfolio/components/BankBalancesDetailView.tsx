@@ -8,7 +8,7 @@ import { Loader } from '@/shared/components/Loader';
 import { Button, DetailRow, Drawer, Panel, Tag } from '@/shared/components/ui';
 import { DataTable } from '@/shared/components/DataTable';
 import { useMoney, fmtDate } from '@/shared/hooks/useMoney';
-import { BreakdownPanel } from './BreakdownPanel';
+import { BarsPanel, DonutPanel, toSlices } from './ClassCharts';
 import { ClassHeader } from './ClassPages';
 import { BankBalanceForm } from './BankBalanceForm';
 import { usePortfolioCrud } from '../hooks/usePortfolioCrud';
@@ -16,7 +16,7 @@ import { RowActions } from './RowActions';
 
 const BANK_KEY = ['bankBalances', 'all'];
 
-/** Cash & bank page body: class header with "Add account", accounts table with full CRUD, breakdowns. */
+/** Cash & bank page body: class header with "Add account", charts, accounts table with full CRUD. */
 export function BankBalancesDetailView() {
   const [mode, setMode] = useState<Mode>(null);
   const { data: bankBalances = [], isLoading } = useQuery<BankBalance[]>({
@@ -42,27 +42,24 @@ export function BankBalancesDetailView() {
 
   // Filter out receivables - they should only appear in the receivables page
   const accounts = bankBalances.filter((balance) => !balance.tags?.includes('receivable'));
-  // Breakdowns follow net worth: published accounts only
+  // Charts follow net worth: published accounts only
   const published = accounts.filter((b) => b.isPublished);
-
-  const sumBy = (key: (b: BankBalance) => string) =>
-    Object.entries(
-      published.reduce((acc, b) => {
-        acc[key(b)] = (acc[key(b)] || 0) + b.balance;
-        return acc;
-      }, {} as Record<string, number>),
-    ).map(([name, value]) => ({ name, value }));
+  const byBank = toSlices(published.map((b) => ({ name: b.bankName, value: b.balance })));
+  const byType = toSlices(published.map((b) => ({ name: typeName(b), value: b.balance })), Infinity).map((s) => ({ name: s.name, balance: s.value }));
 
   return (
     <>
       {header}
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-        <BankAccountsTable balances={accounts} mode={mode} setMode={setMode} />
-        <div className="space-y-4">
-          <BreakdownPanel title="By bank" items={sumBy((b) => b.bankName)} color="var(--c-cash)" />
-          <BreakdownPanel title="By account type" items={sumBy(typeName)} color="var(--color-accent)" />
-        </div>
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        <DonutPanel title="By bank" subtitle="Share of balances held at each bank" slices={byBank} centreLabel="Cash" />
+        <BarsPanel
+          title="By account type"
+          subtitle="Total balance in each kind of account"
+          rows={byType}
+          series={[{ key: 'balance', label: 'Balance', color: 'var(--c-cash)' }]}
+        />
       </div>
+      <BankAccountsTable balances={accounts} mode={mode} setMode={setMode} />
     </>
   );
 }

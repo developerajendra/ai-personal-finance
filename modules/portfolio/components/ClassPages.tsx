@@ -7,6 +7,7 @@ import { useMoney, pct, fmtDate } from '@/shared/hooks/useMoney';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 import { StocksDashboard } from './StocksDashboard';
 import { MutualFundsDashboard } from './MutualFundsDashboard';
+import { BarsPanel, DonutPanel, toSlices } from './ClassCharts';
 
 const latest = (dates: (string | undefined | null)[]) => dates.filter(Boolean).sort().pop() ?? null;
 
@@ -131,10 +132,39 @@ export function StocksFundsView({ initial }: { initial: MarketView }) {
           ariaLabel="Holdings type"
         />
       </div>
+      <StocksFundsCharts view={view} />
       <div className="space-y-4">
         {view !== 'Funds' && <StocksDashboard />}
         {view !== 'Stocks' && <MutualFundsDashboard />}
       </div>
     </>
+  );
+}
+
+/** Largest holdings by current value, and invested vs current value for each — follows the All / Stocks / Funds toggle. */
+function StocksFundsCharts({ view }: { view: MarketView }) {
+  const t = usePortfolioTotals();
+  const holdings = [
+    ...(view !== 'Funds' ? t.stocks.map((h) => ({ name: h.tradingsymbol, qty: h.quantity, avg: h.average_price, ltp: h.last_price })) : []),
+    ...(view !== 'Stocks' ? t.funds.map((h) => ({ name: (h.fund_name || h.tradingsymbol).split(' - ')[0], qty: h.quantity, avg: h.average_price, ltp: h.last_price })) : []),
+  ]
+    .map((h) => ({ name: h.name, invested: (h.avg || 0) * (h.qty || 0), current: (h.ltp || 0) * (h.qty || 0) }))
+    .filter((h) => h.current > 0 || h.invested > 0)
+    .sort((a, b) => b.current - a.current);
+  if (holdings.length === 0) return null;
+  const top = holdings.slice(0, 8);
+  return (
+    <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+      <DonutPanel title="Top holdings" subtitle="Share of current value" slices={toSlices(holdings.map((h) => ({ name: h.name, value: h.current })))} centreLabel="Value" />
+      <BarsPanel
+        title="Invested vs current value"
+        subtitle={holdings.length > top.length ? `Largest ${top.length} of ${holdings.length} holdings` : 'Cost of each holding and what it is worth today'}
+        rows={top}
+        series={[
+          { key: 'invested', label: 'Invested', color: 'var(--c-ret)' },
+          { key: 'current', label: 'Current value', color: 'var(--color-accent)' },
+        ]}
+      />
+    </div>
   );
 }
