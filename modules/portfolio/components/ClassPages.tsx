@@ -53,16 +53,11 @@ export function ClassHeader({ classKey, actions, crumbs }: { classKey: AssetClas
       break;
     }
     case 'pf': {
-      const sumOf = (...types: string[]) =>
-        t.retirementInvestments.filter((i) => types.includes(i.type)).reduce((s, i) => s + getCurrentInvestmentValue(i), 0);
-      const npsVal = sumOf('nps');
-      const otherVal = sumOf('retirement-other');
+      const npsVal = t.retirementInvestments.reduce((s, i) => s + getCurrentInvestmentValue(i), 0);
       metas = [
-        { label: 'EPF / PF', value: M(t.totalPPF + sumOf('epf')) },
-        { label: 'PPF', value: M(sumOf('ppf')) },
-        ...(npsVal ? [{ label: 'NPS', value: M(npsVal) }] : []),
-        ...(otherVal ? [{ label: 'Other', value: M(otherVal) }] : []),
-        { label: 'Accounts', value: t.ppfAccounts.length + t.retirementInvestments.length },
+        { label: 'Provident fund', value: M(t.totalPPF) },
+        { label: 'NPS', value: M(npsVal) },
+        { label: 'Accounts', value: `${t.ppfAccounts.length} PF · ${t.retirementInvestments.length} NPS` },
         { label: 'Share of assets', value: pct(c.share) },
       ];
       const last = latest(t.ppfAccounts.map((p) => p.lastUpdated || p.extractedAt));

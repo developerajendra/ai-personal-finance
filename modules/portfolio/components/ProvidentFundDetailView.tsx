@@ -13,24 +13,17 @@ import { BreakdownPanel } from './BreakdownPanel';
 import { Loader } from '@/shared/components/Loader';
 import { ProvidentFundEditForm } from './ProvidentFundEditForm';
 import { ClassHeader } from './ClassPages';
-import { BarsPanel, DonutPanel } from './ClassCharts';
-import { RetirementForm, RETIREMENT_SCHEMES, schemeLabel } from './RetirementForm';
+import { BarsPanel, DonutPanel, SERIES_COLORS } from './ClassCharts';
+import { NpsForm } from './NpsForm';
 import { RowActions } from './RowActions';
 import { usePortfolioCrud } from '../hooks/usePortfolioCrud';
 import { format } from 'date-fns';
 
 const INVESTMENTS_KEY = ['investments', 'all'];
-/** Chart colour per scheme; EPFO passbooks share the EPF / PF colour. */
-const SCHEME_COLOR: Record<string, string> = {
-  epf: 'var(--color-accent)',
-  ppf: 'var(--c-dep)',
-  nps: 'var(--c-ret)',
-  'retirement-other': 'var(--c-prop)',
-};
 
 type RetMode = { kind: 'edit'; item: Investment } | { kind: 'add' } | null;
 
-/** Retirement page: header with "Add retirement account", charts, manual schemes (CRUD) and EPFO passbooks. */
+/** Retirement page: provident fund (EPFO passbooks) plus NPS — charts, PF passbooks, NPS accounts (CRUD). */
 export function RetirementView() {
   const [mode, setMode] = useState<RetMode>(null);
   const { data: accounts = [], isLoading: pfLoading } = useQuery<PPFAccount[]>({
@@ -53,7 +46,7 @@ export function RetirementView() {
   });
 
   const header = (
-    <ClassHeader classKey="pf" actions={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add retirement account</Button>} />
+    <ClassHeader classKey="pf" actions={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add NPS account</Button>} />
   );
 
   if (pfLoading || invLoading) {
@@ -65,32 +58,28 @@ export function RetirementView() {
     );
   }
 
-  const schemes = investments.filter(isRetirementInvestment);
-  // Charts follow net worth: published, not-closed schemes plus every EPFO passbook
-  const counted = schemes.filter((i) => i.isPublished && i.status !== 'closed');
-  const groups = RETIREMENT_SCHEMES.map((s) => {
-    const own = counted.filter((i) => i.type === s.value);
-    let invested = own.reduce((sum, i) => sum + (i.amount || 0), 0);
-    let value = own.reduce((sum, i) => sum + getCurrentInvestmentValue(i), 0);
-    if (s.value === 'epf') {
-      for (const a of accounts) {
-        const net = (a.depositEmployeeShare || 0) - (a.withdrawEmployeeShare || 0) + (a.depositEmployerShare || 0) - (a.withdrawEmployerShare || 0) + (a.pensionContribution || 0);
-        const total = a.grandTotal || 0;
-        invested += Math.min(net, total);
-        value += total;
-      }
-    }
-    return { name: s.short, invested, growth: Math.max(0, value - invested), value, color: SCHEME_COLOR[s.value] };
-  }).filter((g) => g.value > 0);
+  const npsAccounts = investments.filter(isRetirementInvestment);
+  // Charts follow net worth: every EPFO passbook plus published, not-closed NPS accounts — one bar / slice each
+  const pfRows = accounts.map((a) => {
+    const net = (a.depositEmployeeShare || 0) - (a.withdrawEmployeeShare || 0) + (a.depositEmployerShare || 0) - (a.withdrawEmployerShare || 0) + (a.pensionContribution || 0);
+    const value = a.grandTotal || 0;
+    return { name: `${shortName(a.establishmentName || 'Unknown')} PF`, invested: Math.min(net, value), value };
+  });
+  const npsRows = npsAccounts
+    .filter((i) => i.isPublished && i.status !== 'closed')
+    .map((i) => ({ name: i.name, invested: i.amount || 0, value: getCurrentInvestmentValue(i) }));
+  const groups = [...pfRows, ...npsRows]
+    .filter((g) => g.value > 0)
+    .map((g, idx) => ({ ...g, growth: Math.max(0, g.value - g.invested), color: SERIES_COLORS[idx % SERIES_COLORS.length] }));
 
   return (
     <>
       {header}
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-        <DonutPanel title="Retirement mix" subtitle="Share of current value by scheme" slices={groups} centreLabel="Corpus" />
+        <DonutPanel title="Retirement mix" subtitle="Share of current value by account" slices={groups} centreLabel="Corpus" />
         <BarsPanel
           title="Invested vs growth"
-          subtitle="Contributions and the interest earned on them"
+          subtitle="Contributions and the interest or returns earned on them"
           rows={groups.map((g) => ({ name: g.name, invested: g.invested, growth: g.growth }))}
           series={[
             { key: 'invested', label: 'Invested', color: 'var(--c-ret)' },
@@ -100,14 +89,20 @@ export function RetirementView() {
         />
       </div>
       <div className="space-y-4">
-        <SchemesTable schemes={schemes} mode={mode} setMode={setMode} />
         <ProvidentFundDetailView />
+        <NpsTable accounts={npsAccounts} mode={mode} setMode={setMode} />
       </div>
     </>
   );
 }
 
-function SchemesTable({ schemes, mode, setMode }: { schemes: Investment[]; mode: RetMode; setMode: (m: RetMode) => void }) {
+/** Chart label for an employer: "INTELLIGRAPE SOFTWARE PVT LTD" → "Intelligrape"; acronyms like "TTN" stay as they are. */
+function shortName(name: string) {
+  const first = name.trim().split(/\s+/)[0] || name;
+  return first.length <= 4 ? first : first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+}
+
+function NpsTable({ accounts, mode, setMode }: { accounts: Investment[]; mode: RetMode; setMode: (m: RetMode) => void }) {
   const { M, S } = useMoney();
   const [error, setError] = useState('');
   const crud = usePortfolioCrud<Investment>('investments', [INVESTMENTS_KEY]);
@@ -138,18 +133,18 @@ function SchemesTable({ schemes, mode, setMode }: { schemes: Investment[]; mode:
   return (
     <Panel flush className="overflow-hidden">
       <div className="px-6 pb-4 pt-[22px]">
-        <h2 className="text-[19px]">Retirement accounts</h2>
-        <p className="mt-1 text-[13px] text-muted">PPF, PF, NPS and other schemes you track by hand · tap a row to edit</p>
+        <h2 className="text-[19px]">NPS accounts</h2>
+        <p className="mt-1 text-[13px] text-muted">National Pension System balances from your statements · tap a row to edit</p>
       </div>
-      {schemes.length === 0 ? (
+      {accounts.length === 0 ? (
         <div className="px-6 pb-6">
-          <EmptyState title="No retirement accounts yet" action={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add retirement account</Button>}>
-            Add a PPF, PF, NPS or any other retirement scheme to include it in your net worth.
+          <EmptyState title="No NPS accounts yet" action={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add NPS account</Button>}>
+            Add your NPS Tier I or Tier II balance to include it in your retirement corpus and net worth.
           </EmptyState>
         </div>
       ) : (
         <DataTable<Investment>
-          rows={schemes}
+          rows={accounts}
           rowKey={(i) => i.id}
           onRowClick={(item) => setMode({ kind: 'edit', item })}
           defaultSort={{ key: 'value', dir: 'desc' }}
@@ -170,7 +165,6 @@ function SchemesTable({ schemes, mode, setMode }: { schemes: Investment[]; mode:
                 </>
               ),
             },
-            { key: 'scheme', label: 'Scheme', render: (i) => <Tag tone="accent">{schemeLabel(i.type)}</Tag>, sortValue: (i) => i.type },
             { key: 'invested', label: 'Balance entered', align: 'right', render: (i) => M(i.amount), sortValue: (i) => i.amount },
             {
               key: 'value',
@@ -187,9 +181,8 @@ function SchemesTable({ schemes, mode, setMode }: { schemes: Investment[]; mode:
                 );
               },
             },
-            { key: 'rate', label: 'Rate', align: 'right', render: (i) => (i.interestRate != null ? `${i.interestRate}%` : '—'), sortValue: (i) => i.interestRate ?? -1 },
+            { key: 'rate', label: 'Expected return', align: 'right', render: (i) => (i.interestRate != null ? `${i.interestRate}%` : '—'), sortValue: (i) => i.interestRate ?? -1 },
             { key: 'since', label: 'As of', render: (i) => fmtDate(i.startDate), sortValue: (i) => i.startDate },
-            { key: 'maturity', label: 'Matures', render: (i) => (i.maturityDate ? fmtDate(i.maturityDate) : '—'), sortValue: (i) => i.maturityDate || '' },
             {
               key: 'actions',
               label: '',
@@ -202,8 +195,8 @@ function SchemesTable({ schemes, mode, setMode }: { schemes: Investment[]; mode:
         open={!!mode}
         onClose={close}
         width={640}
-        title={current ? `Edit ${current.name}` : 'Add retirement account'}
-        subtitle={current ? schemeLabel(current.type) : 'PPF, PF, NPS or another scheme'}
+        title={current ? `Edit ${current.name}` : 'Add NPS account'}
+        subtitle="National Pension System"
         footer={
           current ? (
             <Button variant="danger" icon={Trash2} disabled={crud.busy} onClick={() => handleDelete(current)}>
@@ -213,7 +206,7 @@ function SchemesTable({ schemes, mode, setMode }: { schemes: Investment[]; mode:
         }>
         {error && <p role="alert" className="mb-4 rounded-lg bg-loss-bg p-3 text-[13.5px] text-loss">{error}</p>}
         {mode && (
-          <RetirementForm
+          <NpsForm
             key={current?.id ?? 'new'}
             investment={current ?? undefined}
             isSaving={crud.busy}
@@ -330,7 +323,7 @@ export function ProvidentFundDetailView() {
     <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
       <Panel flush className="overflow-hidden">
         <div className="px-6 pb-4 pt-[22px]">
-          <h2 className="text-[19px]">EPF passbooks</h2>
+          <h2 className="text-[19px]">Provident fund</h2>
           <p className="mt-1 text-[13px] text-muted">{totalAccounts} accounts from EPFO passbooks · tap a row to edit</p>
         </div>
         <DataTable<PPFAccount>
@@ -365,7 +358,7 @@ export function ProvidentFundDetailView() {
                     setEditingAccount(a);
                   }}
                   className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[13px] font-medium text-accent-700 hover:bg-accent-100"
-                  title="Edit PPF account"
+                  title="Edit PF account"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                   Edit
@@ -398,7 +391,7 @@ export function ProvidentFundDetailView() {
       <Drawer
         open={!!editingAccount}
         onClose={() => !isSaving && setEditingAccount(null)}
-        title="Edit PPF account"
+        title="Edit PF account"
         subtitle={editingAccount?.establishmentName}
         width={640}
       >

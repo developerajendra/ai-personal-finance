@@ -9,7 +9,7 @@ import { useSnapshots, snapshotClasses } from '@/shared/hooks/useSnapshots';
 
 /** Classes as stored in month-end snapshots (PPF records sit with deposits; EPF separate). */
 const SERIES = [
-  { key: 'property', label: 'Real estate', color: 'var(--c-prop)', href: '/portfolio/properties' },
+  { key: 'property', label: 'Properties', color: 'var(--c-prop)', href: '/portfolio/properties' },
   { key: 'deposits', label: 'Deposits, bonds & PPF', color: 'var(--c-dep)', href: '/portfolio/investments' },
   { key: 'market', label: 'Stocks & funds', color: 'var(--c-stock)', href: '/portfolio/stocks' },
   { key: 'epf', label: 'EPF', color: 'var(--c-ret)', href: '/portfolio/provident-fund' },

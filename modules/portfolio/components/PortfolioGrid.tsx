@@ -22,7 +22,7 @@ type ViewMode = 'draft' | 'published' | 'matured'; // matured only applies to in
 /** Tabs shown read-only here; their add / edit / delete lives on the asset-class page. */
 const READ_ONLY_TABS: Partial<Record<ItemType, { href: string; label: string }>> = {
   'bank-balance': { href: '/portfolio/bank-balances', label: 'Cash & bank' },
-  property: { href: '/portfolio/properties', label: 'Real estate' },
+  property: { href: '/portfolio/properties', label: 'Properties' },
 };
 
 interface PortfolioGridProps {
@@ -151,7 +151,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     investment: 'Investments',
     loan: 'Loans',
     property: 'Properties',
-    'bank-balance': 'Bank Balances',
+    'bank-balance': 'Cash & bank',
     receivables: 'Receivables',
   };
 

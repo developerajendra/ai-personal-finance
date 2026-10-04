@@ -374,9 +374,7 @@ export function InvestmentForm({
             }}
             className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]">
             <option value="ppf">PPF</option>
-            <option value="epf">EPF / PF</option>
             <option value="nps">NPS</option>
-            <option value="retirement-other">Other retirement</option>
             <option value="fd">Fixed Deposit</option>
             <option value="mutual-fund">Mutual Fund</option>
             <option value="stocks">Stocks</option>

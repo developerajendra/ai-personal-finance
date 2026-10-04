@@ -21,7 +21,7 @@ const value = (p: Property) => p.currentValue || p.purchasePrice;
 
 type Mode = { kind: 'view'; item: Property } | { kind: 'edit'; item: Property } | { kind: 'add' } | null;
 
-/** Real estate page body: class header with "Add property", charts, properties table with full CRUD. */
+/** Properties page body: class header with "Add property", charts, properties table with full CRUD. */
 export function PropertiesDetailView() {
   const [mode, setMode] = useState<Mode>(null);
   const { data: properties = [], isLoading } = useQuery<Property[]>({

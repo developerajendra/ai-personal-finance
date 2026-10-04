@@ -197,7 +197,7 @@ export function healthChecks(input: {
     const r = (property / netWorth) * 100;
     out.push({
       key: 'property',
-      label: 'Real estate share',
+      label: 'Property share',
       value: `${r.toFixed(0)}% of net worth`,
       verdict: r < 50 ? 'Balanced' : 'Illiquid-heavy',
       tone: r < 50 ? 'gain' : 'warn',
