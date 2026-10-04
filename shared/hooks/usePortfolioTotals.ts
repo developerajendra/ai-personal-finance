@@ -80,11 +80,11 @@ export function usePortfolioTotals() {
 
     const raw: Omit<AssetClass, 'share'>[] = [
       { key: 'bank', label: 'Cash & bank', href: '/portfolio/bank-balances', icon: Landmark, color: 'var(--c-cash)', value: totalBankBalances, count: cashAccounts.length, note: `${cashAccounts.length} account${cashAccounts.length === 1 ? '' : 's'} · ${banks} bank${banks === 1 ? '' : 's'}` },
-      { key: 'investments', label: 'Deposits & bonds', href: '/portfolio/investments', icon: BadgeIndianRupee, color: 'var(--c-dep)', value: depVal, count: deposits.length, note: `${deposits.length} deposit${deposits.length === 1 ? '' : 's'} & bonds` },
       { key: 'stocks', label: 'Stocks & funds', href: '/portfolio/stocks', icon: TrendingUp, color: 'var(--c-stock)', value: marketVal, count: stocks.length + funds.length + manualMarket.length, note: `${stocks.length + funds.length + manualMarket.length} holdings` },
       { key: 'pf', label: 'Retirement', href: '/portfolio/provident-fund', icon: PiggyBank, color: 'var(--c-ret)', value: retirement, count: ppfAccounts.length + retInv.length, note: `${ppfAccounts.length + retInv.length} account${ppfAccounts.length + retInv.length === 1 ? '' : 's'}` },
       { key: 'property', label: 'Properties', href: '/portfolio/properties', icon: Building2, color: 'var(--c-prop)', value: totalProperties, count: properties.length, note: `${properties.length} propert${properties.length === 1 ? 'y' : 'ies'}` },
       { key: 'recv', label: 'Receivables', href: '/portfolio/receivables', icon: HandCoins, color: 'var(--c-recv)', value: totalReceivables, count: receivables.length, note: `${receivables.length} ${receivables.length === 1 ? 'person' : 'people'}` },
+      { key: 'investments', label: 'Other investments', href: '/portfolio/investments', icon: BadgeIndianRupee, color: 'var(--c-dep)', value: depVal, count: deposits.length, note: `${deposits.length} investment${deposits.length === 1 ? '' : 's'} · deposits, bonds & more` },
     ];
     const assets = raw.reduce((s, c) => s + c.value, 0);
     const classes: AssetClass[] = raw.map((c) => ({ ...c, share: assets > 0 ? (c.value / assets) * 100 : 0 }));

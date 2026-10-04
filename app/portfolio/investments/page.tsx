@@ -1,12 +1,10 @@
 import { AppShell } from "@/shared/components/AppShell";
-import { ClassHeader } from "@/modules/portfolio/components/ClassPages";
-import { PortfolioGrid } from "@/modules/portfolio/components/PortfolioGrid";
+import { OtherInvestmentsView } from "@/modules/portfolio/components/OtherInvestmentsView";
 
 export default function InvestmentsPage() {
   return (
     <AppShell>
-      <ClassHeader classKey="investments" />
-      <PortfolioGrid defaultTab="investment" />
+      <OtherInvestmentsView />
     </AppShell>
   );
 }

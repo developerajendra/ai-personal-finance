@@ -5,11 +5,11 @@ import { IconTile, ShareBar } from '@/shared/components/ui';
 import { useMoney, pct } from '@/shared/hooks/useMoney';
 import type { AssetClass } from '@/shared/hooks/usePortfolioTotals';
 
-/** One horizontal row of asset-class cards: tile icon, name, value, count, share of assets, share bar. */
+/** Grid of asset-class cards (two, three or six across): tile icon, name, value, count, share of assets, share bar. */
 export function ClassCards({ classes }: { classes: AssetClass[] }) {
   const { M } = useMoney();
   return (
-    <div className="-mx-1 grid auto-cols-[minmax(176px,1fr)] grid-flow-col gap-3 overflow-x-auto px-1 pb-2 pt-1 scrollbar-none">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
       {classes.map((c) => (
         <Link key={c.key} href={c.href} className="panel panel-lift flex flex-col px-4 py-4">
           <span className="flex items-center gap-2.5">

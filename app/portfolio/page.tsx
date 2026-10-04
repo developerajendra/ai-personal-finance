@@ -2,7 +2,7 @@
 
 import { AppShell } from "@/shared/components/AppShell";
 import { PageHeader } from "@/shared/components/ui";
-import { PortfolioGrid } from "@/modules/portfolio/components/PortfolioGrid";
+import { PortfolioHoldings } from "@/modules/portfolio/components/PortfolioHoldings";
 import { ClassCards } from "@/modules/portfolio/components/ClassCards";
 import { usePortfolioTotals } from "@/shared/hooks/usePortfolioTotals";
 import { useMoney } from "@/shared/hooks/useMoney";
@@ -31,7 +31,7 @@ export default function PortfolioPage() {
       <ClassCards classes={t.classes} />
 
       <div className="mt-6">
-        <PortfolioGrid />
+        <PortfolioHoldings />
       </div>
     </AppShell>
   );
