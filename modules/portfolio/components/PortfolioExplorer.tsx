@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, RotateCcw, Search } from 'lucide-react';
-import { Dot, Panel, Segmented, ShareBar } from '@/shared/components/ui';
+import { ArrowUpRight, Check, ChevronDown, RotateCcw, Search } from 'lucide-react';
+import { Dot, Panel, Segmented, ShareBar, UnderlineTabs } from '@/shared/components/ui';
 import { DataTable } from '@/shared/components/DataTable';
 import { useMoney, pct, fmtDate } from '@/shared/hooks/useMoney';
 import { usePortfolioTotals, receivableExpected, isFixedDeposit, type AssetClassKey } from '@/shared/hooks/usePortfolioTotals';
@@ -82,91 +82,54 @@ function useHoldings(): Holding[] {
  * value — drive the two charts and the holdings table together. Rows open the class page where
  * the record is managed.
  */
+
+/**
+ * Portfolio overview body (read-only). A filter row — asset classes (multi-select), gainers /
+ * losers, minimum value — drives the summary and the two charts. The holdings table below is
+ * tab-per-class (plus Loans) with its own search; rows open the class page to manage a record.
+ */
 export function PortfolioExplorer() {
   const t = usePortfolioTotals();
   const holdings = useHoldings();
-  const router = useRouter();
   const { M, S } = useMoney();
 
   const [classes, setClasses] = useState<AssetClassKey[]>([]);
-  const [query, setQuery] = useState('');
   const [perf, setPerf] = useState<Perf>('all');
   const [minValue, setMinValue] = useState('0');
 
-  const q = query.trim().toLowerCase();
   const min = Number(minValue);
-  // Class counts ignore the class filter itself, so each chip shows what picking it would add
-  const passesOthers = (h: Holding) =>
-    (!q || h.name.toLowerCase().includes(q) || h.sub.toLowerCase().includes(q)) &&
-    (perf === 'all' || (perf === 'gainers' ? gainOf(h) > 0.5 : gainOf(h) < -0.5)) &&
-    h.value >= min;
+  const passesOthers = (h: Holding) => (perf === 'all' || (perf === 'gainers' ? gainOf(h) > 0.5 : gainOf(h) < -0.5)) && h.value >= min;
   const visible = holdings.filter((h) => (classes.length === 0 || classes.includes(h.cls)) && passesOthers(h));
-  const countFor = (k: AssetClassKey) => holdings.filter((h) => h.cls === k && passesOthers(h)).length;
 
-  const filtered = classes.length > 0 || !!q || perf !== 'all' || min > 0;
+  const filtered = classes.length > 0 || perf !== 'all' || min > 0;
   const reset = () => {
     setClasses([]);
-    setQuery('');
     setPerf('all');
     setMinValue('0');
   };
-  const toggle = (k: AssetClassKey) => setClasses((cur) => (cur.includes(k) ? cur.filter((c) => c !== k) : [...cur, k]));
 
   const total = visible.reduce((s, h) => s + h.value, 0);
   const invested = visible.reduce((s, h) => s + h.invested, 0);
   const gain = total - invested;
-  const cls = (k: AssetClassKey) => t.byKey[k];
+  const top = [...visible].sort((a, b) => b.value - a.value).slice(0, 8);
+  const selectionLabel = classes.length === 1 ? t.byKey[classes[0]!].label.toLowerCase() : 'holdings';
 
-  const ranked = [...visible].sort((a, b) => b.value - a.value);
-  const top = ranked.slice(0, 8);
-  const selectionLabel = classes.length === 1 ? cls(classes[0]!).label.toLowerCase() : 'holdings';
+  const stat = (label: string, value: React.ReactNode, tone = 'text-ink') => (
+    <div>
+      <div className="eyebrow">{label}</div>
+      <div className={cn('mt-1.5 text-[19px] font-bold tabular-nums tracking-[-0.01em]', tone)}>{value}</div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
       <Panel>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-[19px]">Filter holdings</h2>
-            <p className="mt-1 text-[13px] text-muted">Charts and the table below follow these filters</p>
-          </div>
-          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-[13px] text-muted">
-            <span>
-              <span className="font-semibold text-ink">{visible.length}</span> of {holdings.length} holdings
-            </span>
-            <span>
-              Value <span className="font-semibold tabular-nums text-ink">{M(total)}</span>
-            </span>
-            <span>
-              Invested <span className="font-semibold tabular-nums text-ink">{M(invested)}</span>
-            </span>
-            <span>
-              Gain{' '}
-              <span className={cn('font-semibold tabular-nums', Math.abs(gain) < 0.5 ? 'text-ink' : gain > 0 ? 'text-gain' : 'text-loss')}>
-                {S(gain)}
-                {invested > 0 && ` (${((gain / invested) * 100).toFixed(1)}%)`}
-              </span>
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Asset classes">
-          <Chip on={classes.length === 0} onClick={() => setClasses([])}>
-            All classes
-          </Chip>
-          {t.classes.map((c) => (
-            <Chip key={c.key} on={classes.includes(c.key)} onClick={() => toggle(c.key)}>
-              <Dot color={c.color} size={8} />
-              {c.label}
-              <span className="text-[12px] tabular-nums opacity-70">{countFor(c.key)}</span>
-            </Chip>
-          ))}
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <label className="relative min-w-[200px] flex-1 sm:max-w-[300px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, type, bank…" className="input !pl-9" aria-label="Search holdings" />
-          </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <ClassMultiSelect
+            options={t.classes.map((c) => ({ value: c.key, label: c.label, color: c.color, count: holdings.filter((h) => h.cls === c.key && passesOthers(h)).length }))}
+            value={classes}
+            onChange={setClasses}
+          />
           <Segmented<Perf>
             ariaLabel="Performance"
             value={perf}
@@ -187,8 +150,22 @@ export function PortfolioExplorer() {
           {filtered && (
             <button type="button" onClick={reset} className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-accent-700 hover:underline">
               <RotateCcw className="h-3.5 w-3.5" />
-              Reset filters
+              Reset
             </button>
+          )}
+          <span className="ml-auto text-[13px] text-muted">Filters apply to the summary and charts</span>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-4 border-t border-divider pt-4 md:grid-cols-4">
+          {stat('Holdings', `${visible.length} of ${holdings.length}`)}
+          {stat('Value', M(total))}
+          {stat('Invested', M(invested))}
+          {stat(
+            'Gain',
+            <>
+              {S(gain)}
+              {invested > 0 && <span className="ml-1.5 text-[13px] font-semibold">({((gain / invested) * 100).toFixed(1)}%)</span>}
+            </>,
+            Math.abs(gain) < 0.5 ? 'text-ink' : gain > 0 ? 'text-gain' : 'text-loss',
           )}
         </div>
       </Panel>
@@ -206,97 +183,211 @@ export function PortfolioExplorer() {
         />
       </div>
 
-      <Panel flush className="overflow-hidden">
-        <div className="px-6 pb-4 pt-[22px]">
-          <h2 className="text-[19px]">Holdings</h2>
-          <p className="mt-1 text-[13px] text-muted">Read-only · tap a row to manage it on its page · loans are on the Loans page</p>
-        </div>
-        <DataTable<Holding>
-          rows={visible}
-          rowKey={(h) => h.id}
-          onRowClick={(h) => router.push(cls(h.cls).href)}
-          defaultSort={{ key: 'value', dir: 'desc' }}
-          empty={filtered ? 'No holdings match these filters.' : 'Nothing here yet — add records from the class pages in the sidebar.'}
-          columns={[
-            {
-              key: 'name',
-              label: 'Holding',
-              sortValue: (h) => h.name.toLowerCase(),
-              render: (h) => (
-                <>
-                  <div className="max-w-[300px] truncate font-semibold">{h.name}</div>
-                  <div className="max-w-[300px] truncate text-[12.5px] text-muted">{h.sub}</div>
-                </>
-              ),
-            },
-            {
-              key: 'class',
-              label: 'Class',
-              sortValue: (h) => cls(h.cls).label,
-              render: (h) => (
-                <span className="inline-flex items-center gap-2 whitespace-nowrap text-[14px]">
-                  <Dot color={cls(h.cls).color} size={8} />
-                  {cls(h.cls).label}
-                </span>
-              ),
-            },
-            { key: 'invested', label: 'Invested', align: 'right', sortValue: (h) => h.invested, render: (h) => M(h.invested) },
-            { key: 'value', label: 'Value', align: 'right', sortValue: (h) => h.value, render: (h) => <span className="font-semibold">{M(h.value)}</span> },
-            {
-              key: 'gain',
-              label: 'Gain',
-              align: 'right',
-              sortValue: gainOf,
-              render: (h) => {
-                const g = gainOf(h);
-                if (Math.abs(g) < 0.5) return <span className="text-muted">—</span>;
-                return (
-                  <span className={g > 0 ? 'text-gain' : 'text-loss'}>
-                    {S(g)}
-                    {h.invested > 0 && <span className="ml-1 text-[12.5px]">({((g / h.invested) * 100).toFixed(1)}%)</span>}
-                  </span>
-                );
-              },
-            },
-            {
-              key: 'share',
-              label: filtered ? 'Of selection' : 'Of assets',
-              align: 'right',
-              sortValue: (h) => h.value,
-              render: (h) => {
-                const share = total > 0 ? (h.value / total) * 100 : 0;
-                return (
-                  <span className="flex items-center justify-end gap-2.5">
-                    <ShareBar value={share} color={cls(h.cls).color} className="hidden w-16 sm:block" />
-                    <span className="w-12 text-right tabular-nums text-muted">{pct(share)}</span>
-                  </span>
-                );
-              },
-            },
-            {
-              key: 'go',
-              label: '',
-              render: (h) => (
-                <span className="inline-flex text-muted" title={`Manage in ${cls(h.cls).label}`}>
-                  <ArrowUpRight className="h-4 w-4" />
-                </span>
-              ),
-            },
-          ]}
-        />
-      </Panel>
+      <HoldingsTable holdings={holdings} />
     </div>
   );
 }
 
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+type Tab = AssetClassKey | 'loans';
+
+/** Read-only holdings, one tab per asset class plus Loans, with search — independent of the chart filters. */
+function HoldingsTable({ holdings }: { holdings: Holding[] }) {
+  const t = usePortfolioTotals();
+  const router = useRouter();
+  const { M, S } = useMoney();
+  const [query, setQuery] = useState('');
+
+  const loans = useMemo<Holding[]>(
+    () => t.loans.map((l) => ({ id: `l-${l.id}`, name: l.name, sub: `${titleCase(l.type)} · EMI ${M(l.emiAmount)} · ${l.interestRate}%`, cls: 'bank' as AssetClassKey, invested: l.principalAmount || 0, value: l.outstandingAmount || 0 })),
+    [t.loans, M],
+  );
+  const rowsFor = (tab: Tab) => (tab === 'loans' ? loans : holdings.filter((h) => h.cls === tab));
+  // Open on the first class that has something in it
+  const [tab, setTab] = useState<Tab | null>(null);
+  const active: Tab = tab ?? t.classes.find((c) => holdings.some((h) => h.cls === c.key))?.key ?? 'bank';
+  const isLoans = active === 'loans';
+  const meta = isLoans ? { label: 'Loans', color: 'var(--c-loan)', href: '/portfolio/loans' } : t.byKey[active];
+
+  const q = query.trim().toLowerCase();
+  const all = rowsFor(active);
+  const rows = all.filter((h) => !q || h.name.toLowerCase().includes(q) || h.sub.toLowerCase().includes(q));
+  const base = all.reduce((s, h) => s + h.value, 0);
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={on}
-      className={cn('btn !gap-2 !px-3 !py-1.5 text-[13.5px]', on ? 'bg-accent-100 text-accent-800 shadow-[inset_0_0_0_1px_var(--color-accent)]' : 'btn-secondary')}>
-      {children}
-    </button>
+    <Panel flush className="overflow-hidden">
+      <div className="flex flex-wrap items-end justify-between gap-3 px-6 pb-2 pt-[22px]">
+        <div>
+          <h2 className="text-[19px]">Holdings</h2>
+          <p className="mt-1 text-[13px] text-muted">Read-only · tap a row to manage it on the {meta.label} page</p>
+        </div>
+        <label className="relative w-full max-w-[260px]">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${meta.label.toLowerCase()}…`} className="input !pl-9" aria-label="Search holdings" />
+        </label>
+      </div>
+      <UnderlineTabs<Tab>
+        className="px-6"
+        value={active}
+        onChange={setTab}
+        tabs={[...t.classes.map((c) => ({ value: c.key as Tab, label: c.label, count: rowsFor(c.key).length })), { value: 'loans' as Tab, label: 'Loans', count: loans.length }]}
+      />
+      <DataTable<Holding>
+        key={active}
+        rows={rows}
+        rowKey={(h) => h.id}
+        onRowClick={() => router.push(meta.href)}
+        defaultSort={{ key: 'value', dir: 'desc' }}
+        empty={q ? 'Nothing matches your search.' : `Nothing in ${meta.label} yet — add it from the ${meta.label} page.`}
+        columns={[
+          {
+            key: 'name',
+            label: isLoans ? 'Loan' : 'Holding',
+            sortValue: (h) => h.name.toLowerCase(),
+            render: (h) => (
+              <>
+                <div className="max-w-[320px] truncate font-semibold">{h.name}</div>
+                <div className="max-w-[320px] truncate text-[12.5px] text-muted">{h.sub}</div>
+              </>
+            ),
+          },
+          { key: 'invested', label: isLoans ? 'Principal' : 'Invested', align: 'right', sortValue: (h) => h.invested, render: (h) => M(h.invested) },
+          {
+            key: 'value',
+            label: isLoans ? 'Outstanding' : 'Value',
+            align: 'right',
+            sortValue: (h) => h.value,
+            render: (h) => <span className={cn('font-semibold', isLoans && 'text-loss')}>{M(h.value)}</span>,
+          },
+          ...(isLoans
+            ? [
+                {
+                  key: 'repaid',
+                  label: 'Repaid',
+                  align: 'right' as const,
+                  sortValue: (h: Holding) => h.invested - h.value,
+                  render: (h: Holding) => <span className="text-gain">{M(Math.max(0, h.invested - h.value))}</span>,
+                },
+              ]
+            : [
+                {
+                  key: 'gain',
+                  label: 'Gain',
+                  align: 'right' as const,
+                  sortValue: gainOf,
+                  render: (h: Holding) => {
+                    const g = gainOf(h);
+                    if (Math.abs(g) < 0.5) return <span className="text-muted">—</span>;
+                    return (
+                      <span className={g > 0 ? 'text-gain' : 'text-loss'}>
+                        {S(g)}
+                        {h.invested > 0 && <span className="ml-1 text-[12.5px]">({((g / h.invested) * 100).toFixed(1)}%)</span>}
+                      </span>
+                    );
+                  },
+                },
+              ]),
+          {
+            key: 'share',
+            label: isLoans ? 'Of loans' : `Of ${meta.label.toLowerCase()}`,
+            align: 'right',
+            sortValue: (h) => h.value,
+            render: (h) => {
+              const share = base > 0 ? (h.value / base) * 100 : 0;
+              return (
+                <span className="flex items-center justify-end gap-2.5">
+                  <ShareBar value={share} color={meta.color} className="hidden w-16 sm:block" />
+                  <span className="w-12 text-right tabular-nums text-muted">{pct(share)}</span>
+                </span>
+              );
+            },
+          },
+          {
+            key: 'go',
+            label: '',
+            render: () => (
+              <span className="inline-flex text-muted" title={`Manage in ${meta.label}`}>
+                <ArrowUpRight className="h-4 w-4" />
+              </span>
+            ),
+          },
+        ]}
+      />
+    </Panel>
+  );
+}
+
+/** Dropdown with a checkbox per asset class; nothing ticked means every class. */
+function ClassMultiSelect({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: AssetClassKey; label: string; color: string; count: number }[];
+  value: AssetClassKey[];
+  onChange: (v: AssetClassKey[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const picked = options.filter((o) => value.includes(o.value));
+  const label = picked.length === 0 ? 'All asset classes' : picked.length <= 2 ? picked.map((o) => o.label).join(', ') : `${picked.length} asset classes`;
+  const toggle = (k: AssetClassKey) => onChange(value.includes(k) ? value.filter((v) => v !== k) : [...value, k]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open} className="input !inline-flex !w-auto min-w-[220px] items-center gap-2 text-left">
+        {picked.length > 0 && picked.length <= 3 && (
+          <span className="flex -space-x-0.5">
+            {picked.map((o) => (
+              <Dot key={o.value} color={o.color} size={8} />
+            ))}
+          </span>
+        )}
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        <ChevronDown className={cn('h-4 w-4 flex-none text-muted transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div role="listbox" aria-multiselectable="true" className="absolute left-0 z-30 mt-1.5 w-[280px] rounded-xl bg-[var(--dialog-bg)] p-1.5 shadow-[var(--shadow-md)] ring-1 ring-divider">
+          {options.map((o) => {
+            const on = value.includes(o.value);
+            return (
+              <button
+                key={o.value}
+                type="button"
+                role="option"
+                aria-selected={on}
+                onClick={() => toggle(o.value)}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[14px] hover:bg-tile">
+                <span className={cn('flex h-4 w-4 flex-none items-center justify-center rounded border', on ? 'border-accent bg-accent text-white' : 'border-divider')}>
+                  {on && <Check className="h-3 w-3" strokeWidth={3} />}
+                </span>
+                <Dot color={o.color} size={8} />
+                <span className="flex-1">{o.label}</span>
+                <span className="text-[12px] tabular-nums text-muted">{o.count}</span>
+              </button>
+            );
+          })}
+          <div className="mt-1 flex justify-between border-t border-divider px-2.5 pt-2 pb-1 text-[13px]">
+            <button type="button" className="font-medium text-accent-700 hover:underline" onClick={() => onChange(options.map((o) => o.value))}>
+              Select all
+            </button>
+            <button type="button" className="font-medium text-muted hover:underline" onClick={() => onChange([])}>
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
