@@ -4,17 +4,16 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Investment, PPFAccount } from "@/shared/types";
 import { Edit2, Plus, Trash2 } from 'lucide-react';
-import { Button, DetailRow, Drawer, EmptyState, LinkButton, Panel, PanelHeader, Tag } from '@/shared/components/ui';
+import { Button, Drawer, EmptyState, LinkButton, Panel, Tag } from '@/shared/components/ui';
 import { DataTable } from '@/shared/components/DataTable';
 import { useMoney, fmtDate } from '@/shared/hooks/useMoney';
 import { isRetirementInvestment } from '@/shared/hooks/usePortfolioTotals';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
-import { BreakdownPanel } from './BreakdownPanel';
 import { Loader } from '@/shared/components/Loader';
 import { ProvidentFundEditForm } from './ProvidentFundEditForm';
 import { ClassHeader } from './ClassPages';
 import { BarsPanel, DonutPanel, SERIES_COLORS } from './ClassCharts';
-import { NpsForm } from './NpsForm';
+import { RetirementAccountForm, retirementTypeLabel } from './RetirementAccountForm';
 import { RowActions } from './RowActions';
 import { usePortfolioCrud } from '../hooks/usePortfolioCrud';
 import { format } from 'date-fns';
@@ -23,7 +22,7 @@ const INVESTMENTS_KEY = ['investments', 'all'];
 
 type RetMode = { kind: 'edit'; item: Investment } | { kind: 'add' } | null;
 
-/** Retirement page: provident fund (EPFO passbooks) plus NPS — charts, PF passbooks, NPS accounts (CRUD). */
+/** Retirement page: provident fund (EPFO passbooks) plus manually added NPS / PF / other accounts (CRUD). */
 export function RetirementView() {
   const [mode, setMode] = useState<RetMode>(null);
   const { data: accounts = [], isLoading: pfLoading } = useQuery<PPFAccount[]>({
@@ -46,7 +45,7 @@ export function RetirementView() {
   });
 
   const header = (
-    <ClassHeader classKey="pf" actions={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add NPS account</Button>} />
+    <ClassHeader classKey="pf" actions={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add new account</Button>} />
   );
 
   if (pfLoading || invLoading) {
@@ -58,17 +57,17 @@ export function RetirementView() {
     );
   }
 
-  const npsAccounts = investments.filter(isRetirementInvestment);
-  // Charts follow net worth: every EPFO passbook plus published, not-closed NPS accounts — one bar / slice each
+  const manualAccounts = investments.filter(isRetirementInvestment);
+  // Charts follow net worth: every EPFO passbook plus published, not-closed manual accounts — one bar / slice each
   const pfRows = accounts.map((a) => {
     const net = (a.depositEmployeeShare || 0) - (a.withdrawEmployeeShare || 0) + (a.depositEmployerShare || 0) - (a.withdrawEmployerShare || 0) + (a.pensionContribution || 0);
     const value = a.grandTotal || 0;
     return { name: `${shortName(a.establishmentName || 'Unknown')} PF`, invested: Math.min(net, value), value };
   });
-  const npsRows = npsAccounts
+  const manualRows = manualAccounts
     .filter((i) => i.isPublished && i.status !== 'closed')
     .map((i) => ({ name: i.name, invested: i.amount || 0, value: getCurrentInvestmentValue(i) }));
-  const groups = [...pfRows, ...npsRows]
+  const groups = [...pfRows, ...manualRows]
     .filter((g) => g.value > 0)
     .map((g, idx) => ({ ...g, growth: Math.max(0, g.value - g.invested), color: SERIES_COLORS[idx % SERIES_COLORS.length] }));
 
@@ -90,7 +89,7 @@ export function RetirementView() {
       </div>
       <div className="space-y-4">
         <ProvidentFundDetailView />
-        <NpsTable accounts={npsAccounts} mode={mode} setMode={setMode} />
+        <RetirementAccountsTable accounts={manualAccounts} mode={mode} setMode={setMode} />
       </div>
     </>
   );
@@ -102,7 +101,7 @@ function shortName(name: string) {
   return first.length <= 4 ? first : first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
 }
 
-function NpsTable({ accounts, mode, setMode }: { accounts: Investment[]; mode: RetMode; setMode: (m: RetMode) => void }) {
+function RetirementAccountsTable({ accounts, mode, setMode }: { accounts: Investment[]; mode: RetMode; setMode: (m: RetMode) => void }) {
   const { M, S } = useMoney();
   const [error, setError] = useState('');
   const crud = usePortfolioCrud<Investment>('investments', [INVESTMENTS_KEY]);
@@ -133,13 +132,13 @@ function NpsTable({ accounts, mode, setMode }: { accounts: Investment[]; mode: R
   return (
     <Panel flush className="overflow-hidden">
       <div className="px-6 pb-4 pt-[22px]">
-        <h2 className="text-[19px]">NPS accounts</h2>
-        <p className="mt-1 text-[13px] text-muted">National Pension System balances from your statements · tap a row to edit</p>
+        <h2 className="text-[19px]">Other retirement accounts</h2>
+        <p className="mt-1 text-[13px] text-muted">NPS, PF and other balances added by hand from your statements · tap a row to edit</p>
       </div>
       {accounts.length === 0 ? (
         <div className="px-6 pb-6">
-          <EmptyState title="No NPS accounts yet" action={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add NPS account</Button>}>
-            Add your NPS Tier I or Tier II balance to include it in your retirement corpus and net worth.
+          <EmptyState title="No accounts added yet" action={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add new account</Button>}>
+            Add an NPS, PF or other retirement balance to include it in your retirement corpus and net worth.
           </EmptyState>
         </div>
       ) : (
@@ -165,6 +164,7 @@ function NpsTable({ accounts, mode, setMode }: { accounts: Investment[]; mode: R
                 </>
               ),
             },
+            { key: 'type', label: 'Type', render: (i) => <Tag>{retirementTypeLabel(i.type)}</Tag>, sortValue: (i) => retirementTypeLabel(i.type) },
             { key: 'invested', label: 'Balance entered', align: 'right', render: (i) => M(i.amount), sortValue: (i) => i.amount },
             {
               key: 'value',
@@ -195,8 +195,8 @@ function NpsTable({ accounts, mode, setMode }: { accounts: Investment[]; mode: R
         open={!!mode}
         onClose={close}
         width={640}
-        title={current ? `Edit ${current.name}` : 'Add NPS account'}
-        subtitle="National Pension System"
+        title={current ? `Edit ${current.name}` : 'Add new account'}
+        subtitle={current ? retirementTypeLabel(current.type) : 'NPS, PF or other retirement account'}
         footer={
           current ? (
             <Button variant="danger" icon={Trash2} disabled={crud.busy} onClick={() => handleDelete(current)}>
@@ -206,7 +206,7 @@ function NpsTable({ accounts, mode, setMode }: { accounts: Investment[]; mode: R
         }>
         {error && <p role="alert" className="mb-4 rounded-lg bg-loss-bg p-3 text-[13.5px] text-loss">{error}</p>}
         {mode && (
-          <NpsForm
+          <RetirementAccountForm
             key={current?.id ?? 'new'}
             investment={current ?? undefined}
             isSaving={crud.busy}
@@ -291,36 +291,10 @@ export function ProvidentFundDetailView() {
     );
   }
 
-  // Calculate totals
-  const totalDepositEmployee = accounts.reduce((sum, acc) => sum + (acc.depositEmployeeShare || 0), 0);
-  const totalDepositEmployer = accounts.reduce((sum, acc) => sum + (acc.depositEmployerShare || 0), 0);
-  const totalWithdrawEmployee = accounts.reduce((sum, acc) => sum + (acc.withdrawEmployeeShare || 0), 0);
-  const totalWithdrawEmployer = accounts.reduce((sum, acc) => sum + (acc.withdrawEmployerShare || 0), 0);
-  const totalPension = accounts.reduce((sum, acc) => sum + (acc.pensionContribution || 0), 0);
-  const totalGrandTotal = accounts.reduce((sum, acc) => sum + (acc.grandTotal || 0), 0);
   const totalAccounts = accounts.length;
-  
-  // Net balance (Deposits - Withdrawals)
-  const netDepositEmployee = totalDepositEmployee - totalWithdrawEmployee;
-  const netDepositEmployer = totalDepositEmployer - totalWithdrawEmployer;
-  const netTotal = netDepositEmployee + netDepositEmployer + totalPension;
-
-  // Establishment-wise breakdown
-  const establishmentBreakdown = accounts.reduce((acc, account) => {
-    const estName = account.establishmentName || 'Unknown';
-    acc[estName] = (acc[estName] || 0) + (account.grandTotal || 0);
-    return acc;
-  }, {} as Record<string, number>);
-
-  const establishmentChartData = Object.entries(establishmentBreakdown).map(([name, value]) => ({
-    name: name.length > 20 ? name.substring(0, 20) + '...' : name,
-    value,
-  }));
-
-
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+    <>
       <Panel flush className="overflow-hidden">
         <div className="px-6 pb-4 pt-[22px]">
           <h2 className="text-[19px]">Provident fund</h2>
@@ -369,24 +343,6 @@ export function ProvidentFundDetailView() {
         />
       </Panel>
 
-      <div className="space-y-4">
-        <Panel>
-          <PanelHeader title="Contributions" subtitle="Deposits minus withdrawals, plus pension" />
-          <DetailRow label="Employee share (net)" value={M(netDepositEmployee)} />
-          <DetailRow label="Employer share (net)" value={M(netDepositEmployer)} />
-          <DetailRow label="Pension contribution" value={M(totalPension)} />
-          <DetailRow label="Withdrawn to date" value={M(totalWithdrawEmployee + totalWithdrawEmployer)} />
-          <div className="flex items-baseline justify-between pt-4">
-            <span className="text-[15px] font-semibold">Grand total</span>
-            <span className="text-[19px] font-bold tabular-nums">{M(totalGrandTotal)}</span>
-          </div>
-          {Math.abs(netTotal - totalGrandTotal) > 1 && (
-            <p className="mt-2 text-[12.5px] text-muted">Passbook grand total includes interest credited; net contributions are {M(netTotal)}.</p>
-          )}
-        </Panel>
-        <BreakdownPanel title="By establishment" items={establishmentChartData} color="var(--c-ret)" />
-      </div>
-
       {/* Edit PPF Account — opens in the right-side drawer */}
       <Drawer
         open={!!editingAccount}
@@ -404,6 +360,6 @@ export function ProvidentFundDetailView() {
           />
         )}
       </Drawer>
-    </div>
+    </>
   );
 }
