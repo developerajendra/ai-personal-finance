@@ -16,7 +16,7 @@ export interface Column<T> {
 }
 
 /**
- * Ledger table: grey uppercase header, hairline rows with hover tint, sortable headers,
+ * Data table: grey uppercase header, hairline rows with hover tint, sortable headers,
  * optional row click (opens a detail drawer on class pages).
  */
 export function DataTable<T>({
@@ -52,7 +52,7 @@ export function DataTable<T>({
 
   return (
     <div className={cn('overflow-x-auto', className)}>
-      <table className="ledger-table">
+      <table className="data-table">
         <thead>
           <tr>
             {columns.map((c, i) => {

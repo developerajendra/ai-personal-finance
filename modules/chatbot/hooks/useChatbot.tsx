@@ -14,7 +14,7 @@ interface ChatbotContextType {
 
 const ChatbotContext = createContext<ChatbotContextType | undefined>(undefined);
 
-/** Open state and the running conversation for the floating Ledger AI chat, shared across pages. */
+/** Open state and the running conversation for the floating Personal Finance AI chat, shared across pages. */
 export function ChatbotProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);

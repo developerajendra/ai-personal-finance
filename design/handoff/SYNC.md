@@ -1,12 +1,12 @@
 source: local folder ai-personal-finance (Next.js 14, Tailwind 3, lucide-react, recharts)
-design: Ledger Finance v7.dc.html
+design: Personal Finance v7.dc.html
 direction: design → code (preserve all existing data fetching, APIs, auth and repositories)
 
 ## Last sync
 date: 2026-10-02
 ### Updated in this project
 - Mapped all 11 v7 screens to repo routes/components
-- Extracted theme tokens → handoff/ledger-theme.css + handoff/tailwind.config.ts
+- Extracted theme tokens → handoff/theme.css + handoff/tailwind.config.ts
 - Defaults locked: Apple skin, Teal accent, Rich list subnav, no top control row
 
 ## Screen map
@@ -25,7 +25,7 @@ date: 2026-10-02
 | Settings — profile, appearance, AI provider, connections | `settings` | app/settings/page.tsx, modules/settings/components/WhatsAppLinkCard.tsx | Changed |
 
 ## Implementation order
-1. Tokens: replace tailwind.config.ts; import ledger-theme.css in globals.css; drop Arial body font and Inter in layout.tsx → system SF stack (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif`); set html data-theme="apple" data-skin="apple" data-accent="teal". Persist pick in localStorage key `ledger-theme`.
+1. Tokens: replace tailwind.config.ts; import theme.css in globals.css; drop Arial body font and Inter in layout.tsx → system SF stack (`-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif`); set html data-theme="apple" data-skin="apple" data-accent="teal". Persist pick in localStorage key `pf-theme`.
 2. Shell: Sidebar.tsx → Dashboard / Performance / Portfolio (auto-expand on /portfolio/*, faint chevron always visible, Rich list rows = icon · name · value · share%) / Loans / Cash flow / Upcoming / Imports / Settings. Merge Stocks + Mutual Funds into one "Stocks & funds" entry. Mobile (<768px): hide sidebar, floating tab bar Home · Trends · Portfolio · Cash flow · More; More sheet holds remaining routes + design/colour picker.
 3. Page header pattern on every page: h1 title + primary "Add" pill button only. Remove date-range / currency / hide-amount row (lives in Settings + chart toggles).
 4. Overview → Portfolio → Asset classes → Loans & receivables.

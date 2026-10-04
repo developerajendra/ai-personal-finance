@@ -7,7 +7,7 @@ import { loadStocks, loadMutualFunds, saveStocks, saveMutualFunds } from "@/serv
 import { loadPPFAccounts, savePPFAccounts } from "@/server/finance/provident-fund/ppfStorage";
 
 /**
- * Deterministic importer for the Ledger portfolio workbook (the multi-sheet
+ * Deterministic importer for the portfolio workbook (the multi-sheet
  * "portfolio-export-YYYY-MM-DD.xlsx" format: Summary, Investments, Bank Balances
  * & Receivables, Loans, Properties, Stocks, Mutual Funds, Provident Fund,
  * Transactions). Columns are known, so no AI is involved and every row maps
@@ -15,7 +15,7 @@ import { loadPPFAccounts, savePPFAccounts } from "@/server/finance/provident-fun
  * converted back to their original amount so values aren't converted twice.
  */
 
-export const LEDGER_SHEETS = {
+export const WORKBOOK_SHEETS = {
   investments: "Investments",
   bank: "Bank Balances & Receivables",
   loans: "Loans",
@@ -28,10 +28,10 @@ export const LEDGER_SHEETS = {
 
 type Row = Record<string, unknown>;
 
-/** A workbook is a Ledger export when at least two of its known sheets are present. */
-export function isLedgerWorkbook(wb: XLSX.WorkBook) {
+/** A workbook is a portfolio export when at least two of its known sheets are present. */
+export function isPortfolioWorkbook(wb: XLSX.WorkBook) {
   const names = new Set(wb.SheetNames);
-  return Object.values(LEDGER_SHEETS).filter((n) => names.has(n)).length >= 2;
+  return Object.values(WORKBOOK_SHEETS).filter((n) => names.has(n)).length >= 2;
 }
 
 function rows(wb: XLSX.WorkBook, sheet: string): Row[] {
@@ -88,8 +88,8 @@ export interface WorkbookImportResult extends PortfolioImportResult {
   holdings: { stocks: number; mutualFunds: number; ppfAccounts: number };
 }
 
-export function parseLedgerWorkbook(wb: XLSX.WorkBook) {
-  const investments: Partial<Investment>[] = rows(wb, LEDGER_SHEETS.investments)
+export function parsePortfolioWorkbook(wb: XLSX.WorkBook) {
+  const investments: Partial<Investment>[] = rows(wb, WORKBOOK_SHEETS.investments)
     .filter((r) => str(r["Name"]))
     .map((r) => {
       const ccy = currencyOf(r["Currency"]);
@@ -118,7 +118,7 @@ export function parseLedgerWorkbook(wb: XLSX.WorkBook) {
       };
     });
 
-  const bankBalances: Partial<BankBalance>[] = rows(wb, LEDGER_SHEETS.bank)
+  const bankBalances: Partial<BankBalance>[] = rows(wb, WORKBOOK_SHEETS.bank)
     .filter((r) => str(r["Bank Name"]) && !/^[─—-]{2,}/.test(str(r["Bank Name"])))
     .map((r) => {
       const ccy = currencyOf(r["Currency"]);
@@ -143,7 +143,7 @@ export function parseLedgerWorkbook(wb: XLSX.WorkBook) {
       };
     });
 
-  const loans: Partial<Loan>[] = rows(wb, LEDGER_SHEETS.loans)
+  const loans: Partial<Loan>[] = rows(wb, WORKBOOK_SHEETS.loans)
     .filter((r) => str(r["Name"]))
     .map((r) => ({
       name: str(r["Name"]),
@@ -161,7 +161,7 @@ export function parseLedgerWorkbook(wb: XLSX.WorkBook) {
       isPublished: true,
     }));
 
-  const properties: Partial<Property>[] = rows(wb, LEDGER_SHEETS.properties)
+  const properties: Partial<Property>[] = rows(wb, WORKBOOK_SHEETS.properties)
     .filter((r) => str(r["Name"]))
     .map((r) => ({
       name: str(r["Name"]),
@@ -176,7 +176,7 @@ export function parseLedgerWorkbook(wb: XLSX.WorkBook) {
       isPublished: true,
     }));
 
-  const stocks: ZerodhaStock[] = rows(wb, LEDGER_SHEETS.stocks)
+  const stocks: ZerodhaStock[] = rows(wb, WORKBOOK_SHEETS.stocks)
     .filter((r) => str(r["Symbol"]))
     .map((r) => {
       const quantity = num(r["Quantity"]) ?? 0;
@@ -195,7 +195,7 @@ export function parseLedgerWorkbook(wb: XLSX.WorkBook) {
       };
     });
 
-  const mutualFunds: ZerodhaMutualFund[] = rows(wb, LEDGER_SHEETS.funds)
+  const mutualFunds: ZerodhaMutualFund[] = rows(wb, WORKBOOK_SHEETS.funds)
     .filter((r) => str(r["Symbol"]) || str(r["Fund Name"]))
     .map((r) => {
       const quantity = num(r["Quantity"]) ?? 0;
@@ -213,7 +213,7 @@ export function parseLedgerWorkbook(wb: XLSX.WorkBook) {
       };
     });
 
-  const ppfAccounts: Omit<PPFAccount, "id">[] = rows(wb, LEDGER_SHEETS.pf)
+  const ppfAccounts: Omit<PPFAccount, "id">[] = rows(wb, WORKBOOK_SHEETS.pf)
     .filter((r) => str(r["Member ID"]) || str(r["Establishment Name"]))
     .map((r) => {
       const updated = toISODate(r["Last Updated"]) ?? new Date().toISOString().slice(0, 10);
@@ -234,7 +234,7 @@ export function parseLedgerWorkbook(wb: XLSX.WorkBook) {
       };
     });
 
-  const transactions = rows(wb, LEDGER_SHEETS.transactions)
+  const transactions = rows(wb, WORKBOOK_SHEETS.transactions)
     .filter((r) => str(r["Description"]) && toISODate(r["Date"]))
     .map((r) => ({
       date: toISODate(r["Date"])!,
@@ -250,12 +250,12 @@ export function parseLedgerWorkbook(wb: XLSX.WorkBook) {
 }
 
 /**
- * Import a Ledger workbook. Portfolio records are merged (existing records kept,
+ * Import a portfolio workbook. Portfolio records are merged (existing records kept,
  * duplicates skipped) and published so they count immediately. Broker holdings
  * replace the cached Zerodha snapshot; EPF accounts upsert by member ID.
  */
-export async function importLedgerWorkbook(userId: string, wb: XLSX.WorkBook): Promise<WorkbookImportResult> {
-  const parsed = parseLedgerWorkbook(wb);
+export async function importPortfolioWorkbook(userId: string, wb: XLSX.WorkBook): Promise<WorkbookImportResult> {
+  const parsed = parsePortfolioWorkbook(wb);
 
   const result = await importPortfolio(
     userId,

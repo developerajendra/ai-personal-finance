@@ -453,7 +453,7 @@ export function ChatbotBoard() {
     {fullScreen && <div aria-hidden className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]" onClick={() => setFullScreen(false)} />}
     <div
       role="dialog"
-      aria-label="Ledger AI assistant"
+      aria-label="Personal Finance AI assistant"
       aria-modal={fullScreen || undefined}
       className={`dialog fixed z-50 flex flex-col overflow-hidden ${
         fullScreen
@@ -486,7 +486,7 @@ export function ChatbotBoard() {
               <Sparkles className="h-[18px] w-[18px]" strokeWidth={1.75} />
             </span>
             <div className="min-w-0 leading-tight">
-              <h3 className="text-[15px] font-semibold">Ledger AI</h3>
+              <h3 className="text-[15px] font-semibold">Personal Finance AI</h3>
               <p className="truncate text-[12.5px] text-muted">Answers about your finances only</p>
             </div>
           </div>

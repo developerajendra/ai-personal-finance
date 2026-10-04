@@ -13,8 +13,8 @@ import { buildCashEvents } from '@/shared/utils/upcoming';
 import { NAV, NAV_GROUPS, NAV_BOTTOM, type NavItem } from '@/shared/components/navigation';
 import { Avatar, ShareBar, StackBar } from '@/shared/components/ui';
 
-/** The Ledger mark: rounded tile with an axis and a rising accent line. */
-export function LedgerLogo({ size = 30 }: { size?: number }) {
+/** The app mark: rounded tile with an axis and a rising accent line. */
+export function AppLogo({ size = 30 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className="flex-none">
       <rect width="32" height="32" rx="8" fill="var(--logo-bg)" />
@@ -301,8 +301,8 @@ export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSear
       )}>
       {/* Logo + collapse */}
       <div className={cn('flex min-h-[34px] items-center gap-2 pl-[10px]', isCollapsed ? 'flex-col items-start' : 'justify-between pr-1.5')}>
-        <Link href="/dashboard" onClick={go('/dashboard')} aria-label="Ledger home" className="flex min-w-0 items-center gap-2.5">
-          <LedgerLogo />
+        <Link href="/dashboard" onClick={go('/dashboard')} aria-label="Personal Finance home" className="flex min-w-0 items-center gap-2.5">
+          <AppLogo />
           <Fold collapsed={isCollapsed} className="flex min-w-0 flex-col leading-tight">
             <span className="font-heading text-[16px] font-bold">Personal Finance</span>
             <span className="truncate text-[12px] text-side-muted">Net worth {C(totals.netWorth)}</span>

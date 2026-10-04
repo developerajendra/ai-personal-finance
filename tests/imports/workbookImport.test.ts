@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
 import { createUser } from "../helpers";
-import { importLedgerWorkbook, isLedgerWorkbook, parseLedgerWorkbook, ruleToFormula, toISODate } from "@/server/imports/workbookImport";
+import { importPortfolioWorkbook, isPortfolioWorkbook, parsePortfolioWorkbook, ruleToFormula, toISODate } from "@/server/imports/workbookImport";
 import { buildPortfolioWorkbook } from "@/server/imports/workbookExport";
 import { listInvestments } from "@/server/finance/investments/service";
 import { listTransactions } from "@/server/finance/transactions/service";
@@ -11,7 +11,7 @@ import { getCurrentInvestmentValue } from "@/shared/utils/investmentValue";
 
 const serial = (iso: string) => new Date(`${iso}T00:00:00Z`).getTime() / 864e5 + 25569;
 
-/** Synthetic workbook in the Ledger export format (same sheet + column names). */
+/** Synthetic workbook in the portfolio export format (same sheet + column names). */
 function sampleWorkbook() {
   const wb = XLSX.utils.book_new();
   const add = (name: string, rows: unknown[][]) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), name);
@@ -57,10 +57,10 @@ function sampleWorkbook() {
   return wb;
 }
 
-describe("Ledger workbook import", () => {
+describe("Portfolio workbook import", () => {
   it("recognises the export format and parses helpers", () => {
-    expect(isLedgerWorkbook(sampleWorkbook())).toBe(true);
-    expect(isLedgerWorkbook(XLSX.utils.book_new())).toBe(false);
+    expect(isPortfolioWorkbook(sampleWorkbook())).toBe(true);
+    expect(isPortfolioWorkbook(XLSX.utils.book_new())).toBe(false);
     expect(toISODate(serial("2026-01-02") + 0.64)).toBe("2026-01-02");
     expect(toISODate("06/09/2026")).toBe("2026-09-06");
     expect(ruleToFormula("4x in 14 Years")).toBe("principal * Math.pow(4, yearsElapsed / 14)");
@@ -69,7 +69,7 @@ describe("Ledger workbook import", () => {
   });
 
   it("converts ₹ columns back to the original currency so values aren't converted twice", () => {
-    const parsed = parseLedgerWorkbook(sampleWorkbook());
+    const parsed = parsePortfolioWorkbook(sampleWorkbook());
     const fd = parsed.investments.find((i) => i.name === "Nepal FD")!;
     expect(fd.originalCurrency).toBe("NPR");
     expect(fd.originalAmount).toBeCloseTo(1000000, 2); // ₹6,25,000 ÷ 0.625
@@ -79,7 +79,7 @@ describe("Ledger workbook import", () => {
 
   it("imports every sheet as published records, and re-importing adds nothing", async () => {
     const user = await createUser();
-    const first = await importLedgerWorkbook(user, sampleWorkbook());
+    const first = await importPortfolioWorkbook(user, sampleWorkbook());
     expect(first.added).toEqual({ investments: 2, loans: 1, properties: 1, bankBalances: 3 });
     expect(first.transactions.inserted).toBe(2);
     expect(first.holdings).toEqual({ stocks: 2, mutualFunds: 1, ppfAccounts: 1 });
@@ -96,7 +96,7 @@ describe("Ledger workbook import", () => {
     expect(await loadMutualFunds(user)).toHaveLength(1);
     expect((await loadPPFAccounts(user))[0]?.grandTotal).toBe(2454169);
 
-    const again = await importLedgerWorkbook(user, sampleWorkbook());
+    const again = await importPortfolioWorkbook(user, sampleWorkbook());
     expect(again.added).toEqual({ investments: 0, loans: 0, properties: 0, bankBalances: 0 });
     expect(again.transactions.inserted).toBe(0);
     expect(await loadPPFAccounts(user)).toHaveLength(1); // upserted by member ID
@@ -105,12 +105,12 @@ describe("Ledger workbook import", () => {
 
   it("export → import round-trips into an empty account", async () => {
     const source = await createUser();
-    await importLedgerWorkbook(source, sampleWorkbook());
+    await importPortfolioWorkbook(source, sampleWorkbook());
     const exported = XLSX.read(await buildPortfolioWorkbook(source), { type: "buffer" });
-    expect(isLedgerWorkbook(exported)).toBe(true);
+    expect(isPortfolioWorkbook(exported)).toBe(true);
 
     const target = await createUser();
-    await importLedgerWorkbook(target, exported);
+    await importPortfolioWorkbook(target, exported);
     const a = await loadPortfolio(source);
     const b = await loadPortfolio(target);
     const sum = (xs: number[]) => xs.reduce((s, x) => s + x, 0);

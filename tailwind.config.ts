@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-// Ledger design tokens. Every value resolves to a CSS variable defined in app/ledger-theme.css,
+// Personal Finance design tokens. Every value resolves to a CSS variable defined in app/theme.css,
 // so the active skin (Apple / Midnight / Sand / Mint / Private) and accent re-theme the whole app.
 const v = (n: string) => `var(--${n})`;
 const scale = (p: string) =>

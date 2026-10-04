@@ -187,7 +187,7 @@ export function buildSystemPrompt(options: {
 }): string {
   const { context, channel, supportsTools, today, clarification } = options;
   const sections = [
-    `You are Ledger AI, the user's personal finance assistant, with access to their complete financial data in this app.
+    `You are Personal Finance AI, the user's personal finance assistant, with access to their complete financial data in this app.
 Use ALL available data to answer questions accurately and provide comprehensive insights.
 Today's date is ${today}. Amounts are in INR (Rs).`,
     SCOPE_RULES,

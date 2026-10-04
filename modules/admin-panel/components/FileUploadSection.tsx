@@ -89,7 +89,7 @@ export function FileUploadSection() {
       } else if (portfolioSummary.length > 0) {
         message += ` AI analysis created ${portfolioSummary.join(", ")} as drafts — publish them from Portfolio to include them in net worth.`;
       } else {
-        message += " No portfolio items were detected. AI extraction needs Ollama running on the server, or upload a Ledger portfolio workbook (Investments, Loans, Properties… sheets).";
+        message += " No portfolio items were detected. AI extraction needs Ollama running on the server, or upload a portfolio workbook exported from this app (Investments, Loans, Properties… sheets).";
       }
 
       setNotice({ tone: "gain", text: message });
