@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation';
 import { UnderlineTabs } from '@/shared/components/ui';
-import { usePortfolioTotals } from '@/shared/hooks/usePortfolioTotals';
 
 /** Route-backed tab bars that group related screens, as in the design's sections. */
 
@@ -16,21 +15,6 @@ export function CashFlowTabs() {
         { value: '/transactions', label: 'Transactions', href: '/transactions' },
         { value: '/dashboard/archive', label: 'Monthly snapshots', href: '/dashboard/archive' },
         { value: '/transactions/categories', label: 'Categories', href: '/transactions/categories' },
-      ]}
-    />
-  );
-}
-
-export function LoansTabs() {
-  const path = usePathname() || '';
-  const t = usePortfolioTotals();
-  return (
-    <UnderlineTabs
-      className="mb-6"
-      value={path}
-      tabs={[
-        { value: '/portfolio/loans', label: 'Loans', count: t.activeLoans.length, href: '/portfolio/loans' },
-        { value: '/portfolio/receivables', label: 'Receivables', count: t.receivables.length, href: '/portfolio/receivables' },
       ]}
     />
   );

@@ -3,6 +3,8 @@ import {
   LineChart,
   Briefcase,
   HandCoins,
+  Landmark,
+  Wallet,
   ArrowDownUp,
   CalendarDays,
   Repeat,
@@ -33,8 +35,10 @@ export const NAV: Record<string, NavItem> = {
     icon: Briefcase,
     match: (p) => starts('/portfolio')(p) && !starts('/portfolio/loans', '/portfolio/receivables')(p),
   },
-  loans: { key: 'loans', label: 'Loans & receivables', href: '/portfolio/loans', icon: HandCoins, match: starts('/portfolio/loans', '/portfolio/receivables') },
+  loans: { key: 'loans', label: 'Loans', href: '/portfolio/loans', icon: Landmark, match: starts('/portfolio/loans') },
+  receivables: { key: 'receivables', label: 'Receivables', href: '/portfolio/receivables', icon: HandCoins, match: starts('/portfolio/receivables') },
   cashflow: { key: 'cashflow', label: 'Cash flow', href: '/transactions', icon: ArrowDownUp, match: (p) => starts('/transactions', '/dashboard/archive')(p) && !p.startsWith('/transactions/subscriptions') },
+  budget: { key: 'budget', label: 'Budget', href: '/budget', icon: Wallet, match: starts('/budget') },
   subscriptions: { key: 'subscriptions', label: 'Subscriptions', href: '/subscriptions', icon: Repeat, match: starts('/subscriptions', '/transactions/subscriptions') },
   upcoming: { key: 'upcoming', label: 'Upcoming', href: '/upcoming', icon: CalendarDays, match: starts('/upcoming') },
   imports: { key: 'imports', label: 'Imports & data', href: '/data/upload', icon: PlugZap, match: starts('/data', '/admin') },
@@ -43,8 +47,8 @@ export const NAV: Record<string, NavItem> = {
 };
 
 export const NAV_GROUPS: { label?: string; items: NavItem[] }[] = [
-  { label: 'Wealth', items: [NAV.overview, NAV.performance, NAV.portfolio, NAV.loans] },
-  { label: 'Planning', items: [NAV.cashflow, NAV.subscriptions, NAV.upcoming] },
+  { label: 'Wealth', items: [NAV.overview, NAV.performance, NAV.portfolio, NAV.loans, NAV.receivables] },
+  { label: 'Planning', items: [NAV.budget, NAV.cashflow, NAV.subscriptions, NAV.upcoming] },
 ];
 
 export const NAV_BOTTOM: NavItem[] = [NAV.imports, NAV.assistant, NAV.settings];
@@ -56,7 +60,7 @@ export const MOBILE_TABS: { item: NavItem; label: string }[] = [
   { item: NAV.portfolio, label: 'Portfolio' },
   { item: NAV.cashflow, label: 'Cash flow' },
 ];
-export const MOBILE_MORE: NavItem[] = [NAV.loans, NAV.subscriptions, NAV.upcoming, NAV.imports, NAV.assistant, NAV.settings];
+export const MOBILE_MORE: NavItem[] = [NAV.budget, NAV.loans, NAV.receivables, NAV.subscriptions, NAV.upcoming, NAV.imports, NAV.assistant, NAV.settings];
 
 /** Extra destinations reachable from ⌘K search */
 export const SEARCH_EXTRA: { label: string; href: string; group: string }[] = [
@@ -66,8 +70,7 @@ export const SEARCH_EXTRA: { label: string; href: string; group: string }[] = [
   { label: 'Cash & bank', href: '/portfolio/bank-balances', group: 'Portfolio' },
   { label: 'Retirement (EPF + NPS)', href: '/portfolio/provident-fund', group: 'Portfolio' },
   { label: 'Properties', href: '/portfolio/properties', group: 'Portfolio' },
-  { label: 'Receivables', href: '/portfolio/receivables', group: 'Loans & receivables' },
-  { label: 'Monthly snapshots', href: '/dashboard/archive', group: 'Cash flow' },
+    { label: 'Monthly snapshots', href: '/dashboard/archive', group: 'Cash flow' },
   { label: 'Transaction categories', href: '/transactions/categories', group: 'Cash flow' },
   { label: 'AI analysis', href: '/data/analysis', group: 'Imports & data' },
   { label: 'Net worth chart', href: '/dashboard/chart', group: 'Dashboard' },

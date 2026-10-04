@@ -23,14 +23,20 @@ type ViewMode = 'draft' | 'published' | 'matured'; // matured only applies to in
 const READ_ONLY_TABS: Partial<Record<ItemType, { href: string; label: string }>> = {
   'bank-balance': { href: '/portfolio/bank-balances', label: 'Cash & bank' },
   property: { href: '/portfolio/properties', label: 'Properties' },
+  loan: { href: '/portfolio/loans', label: 'Loans' },
+  receivables: { href: '/portfolio/receivables', label: 'Receivables' },
 };
 
 interface PortfolioGridProps {
   defaultTab?: ItemType;
+  /** Show only this tab, fully editable (e.g. the Receivables page); hides the tab bar */
+  lockedTab?: ItemType;
 }
 
-export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps = {}) {
-  const [activeTab, setActiveTab] = useState<ItemType>(defaultTab);
+export function PortfolioGrid({ defaultTab = 'investment', lockedTab }: PortfolioGridProps = {}) {
+  const [activeTab, setActiveTab] = useState<ItemType>(lockedTab ?? defaultTab);
+  // Overview tabs whose add / edit / delete lives on their own page (none when locked to one tab)
+  const readOnlyLink = lockedTab ? undefined : READ_ONLY_TABS[activeTab];
   const [viewMode, setViewMode] = useState<ViewMode>('draft');
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [draftCount, setDraftCount] = useState<number>(0);
@@ -182,10 +188,11 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
 
   // Update active tab when defaultTab prop changes
   useEffect(() => {
-    if (defaultTab) {
-      handleTabSwitch(defaultTab);
+    const tab = lockedTab ?? defaultTab;
+    if (tab) {
+      handleTabSwitch(tab);
     }
-  }, [defaultTab]);
+  }, [defaultTab, lockedTab]);
 
   // Fetch counts for all tabs
   useEffect(() => {
@@ -1032,7 +1039,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     <div className="panel overflow-hidden">
       <div className="px-6 pt-[22px]">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[19px] text-ink">Portfolio management</h2>
+          <h2 className="text-[19px] text-ink">{lockedTab ? `All ${tabLabels[lockedTab].toLowerCase()}` : 'Portfolio management'}</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={handleSyncGmail}
@@ -1058,7 +1065,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         </div>
 
         {/* Category Creation Form */}
-        {showCategoryForm && (
+        {!lockedTab && showCategoryForm && (
           <div className="mb-4 p-4 bg-accent-100 rounded-lg border border-accent-200">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold text-accent-800">Create New Portfolio Category</h3>
@@ -1203,7 +1210,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
           </div>
         )}
 
-        <UnderlineTabs<ItemType>
+        {!lockedTab && <UnderlineTabs<ItemType>
           className="-mx-6 mb-4 px-6"
           value={activeTab}
           onChange={handleTabSwitch}
@@ -1220,7 +1227,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               {showCategoryForm ? 'Cancel' : 'Add new category'}
             </button>
           }
-        />
+        />}
         {/* Draft/Published Tabs */}
         <div className="flex flex-wrap gap-3 items-center justify-between pb-4">
           <div className="flex gap-2 items-center flex-wrap">
@@ -1257,10 +1264,10 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               />
             </div>
           )}
-            {READ_ONLY_TABS[activeTab] ? (
-              <Link href={READ_ONLY_TABS[activeTab]!.href} className="btn btn-primary">
+            {readOnlyLink ? (
+              <Link href={readOnlyLink!.href} className="btn btn-primary">
                 <ExternalLink className="w-4 h-4" />
-                Manage in {READ_ONLY_TABS[activeTab]!.label}
+                Manage in {readOnlyLink!.label}
               </Link>
             ) : (
             <button
@@ -1404,6 +1411,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         {activeTab === 'loan' && (
           <LoanGrid
             loans={filteredItems as Loan[]}
+            readOnly={!!readOnlyLink}
             onDelete={(id) => handleDelete(id, 'loan')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
@@ -1418,7 +1426,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         {activeTab === 'property' && (
           <PropertyGrid
             properties={filteredItems as Property[]}
-            readOnly
+            readOnly={!!readOnlyLink}
             onDelete={(id) => handleDelete(id, 'property')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
@@ -1433,7 +1441,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         {activeTab === 'bank-balance' && (
           <BankBalanceGrid
             bankBalances={filteredItems as BankBalance[]}
-            readOnly
+            readOnly={!!readOnlyLink}
             onDelete={(id) => handleDelete(id, 'bank-balance')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
@@ -1450,6 +1458,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         {activeTab === 'receivables' && (
           <BankBalanceGrid
             bankBalances={filteredItems as BankBalance[]}
+            forReceivables
+            readOnly={!!readOnlyLink}
             onDelete={(id) => handleDelete(id, 'receivables')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
@@ -1469,8 +1479,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
           <div className="p-8 text-center">
             <p className="text-muted mb-2">No {activeTab} data found.</p>
             <p className="text-sm text-neutral-500">
-              {READ_ONLY_TABS[activeTab]
-                ? `Add and edit these from ${READ_ONLY_TABS[activeTab]!.label}.`
+              {readOnlyLink
+                ? `Add and edit these from ${readOnlyLink!.label}.`
                 : activeTab === 'receivables'
                 ? "Click 'Add Receivables' to add money owed to you."
                 : "Upload an Excel file in the 'Upload & AI Analysis' tab to automatically create portfolio items."}
@@ -1969,6 +1979,7 @@ function InvestmentGrid({
 
 function LoanGrid({
   loans,
+  readOnly = false,
   onDelete,
   onEdit,
   onPublishToggle,
@@ -1980,6 +1991,8 @@ function LoanGrid({
   isPublishing,
 }: {
   loans: Loan[];
+  /** View-only on the overview; editing lives on /portfolio/loans */
+  readOnly?: boolean;
   onDelete: (id: string) => void;
   onEdit: (loan: Loan) => void;
   onPublishToggle: (id: string, isPublished: boolean) => void;
@@ -2012,16 +2025,18 @@ function LoanGrid({
           <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Start Date
           </th>
+          {!readOnly && (
           <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Actions
           </th>
+          )}
         </tr>
       </thead>
       <tbody className="bg-panel divide-y divide-divider">
         {loans.length === 0 ? (
           <tr>
-            <td colSpan={7} className="px-6 py-8 text-center text-muted">
-              No loans found. Click "Add Loan" to create one.
+            <td colSpan={readOnly ? 6 : 7} className="px-6 py-8 text-center text-muted">
+              No loans found.{readOnly ? '' : ' Click "Add Loan" to create one.'}
             </td>
           </tr>
         ) : (
@@ -2045,6 +2060,7 @@ function LoanGrid({
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 {new Date(loan.startDate).toLocaleDateString()}
               </td>
+              {!readOnly && (
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <div className="flex gap-2 items-center">
                   <button
@@ -2099,6 +2115,7 @@ function LoanGrid({
                   </div>
                 </div>
               </td>
+              )}
             </tr>
           ))
         )}
@@ -2256,6 +2273,7 @@ function PropertyGrid({
 
 function BankBalanceGrid({
   bankBalances,
+  forReceivables = false,
   readOnly = false,
   onDelete,
   onEdit,
@@ -2270,6 +2288,8 @@ function BankBalanceGrid({
   isPublishing,
 }: {
   bankBalances: BankBalance[];
+  /** Rendering the Receivables tab (wording only) */
+  forReceivables?: boolean;
   /** Overview bank tab is view-only; editing lives on /portfolio/bank-balances */
   readOnly?: boolean;
   onDelete: (id: string) => void;
@@ -2378,7 +2398,7 @@ function BankBalanceGrid({
         {bankBalances.length === 0 ? (
           <tr>
             <td colSpan={colSpan} className="px-6 py-8 text-center text-muted">
-              No {hasReceivables ? 'receivables' : 'bank balances'} found.{readOnly ? '' : ` Click "Add ${hasReceivables ? 'Receivables' : 'Bank Balance'}" to create one.`}
+              No {forReceivables ? 'receivables' : 'bank balances'} found.{readOnly ? '' : ` Click "Add ${forReceivables ? 'receivable' : 'bank balance'}" to create one.`}
             </td>
           </tr>
         ) : (

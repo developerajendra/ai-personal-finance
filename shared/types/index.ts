@@ -332,3 +332,40 @@ export interface Subscription {
   createdAt: string;
   updatedAt: string;
 }
+
+// ─── Budget ─────────────────────────────────────────────────────────
+
+export interface BudgetItem {
+  id: string;
+  kind: "expense" | "income";
+  name: string;
+  /** Expense: Home | Utilities | Transport | Living | Education | Health | Insurance | Other · Income: Salary | Other income */
+  category: string;
+  /** fixed = paid once per occurrence; variable = spent against a cap */
+  costType: "fixed" | "variable";
+  frequency: "monthly" | "yearly";
+  /** Planned INR per occurrence (per month, or per year for yearly items) */
+  amount: number;
+  /** 1–31; undefined = any time in the month */
+  dueDay?: number;
+  /** 1–12, yearly items only */
+  dueMonth?: number;
+  paidFrom?: string;
+  loanId?: string;
+  notes?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BudgetEntry {
+  id: string;
+  itemId: string;
+  /** yyyy-mm the entry counts towards */
+  month: string;
+  amount: number;
+  /** yyyy-mm-dd */
+  date: string;
+  note?: string;
+  createdAt: string;
+}

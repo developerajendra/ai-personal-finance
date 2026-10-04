@@ -325,3 +325,4 @@ export const mutualFunds = sqliteTable("mutual_funds", {
 export * from "./conversations";
 export * from "./whatsapp";
 export * from "./subscriptions";
+export * from "./budget";

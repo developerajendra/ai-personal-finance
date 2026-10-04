@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 
-type Resource = 'bank-balances' | 'properties' | 'investments';
+type Resource = 'bank-balances' | 'properties' | 'investments' | 'loans';
 const PUBLISH_TYPE: Record<Resource, string> = {
   'bank-balances': 'bank-balance',
   properties: 'property',
   investments: 'investment',
+  loans: 'loan',
 };
 
 async function send(url: string, method: string, body?: unknown) {

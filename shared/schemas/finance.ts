@@ -211,3 +211,41 @@ export const subscriptionInputSchema = z.object({
 });
 export const subscriptionUpdateSchema = subscriptionInputSchema.partial();
 export type SubscriptionInput = z.input<typeof subscriptionInputSchema>;
+
+export const BUDGET_KINDS = ["expense", "income"] as const;
+export const BUDGET_EXPENSE_CATEGORIES = ["Home", "Utilities", "Transport", "Living", "Education", "Health", "Insurance", "Other"] as const;
+export const BUDGET_INCOME_CATEGORIES = ["Salary", "Other income"] as const;
+export const BUDGET_COST_TYPES = ["fixed", "variable"] as const;
+export const BUDGET_FREQUENCIES = ["monthly", "yearly"] as const;
+const optionalInt = (min: number, max: number) =>
+  z.preprocess(toNumber, z.number().int().min(min).max(max).optional());
+/** yyyy-mm */
+export const monthKeySchema = z.string().trim().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Month must be yyyy-mm");
+
+const budgetItemBase = z.object({
+  kind: z.enum(BUDGET_KINDS).default("expense"),
+  name: z.string().trim().min(1, "Enter a name.").max(120),
+  category: z.enum([...BUDGET_EXPENSE_CATEGORIES, ...BUDGET_INCOME_CATEGORIES]).default("Other"),
+  costType: z.enum(BUDGET_COST_TYPES).default("fixed"),
+  frequency: z.enum(BUDGET_FREQUENCIES).default("monthly"),
+  amount: z.preprocess(toNumber, z.number().finite().gt(0, "Enter an amount above 0.")).transform(toMoney),
+  dueDay: optionalInt(1, 31),
+  dueMonth: optionalInt(1, 12),
+  paidFrom: optionalString(120),
+  loanId: optionalString(128),
+  notes: optionalString(1000),
+  active: z.boolean().default(true),
+});
+const yearlyNeedsMonth = (v: { frequency?: string; dueMonth?: number }) => v.frequency !== "yearly" || v.dueMonth != null;
+export const budgetItemInputSchema = budgetItemBase.refine(yearlyNeedsMonth, { message: "Pick the month a yearly item is due.", path: ["dueMonth"] });
+export const budgetItemUpdateSchema = budgetItemBase.partial();
+export type BudgetItemInput = z.input<typeof budgetItemInputSchema>;
+
+export const budgetEntryInputSchema = z.object({
+  itemId: recordIdSchema,
+  month: monthKeySchema,
+  amount: z.preprocess(toNumber, z.number().finite().gt(0, "Enter an amount above 0.")).transform(toMoney),
+  date: dateStringSchema,
+  note: optionalString(500),
+});
+export type BudgetEntryInput = z.input<typeof budgetEntryInputSchema>;
