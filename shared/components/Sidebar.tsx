@@ -190,8 +190,9 @@ export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSear
   };
 
   // Portfolio children: the design's "Rich list" — dot · name · compact value · share bar.
-  // Receivables lives under Loans & receivables, so it is not repeated here.
-  const classRows = totals.classes.filter((c) => c.key !== 'recv');
+  // Receivables lives under Loans & receivables, so it is not repeated here;
+  // Deposits & bonds stays reachable from the Portfolio overview and ⌘K search.
+  const classRows = totals.classes.filter((c) => c.key !== 'recv' && c.key !== 'investments');
   const classHrefs = new Set([...totals.classes.map((c) => c.href), '/portfolio/mutual-funds']);
   const dynamicRows = [...portfolioCategories]
     .sort((a, b) => a.name.localeCompare(b.name))

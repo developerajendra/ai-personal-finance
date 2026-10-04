@@ -2,15 +2,229 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { PPFAccount } from "@/shared/types";
-import { Edit2 } from 'lucide-react';
-import { DetailRow, Drawer, EmptyState, LinkButton, Panel, PanelHeader } from '@/shared/components/ui';
+import type { Investment, PPFAccount } from "@/shared/types";
+import { Edit2, Plus, Trash2 } from 'lucide-react';
+import { Button, DetailRow, Drawer, EmptyState, LinkButton, Panel, PanelHeader, Tag } from '@/shared/components/ui';
 import { DataTable } from '@/shared/components/DataTable';
-import { useMoney } from '@/shared/hooks/useMoney';
+import { useMoney, fmtDate } from '@/shared/hooks/useMoney';
+import { isRetirementInvestment } from '@/shared/hooks/usePortfolioTotals';
+import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 import { BreakdownPanel } from './BreakdownPanel';
 import { Loader } from '@/shared/components/Loader';
 import { ProvidentFundEditForm } from './ProvidentFundEditForm';
+import { ClassHeader } from './ClassPages';
+import { BarsPanel, DonutPanel } from './ClassCharts';
+import { RetirementForm, RETIREMENT_SCHEMES, schemeLabel } from './RetirementForm';
+import { RowActions } from './RowActions';
+import { usePortfolioCrud } from '../hooks/usePortfolioCrud';
 import { format } from 'date-fns';
+
+const INVESTMENTS_KEY = ['investments', 'all'];
+/** Chart colour per scheme; EPFO passbooks share the EPF / PF colour. */
+const SCHEME_COLOR: Record<string, string> = {
+  epf: 'var(--color-accent)',
+  ppf: 'var(--c-dep)',
+  nps: 'var(--c-ret)',
+  'retirement-other': 'var(--c-prop)',
+};
+
+type RetMode = { kind: 'edit'; item: Investment } | { kind: 'add' } | null;
+
+/** Retirement page: header with "Add retirement account", charts, manual schemes (CRUD) and EPFO passbooks. */
+export function RetirementView() {
+  const [mode, setMode] = useState<RetMode>(null);
+  const { data: accounts = [], isLoading: pfLoading } = useQuery<PPFAccount[]>({
+    queryKey: ['ppfAccounts'],
+    queryFn: async () => {
+      const response = await fetch('/api/portfolio/ppf-accounts');
+      if (!response.ok) throw new Error('Failed to fetch PPF accounts');
+      return response.json();
+    },
+    refetchOnWindowFocus: false,
+  });
+  const { data: investments = [], isLoading: invLoading } = useQuery<Investment[]>({
+    queryKey: INVESTMENTS_KEY,
+    queryFn: async () => {
+      const response = await fetch('/api/portfolio/investments');
+      if (!response.ok) throw new Error('Failed to fetch investments');
+      return response.json();
+    },
+    refetchOnWindowFocus: false,
+  });
+
+  const header = (
+    <ClassHeader classKey="pf" actions={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add retirement account</Button>} />
+  );
+
+  if (pfLoading || invLoading) {
+    return (
+      <>
+        {header}
+        <Loader text="Loading retirement accounts..." size="lg" />
+      </>
+    );
+  }
+
+  const schemes = investments.filter(isRetirementInvestment);
+  // Charts follow net worth: published, not-closed schemes plus every EPFO passbook
+  const counted = schemes.filter((i) => i.isPublished && i.status !== 'closed');
+  const groups = RETIREMENT_SCHEMES.map((s) => {
+    const own = counted.filter((i) => i.type === s.value);
+    let invested = own.reduce((sum, i) => sum + (i.amount || 0), 0);
+    let value = own.reduce((sum, i) => sum + getCurrentInvestmentValue(i), 0);
+    if (s.value === 'epf') {
+      for (const a of accounts) {
+        const net = (a.depositEmployeeShare || 0) - (a.withdrawEmployeeShare || 0) + (a.depositEmployerShare || 0) - (a.withdrawEmployerShare || 0) + (a.pensionContribution || 0);
+        const total = a.grandTotal || 0;
+        invested += Math.min(net, total);
+        value += total;
+      }
+    }
+    return { name: s.short, invested, growth: Math.max(0, value - invested), value, color: SCHEME_COLOR[s.value] };
+  }).filter((g) => g.value > 0);
+
+  return (
+    <>
+      {header}
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        <DonutPanel title="Retirement mix" subtitle="Share of current value by scheme" slices={groups} centreLabel="Corpus" />
+        <BarsPanel
+          title="Invested vs growth"
+          subtitle="Contributions and the interest earned on them"
+          rows={groups.map((g) => ({ name: g.name, invested: g.invested, growth: g.growth }))}
+          series={[
+            { key: 'invested', label: 'Invested', color: 'var(--c-ret)' },
+            { key: 'growth', label: 'Growth', color: 'var(--color-accent)' },
+          ]}
+          stacked
+        />
+      </div>
+      <div className="space-y-4">
+        <SchemesTable schemes={schemes} mode={mode} setMode={setMode} />
+        <ProvidentFundDetailView />
+      </div>
+    </>
+  );
+}
+
+function SchemesTable({ schemes, mode, setMode }: { schemes: Investment[]; mode: RetMode; setMode: (m: RetMode) => void }) {
+  const { M, S } = useMoney();
+  const [error, setError] = useState('');
+  const crud = usePortfolioCrud<Investment>('investments', [INVESTMENTS_KEY]);
+
+  const close = () => {
+    if (crud.busy) return;
+    setMode(null);
+    setError('');
+  };
+  const attempt = async (fn: () => Promise<unknown>) => {
+    setError('');
+    try {
+      await fn();
+      setMode(null);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Something went wrong';
+      // Row actions run with no drawer open, so there is nowhere inline to show the error
+      if (mode) setError(message);
+      else alert(message);
+    }
+  };
+  const handleDelete = (i: Investment) => {
+    if (!confirm(`Delete “${i.name}”? This cannot be undone.`)) return;
+    attempt(() => crud.remove(i.id));
+  };
+  const current = mode?.kind === 'edit' ? mode.item : null;
+
+  return (
+    <Panel flush className="overflow-hidden">
+      <div className="px-6 pb-4 pt-[22px]">
+        <h2 className="text-[19px]">Retirement accounts</h2>
+        <p className="mt-1 text-[13px] text-muted">PPF, PF, NPS and other schemes you track by hand · tap a row to edit</p>
+      </div>
+      {schemes.length === 0 ? (
+        <div className="px-6 pb-6">
+          <EmptyState title="No retirement accounts yet" action={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add retirement account</Button>}>
+            Add a PPF, PF, NPS or any other retirement scheme to include it in your net worth.
+          </EmptyState>
+        </div>
+      ) : (
+        <DataTable<Investment>
+          rows={schemes}
+          rowKey={(i) => i.id}
+          onRowClick={(item) => setMode({ kind: 'edit', item })}
+          defaultSort={{ key: 'value', dir: 'desc' }}
+          columns={[
+            {
+              key: 'name',
+              label: 'Account',
+              sortValue: (i) => i.name,
+              render: (i) => (
+                <>
+                  <div className="flex items-center gap-2 font-semibold">
+                    {i.name}
+                    {!i.isPublished && <Tag tone="warn">Draft</Tag>}
+                    {i.status === 'closed' && <Tag>Closed</Tag>}
+                    {i.status === 'matured' && <Tag tone="accent">Matured</Tag>}
+                  </div>
+                  {i.description && <div className="max-w-[260px] truncate text-[12.5px] text-muted">{i.description}</div>}
+                </>
+              ),
+            },
+            { key: 'scheme', label: 'Scheme', render: (i) => <Tag tone="accent">{schemeLabel(i.type)}</Tag>, sortValue: (i) => i.type },
+            { key: 'invested', label: 'Balance entered', align: 'right', render: (i) => M(i.amount), sortValue: (i) => i.amount },
+            {
+              key: 'value',
+              label: 'Current value',
+              align: 'right',
+              sortValue: getCurrentInvestmentValue,
+              render: (i) => {
+                const v = getCurrentInvestmentValue(i);
+                return (
+                  <>
+                    <div className="font-semibold">{M(v)}</div>
+                    {v - i.amount > 0.5 && <div className="text-[12.5px] text-gain">{S(v - i.amount)}</div>}
+                  </>
+                );
+              },
+            },
+            { key: 'rate', label: 'Rate', align: 'right', render: (i) => (i.interestRate != null ? `${i.interestRate}%` : '—'), sortValue: (i) => i.interestRate ?? -1 },
+            { key: 'since', label: 'As of', render: (i) => fmtDate(i.startDate), sortValue: (i) => i.startDate },
+            { key: 'maturity', label: 'Matures', render: (i) => (i.maturityDate ? fmtDate(i.maturityDate) : '—'), sortValue: (i) => i.maturityDate || '' },
+            {
+              key: 'actions',
+              label: '',
+              render: (i) => <RowActions label={i.name} onEdit={() => setMode({ kind: 'edit', item: i })} onDelete={() => handleDelete(i)} />,
+            },
+          ]}
+        />
+      )}
+      <Drawer
+        open={!!mode}
+        onClose={close}
+        width={640}
+        title={current ? `Edit ${current.name}` : 'Add retirement account'}
+        subtitle={current ? schemeLabel(current.type) : 'PPF, PF, NPS or another scheme'}
+        footer={
+          current ? (
+            <Button variant="danger" icon={Trash2} disabled={crud.busy} onClick={() => handleDelete(current)}>
+              Delete account
+            </Button>
+          ) : undefined
+        }>
+        {error && <p role="alert" className="mb-4 rounded-lg bg-loss-bg p-3 text-[13.5px] text-loss">{error}</p>}
+        {mode && (
+          <RetirementForm
+            key={current?.id ?? 'new'}
+            investment={current ?? undefined}
+            isSaving={crud.busy}
+            onCancel={close}
+            onSave={(item) => attempt(() => (current ? crud.update(item) : crud.create(item)))}
+          />
+        )}
+      </Drawer>
+    </Panel>
+  );
+}
 
 
 export function ProvidentFundDetailView() {
@@ -27,7 +241,6 @@ export function ProvidentFundDetailView() {
       return response.json();
     },
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
   });
 
   const handleSave = async (account: PPFAccount) => {
@@ -42,7 +255,10 @@ export function ProvidentFundDetailView() {
         const err = await res.json();
         throw new Error(err.error || 'Failed to update');
       }
-      await queryClient.invalidateQueries({ queryKey: ['ppfAccounts'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['ppfAccounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['portfolio-snapshot'] }),
+      ]);
       setEditingAccount(null);
     } catch (err) {
       console.error('Error saving PPF account:', err);
@@ -64,7 +280,7 @@ export function ProvidentFundDetailView() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Loader text="Loading PPF account data..." size="lg" />
+        <Loader text="Loading EPF passbooks..." size="lg" />
       </div>
     );
   }
@@ -73,10 +289,10 @@ export function ProvidentFundDetailView() {
     return (
       <Panel>
         <EmptyState
-          title="No PPF accounts found"
-          action={<LinkButton href="/data/upload">Go to imports</LinkButton>}
+          title="No EPFO passbooks yet"
+          action={<LinkButton href="/data/upload" variant="secondary">Go to imports</LinkButton>}
         >
-          Upload EPFO passbook PDFs from Imports &amp; data (import type: Provident fund) to get started.
+          Upload EPFO passbook PDFs from Imports &amp; data (import type: Provident fund) to track employer PF automatically.
         </EmptyState>
       </Panel>
     );
@@ -114,7 +330,7 @@ export function ProvidentFundDetailView() {
     <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
       <Panel flush className="overflow-hidden">
         <div className="px-6 pb-4 pt-[22px]">
-          <h2 className="text-[19px]">EPF accounts</h2>
+          <h2 className="text-[19px]">EPF passbooks</h2>
           <p className="mt-1 text-[13px] text-muted">{totalAccounts} accounts from EPFO passbooks · tap a row to edit</p>
         </div>
         <DataTable<PPFAccount>

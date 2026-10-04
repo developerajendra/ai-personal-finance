@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { NAV, SEARCH_EXTRA } from '@/shared/components/navigation';
-import { usePortfolioTotals } from '@/shared/hooks/usePortfolioTotals';
+import { usePortfolioTotals, isRetirementInvestment } from '@/shared/hooks/usePortfolioTotals';
 import { useMoney } from '@/shared/hooks/useMoney';
 import { useTheme } from '@/shared/providers/ThemeProvider';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
@@ -59,7 +59,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           sub: `${inv.type.replace('-', ' ')} · ${M(getCurrentInvestmentValue(inv))}`,
           kind: 'Record',
           icon: BadgeIndianRupee,
-          run: nav(inv.type === 'ppf' ? '/portfolio/provident-fund' : '/portfolio/investments'),
+          run: nav(isRetirementInvestment(inv) ? '/portfolio/provident-fund' : '/portfolio/investments'),
         })),
       ...t.stocks.map((s: any) => ({
         key: `stk-${s.tradingsymbol}`,

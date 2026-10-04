@@ -3,92 +3,125 @@
 import { useQuery } from '@tanstack/react-query';
 import { BankBalance } from '@/shared/types';
 import { useState } from 'react';
+import { Edit2, Plus, Trash2, Upload, Download } from 'lucide-react';
 import { Loader } from '@/shared/components/Loader';
-import { DetailRow, Drawer, Panel, Tag } from '@/shared/components/ui';
+import { Button, DetailRow, Drawer, Panel, Tag } from '@/shared/components/ui';
 import { DataTable } from '@/shared/components/DataTable';
 import { useMoney, fmtDate } from '@/shared/hooks/useMoney';
 import { BreakdownPanel } from './BreakdownPanel';
+import { ClassHeader } from './ClassPages';
+import { BankBalanceForm } from './BankBalanceForm';
+import { usePortfolioCrud } from '../hooks/usePortfolioCrud';
+import { RowActions } from './RowActions';
 
+const BANK_KEY = ['bankBalances', 'all'];
+
+/** Cash & bank page body: class header with "Add account", accounts table with full CRUD, breakdowns. */
 export function BankBalancesDetailView() {
+  const [mode, setMode] = useState<Mode>(null);
   const { data: bankBalances = [], isLoading } = useQuery<BankBalance[]>({
-    queryKey: ['bankBalances', 'published'],
+    queryKey: BANK_KEY,
     queryFn: async () => {
-      const response = await fetch('/api/portfolio/bank-balances?isPublished=true');
+      const response = await fetch('/api/portfolio/bank-balances');
       if (!response.ok) throw new Error('Failed to fetch bank balances');
       return response.json();
     },
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
   });
+
+  const header = <ClassHeader classKey="bank" actions={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add account</Button>} />;
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <>
+        {header}
         <Loader text="Loading bank balances data..." size="lg" />
-      </div>
+      </>
     );
   }
 
   // Filter out receivables - they should only appear in the receivables page
-  const bankBalancesOnly = bankBalances.filter((balance) => !balance.tags?.includes('receivable'));
+  const accounts = bankBalances.filter((balance) => !balance.tags?.includes('receivable'));
+  // Breakdowns follow net worth: published accounts only
+  const published = accounts.filter((b) => b.isPublished);
 
-  const activeAccounts = bankBalancesOnly.filter((balance) => balance.status === 'active').length;
-
-  const bankBreakdown = bankBalancesOnly.reduce((acc, balance) => {
-    acc[balance.bankName] = (acc[balance.bankName] || 0) + balance.balance;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const bankChartData = Object.entries(bankBreakdown).map(([name, value]) => ({
-    name,
-    value,
-  }));
-
-  const accountTypeBreakdown = bankBalancesOnly.reduce((acc, balance) => {
-    const typeName = balance.accountType.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-    acc[typeName] = (acc[typeName] || 0) + balance.balance;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const accountTypeChartData = Object.entries(accountTypeBreakdown).map(([name, value]) => ({
-    name,
-    value,
-  }));
-
+  const sumBy = (key: (b: BankBalance) => string) =>
+    Object.entries(
+      published.reduce((acc, b) => {
+        acc[key(b)] = (acc[key(b)] || 0) + b.balance;
+        return acc;
+      }, {} as Record<string, number>),
+    ).map(([name, value]) => ({ name, value }));
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
-      <BankAccountsTable balances={bankBalancesOnly} activeAccounts={activeAccounts} />
-      <div className="space-y-4">
-        <BreakdownPanel title="By bank" items={bankChartData} color="var(--c-cash)" />
-        <BreakdownPanel title="By account type" items={accountTypeChartData} color="var(--color-accent)" />
+    <>
+      {header}
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+        <BankAccountsTable balances={accounts} mode={mode} setMode={setMode} />
+        <div className="space-y-4">
+          <BreakdownPanel title="By bank" items={sumBy((b) => b.bankName)} color="var(--c-cash)" />
+          <BreakdownPanel title="By account type" items={sumBy(typeName)} color="var(--color-accent)" />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
-function BankAccountsTable({ balances, activeAccounts }: { balances: BankBalance[]; activeAccounts: number }) {
+const typeName = (b: BankBalance) => b.accountType.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+const statusTone = (st: BankBalance['status']) => (st === 'active' ? 'gain' : st === 'closed' ? 'neutral' : 'warn');
+
+type Mode = { kind: 'view'; item: BankBalance } | { kind: 'edit'; item: BankBalance } | { kind: 'add' } | null;
+
+function BankAccountsTable({ balances, mode, setMode }: { balances: BankBalance[]; mode: Mode; setMode: (m: Mode) => void }) {
   const { M, O } = useMoney();
-  const [open, setOpen] = useState<BankBalance | null>(null);
+  const [error, setError] = useState('');
+  const crud = usePortfolioCrud<BankBalance>('bank-balances', [BANK_KEY]);
   const ccy = (b: BankBalance) => b.originalCurrency || b.currency || 'INR';
-  const typeName = (b: BankBalance) => b.accountType.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-  const statusTone = (st: BankBalance['status']) => (st === 'active' ? 'gain' : st === 'closed' ? 'neutral' : 'warn');
+  const activeAccounts = balances.filter((b) => b.status === 'active').length;
+  const drafts = balances.filter((b) => !b.isPublished).length;
+
+  const close = () => {
+    if (crud.busy) return;
+    setMode(null);
+    setError('');
+  };
+  const attempt = async (fn: () => Promise<unknown>) => {
+    setError('');
+    try {
+      await fn();
+      setMode(null);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Something went wrong';
+      // Row actions run with no drawer open, so there is nowhere inline to show the error
+      if (mode) setError(message);
+      else alert(message);
+    }
+  };
+  const handleDelete = (b: BankBalance) => {
+    if (!confirm(`Delete ${b.bankName}${b.accountNumber ? ` ••${b.accountNumber.slice(-4)}` : ''}? This cannot be undone.`)) return;
+    attempt(() => crud.remove(b.id));
+  };
+
+  const editing = mode?.kind === 'edit' || mode?.kind === 'add';
+  const current = mode && mode.kind !== 'add' ? mode.item : null;
 
   return (
     <Panel flush className="overflow-hidden">
       <div className="px-6 pb-4 pt-[22px]">
-        <h2 className="text-[19px]">Accounts</h2>
-        <p className="mt-1 text-[13px] text-muted">
-          {balances.length} accounts · {activeAccounts} active · tap a row for details
-        </p>
+        <div>
+          <h2 className="text-[19px]">Accounts</h2>
+          <p className="mt-1 text-[13px] text-muted">
+            {balances.length} accounts · {activeAccounts} active
+            {drafts > 0 && ` · ${drafts} draft${drafts === 1 ? '' : 's'}`} · tap a row for details
+          </p>
+        </div>
       </div>
       <DataTable<BankBalance>
         rows={balances}
         rowKey={(b) => b.id}
-        onRowClick={setOpen}
+        onRowClick={(item) => setMode({ kind: 'view', item })}
         defaultSort={{ key: 'balance', dir: 'desc' }}
-        empty="No bank balances data available. Add bank accounts in the Portfolio section."
+        empty="No bank accounts yet. Use “Add account” to record your first balance."
         columns={[
           {
             key: 'bank',
@@ -96,7 +129,10 @@ function BankAccountsTable({ balances, activeAccounts }: { balances: BankBalance
             sortValue: (b) => b.bankName,
             render: (b) => (
               <>
-                <div className="font-semibold">{b.bankName}</div>
+                <div className="flex items-center gap-2 font-semibold">
+                  {b.bankName}
+                  {!b.isPublished && <Tag tone="warn">Draft</Tag>}
+                </div>
                 {b.accountNumber && <div className="text-[12.5px] text-muted">••{b.accountNumber.slice(-4)}</div>}
               </>
             ),
@@ -124,20 +160,65 @@ function BankAccountsTable({ balances, activeAccounts }: { balances: BankBalance
               </Tag>
             ),
           },
+          {
+            key: 'actions',
+            label: '',
+            render: (b) => (
+              <RowActions
+                label={b.bankName}
+                onEdit={() => setMode({ kind: 'edit', item: b })}
+                onDelete={() => handleDelete(b)}
+              />
+            ),
+          },
         ]}
       />
-      <Drawer open={!!open} onClose={() => setOpen(null)} title={open?.bankName} subtitle={open ? `${typeName(open)} account` : undefined}>
-        {open && (
+      <Drawer
+        open={!!mode}
+        onClose={close}
+        width={editing ? 640 : 460}
+        title={mode?.kind === 'add' ? 'Add bank account' : mode?.kind === 'edit' ? `Edit ${mode.item.bankName}` : current?.bankName}
+        subtitle={current && !editing ? `${typeName(current)} account${current.isPublished ? '' : ' · draft'}` : undefined}
+        footer={
+          current && !editing ? (
+            <>
+              <Button variant="danger" icon={Trash2} disabled={crud.busy} onClick={() => handleDelete(current)}>
+                Delete
+              </Button>
+              <Button
+                variant="secondary"
+                icon={current.isPublished ? Download : Upload}
+                disabled={crud.busy}
+                onClick={() => attempt(() => crud.setPublished(current.id, !current.isPublished))}>
+                {current.isPublished ? 'Move to draft' : 'Publish'}
+              </Button>
+              <Button icon={Edit2} disabled={crud.busy} onClick={() => setMode({ kind: 'edit', item: current })}>
+                Edit
+              </Button>
+            </>
+          ) : undefined
+        }>
+        {error && <p role="alert" className="mb-4 rounded-lg bg-loss-bg p-3 text-[13.5px] text-loss">{error}</p>}
+        {editing && (
+          <BankBalanceForm
+            key={current?.id ?? 'new'}
+            initialData={current ?? undefined}
+            isSaving={crud.busy}
+            onCancel={close}
+            onSave={(item) => attempt(() => (current ? crud.update({ ...item, id: current.id }) : crud.create(item)))}
+          />
+        )}
+        {current && !editing && (
           <>
-            <DetailRow label="Balance" value={M(open.balance, 2)} />
-            {ccy(open) !== 'INR' && <DetailRow label="Original amount" value={O(open.originalAmount ?? open.balance, ccy(open))} />}
-            <DetailRow label="Currency" value={ccy(open)} />
-            {open.accountNumber && <DetailRow label="Account" value={`••${open.accountNumber.slice(-4)}`} />}
-            <DetailRow label="Asset type" value={open.assetType === 'fixed' ? 'Fixed' : 'Liquid'} />
-            <DetailRow label="Last updated" value={fmtDate(open.lastUpdated)} />
-            <DetailRow label="Status" value={<Tag tone={statusTone(open.status)}>{open.status}</Tag>} />
-            {open.description && <p className="mt-4 text-[14px] text-muted">{open.description}</p>}
-            <p className="mt-6 text-[13px] text-muted">Edit or publish accounts from the Portfolio overview → Bank balances tab.</p>
+            <DetailRow label="Balance" value={M(current.balance, 2)} />
+            {ccy(current) !== 'INR' && <DetailRow label="Original amount" value={O(current.originalAmount ?? current.balance, ccy(current))} />}
+            <DetailRow label="Currency" value={ccy(current)} />
+            {current.accountNumber && <DetailRow label="Account" value={`••${current.accountNumber.slice(-4)}`} />}
+            <DetailRow label="Asset type" value={current.assetType === 'fixed' ? 'Fixed' : 'Liquid'} />
+            <DetailRow label="Last updated" value={fmtDate(current.lastUpdated)} />
+            <DetailRow label="Status" value={<Tag tone={statusTone(current.status)}>{current.status}</Tag>} />
+            <DetailRow label="Visibility" value={current.isPublished ? 'Published · counts toward net worth' : <Tag tone="warn">Draft · not in net worth</Tag>} />
+            {current.description && <p className="mt-4 text-[14px] text-muted">{current.description}</p>}
           </>
         )}
       </Drawer>

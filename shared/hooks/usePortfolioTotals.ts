@@ -6,6 +6,7 @@ import { Landmark, BadgeIndianRupee, TrendingUp, PiggyBank, Building2, HandCoins
 import type { BankBalance, Investment } from '@/shared/types';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 import { usePortfolioData } from '@/shared/hooks/usePortfolioData';
+import { RETIREMENT_INVESTMENT_TYPES } from '@/shared/schemas/finance';
 
 export type AssetClassKey = 'bank' | 'investments' | 'stocks' | 'pf' | 'property' | 'recv';
 
@@ -25,6 +26,7 @@ export interface AssetClass {
 
 const isReceivable = (bb: BankBalance) => !!bb.tags?.includes('receivable');
 const STOCK_TYPES: Investment['type'][] = ['stocks', 'mutual-fund'];
+export const isRetirementInvestment = (i: Investment) => (RETIREMENT_INVESTMENT_TYPES as readonly string[]).includes(i.type);
 
 /** Expected receivable amount: principal plus simple interest to the due date (same rule as usePortfolioData). */
 export function receivableExpected(bb: BankBalance) {
@@ -62,9 +64,9 @@ export function usePortfolioTotals() {
     const funds = data.mutualFundsData.mutualFunds ?? [];
 
     const active = investments.filter((i) => i.status !== 'closed');
-    const deposits = active.filter((i) => i.type !== 'ppf' && !STOCK_TYPES.includes(i.type));
+    const deposits = active.filter((i) => !isRetirementInvestment(i) && !STOCK_TYPES.includes(i.type));
     const manualMarket = active.filter((i) => STOCK_TYPES.includes(i.type));
-    const ppfInv = active.filter((i) => i.type === 'ppf');
+    const ppfInv = active.filter(isRetirementInvestment);
     const cashAccounts = bankBalances.filter((b) => !isReceivable(b));
     const receivables = bankBalances.filter(isReceivable);
 
@@ -80,7 +82,7 @@ export function usePortfolioTotals() {
       { key: 'bank', label: 'Cash & bank', href: '/portfolio/bank-balances', icon: Landmark, color: 'var(--c-cash)', value: totalBankBalances, count: cashAccounts.length, note: `${cashAccounts.length} account${cashAccounts.length === 1 ? '' : 's'} · ${banks} bank${banks === 1 ? '' : 's'}` },
       { key: 'investments', label: 'Deposits & bonds', href: '/portfolio/investments', icon: BadgeIndianRupee, color: 'var(--c-dep)', value: depVal, count: deposits.length, note: `${deposits.length} deposit${deposits.length === 1 ? '' : 's'} & bonds` },
       { key: 'stocks', label: 'Stocks & funds', href: '/portfolio/stocks', icon: TrendingUp, color: 'var(--c-stock)', value: marketVal, count: stocks.length + funds.length + manualMarket.length, note: `${stocks.length + funds.length + manualMarket.length} holdings` },
-      { key: 'pf', label: 'Retirement', href: '/portfolio/provident-fund', icon: PiggyBank, color: 'var(--c-ret)', value: retirement, count: ppfAccounts.length + ppfInv.length, note: `${ppfAccounts.length} EPF · ${ppfInv.length} PPF` },
+      { key: 'pf', label: 'Retirement', href: '/portfolio/provident-fund', icon: PiggyBank, color: 'var(--c-ret)', value: retirement, count: ppfAccounts.length + ppfInv.length, note: `${ppfAccounts.length + ppfInv.length} account${ppfAccounts.length + ppfInv.length === 1 ? '' : 's'}` },
       { key: 'property', label: 'Real estate', href: '/portfolio/properties', icon: Building2, color: 'var(--c-prop)', value: totalProperties, count: properties.length, note: `${properties.length} propert${properties.length === 1 ? 'y' : 'ies'}` },
       { key: 'recv', label: 'Receivables', href: '/portfolio/receivables', icon: HandCoins, color: 'var(--c-recv)', value: totalReceivables, count: receivables.length, note: `${receivables.length} ${receivables.length === 1 ? 'person' : 'people'}` },
     ];
@@ -97,7 +99,9 @@ export function usePortfolioTotals() {
       netWorth: assets - totalLoans,
       unrealised,
       deposits,
+      /** Manually tracked retirement schemes (PPF, PF, NPS, other); EPFO passbooks are ppfAccounts */
       ppfInvestments: ppfInv,
+      retirementInvestments: ppfInv,
       cashAccounts,
       receivables,
       stocks,

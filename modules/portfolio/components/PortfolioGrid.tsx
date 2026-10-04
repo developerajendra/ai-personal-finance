@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/shared/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck, Clock, XOctagon, Undo2, Search, Download } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, ShieldCheck, Clock, XOctagon, Undo2, Search, Download, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import { UnderlineTabs } from '@/shared/components/ui';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
@@ -17,6 +18,12 @@ import { useChatbot } from '@/modules/chatbot/hooks/useChatbot';
 type PortfolioItem = Investment | Loan | Property | BankBalance;
 type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance' | 'receivables';
 type ViewMode = 'draft' | 'published' | 'matured'; // matured only applies to investments
+
+/** Tabs shown read-only here; their add / edit / delete lives on the asset-class page. */
+const READ_ONLY_TABS: Partial<Record<ItemType, { href: string; label: string }>> = {
+  'bank-balance': { href: '/portfolio/bank-balances', label: 'Cash & bank' },
+  property: { href: '/portfolio/properties', label: 'Real estate' },
+};
 
 interface PortfolioGridProps {
   defaultTab?: ItemType;
@@ -1250,6 +1257,12 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               />
             </div>
           )}
+            {READ_ONLY_TABS[activeTab] ? (
+              <Link href={READ_ONLY_TABS[activeTab]!.href} className="btn btn-primary">
+                <ExternalLink className="w-4 h-4" />
+                Manage in {READ_ONLY_TABS[activeTab]!.label}
+              </Link>
+            ) : (
             <button
               onClick={() => handleAdd(activeTab)}
               disabled={isSaving}
@@ -1262,10 +1275,11 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
               ) : (
                 <>
                   <Plus className="w-4 h-4" />
-                  Add {activeTab === 'bank-balance' ? 'bank balance' : activeTab === 'receivables' ? 'receivable' : activeTab === 'property' ? 'property' : activeTab}
+                  Add {activeTab === 'receivables' ? 'receivable' : activeTab}
                 </>
               )}
             </button>
+            )}
           </div>
         </div>
       </div>
@@ -1404,6 +1418,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         {activeTab === 'property' && (
           <PropertyGrid
             properties={filteredItems as Property[]}
+            readOnly
             onDelete={(id) => handleDelete(id, 'property')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
@@ -1418,6 +1433,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         {activeTab === 'bank-balance' && (
           <BankBalanceGrid
             bankBalances={filteredItems as BankBalance[]}
+            readOnly
             onDelete={(id) => handleDelete(id, 'bank-balance')}
             onEdit={(item) => handleEdit(item)}
             onPublishToggle={(id, isPublished) => handlePublishToggle(id, isPublished)}
@@ -1453,8 +1469,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
           <div className="p-8 text-center">
             <p className="text-muted mb-2">No {activeTab} data found.</p>
             <p className="text-sm text-neutral-500">
-              {activeTab === 'bank-balance'
-                ? "Click 'Add Bank Balance' to add your bank account information."
+              {READ_ONLY_TABS[activeTab]
+                ? `Add and edit these from ${READ_ONLY_TABS[activeTab]!.label}.`
                 : activeTab === 'receivables'
                 ? "Click 'Add Receivables' to add money owed to you."
                 : "Upload an Excel file in the 'Upload & AI Analysis' tab to automatically create portfolio items."}
@@ -2093,6 +2109,7 @@ function LoanGrid({
 
 function PropertyGrid({
   properties,
+  readOnly = false,
   onDelete,
   onEdit,
   onPublishToggle,
@@ -2104,6 +2121,8 @@ function PropertyGrid({
   isPublishing,
 }: {
   properties: Property[];
+  /** Overview tab is view-only; editing lives on /portfolio/properties */
+  readOnly?: boolean;
   onDelete: (id: string) => void;
   onEdit: (property: Property) => void;
   onPublishToggle: (id: string, isPublished: boolean) => void;
@@ -2136,16 +2155,18 @@ function PropertyGrid({
           <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Purchase Date
           </th>
+          {!readOnly && (
           <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Actions
           </th>
+          )}
         </tr>
       </thead>
       <tbody className="bg-panel divide-y divide-divider">
         {properties.length === 0 ? (
           <tr>
-            <td colSpan={7} className="px-6 py-8 text-center text-muted">
-              No properties found. Click "Add Property" to create one.
+            <td colSpan={readOnly ? 6 : 7} className="px-6 py-8 text-center text-muted">
+              No properties found.{readOnly ? '' : ' Click "Add Property" to create one.'}
             </td>
           </tr>
         ) : (
@@ -2169,6 +2190,7 @@ function PropertyGrid({
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 {new Date(property.purchaseDate).toLocaleDateString()}
               </td>
+              {!readOnly && (
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <div className="flex gap-2 items-center">
                   <button
@@ -2223,6 +2245,7 @@ function PropertyGrid({
                   </div>
                 </div>
               </td>
+              )}
             </tr>
           ))
         )}
@@ -2233,6 +2256,7 @@ function PropertyGrid({
 
 function BankBalanceGrid({
   bankBalances,
+  readOnly = false,
   onDelete,
   onEdit,
   onPublishToggle,
@@ -2246,6 +2270,8 @@ function BankBalanceGrid({
   isPublishing,
 }: {
   bankBalances: BankBalance[];
+  /** Overview bank tab is view-only; editing lives on /portfolio/bank-balances */
+  readOnly?: boolean;
   onDelete: (id: string) => void;
   onEdit: (bankBalance: BankBalance) => void;
   onPublishToggle: (id: string, isPublished: boolean) => void;
@@ -2297,7 +2323,7 @@ function BankBalanceGrid({
     return { interestAmount, totalWithInterest, daysDiff };
   };
 
-  const colSpan = hasReceivables ? 10 : 6;
+  const colSpan = (hasReceivables ? 10 : 6) - (readOnly ? 1 : 0);
 
   return (
     <table className="w-full">
@@ -2341,16 +2367,18 @@ function BankBalanceGrid({
           <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Last Updated
           </th>
+          {!readOnly && (
           <th className="px-6 py-3 text-left text-[11.5px] font-semibold text-muted uppercase tracking-wide">
             Actions
           </th>
+          )}
         </tr>
       </thead>
       <tbody className="bg-panel divide-y divide-divider">
         {bankBalances.length === 0 ? (
           <tr>
             <td colSpan={colSpan} className="px-6 py-8 text-center text-muted">
-              No {hasReceivables ? 'receivables' : 'bank balances'} found. Click "Add {hasReceivables ? 'Receivables' : 'Bank Balance'}" to create one.
+              No {hasReceivables ? 'receivables' : 'bank balances'} found.{readOnly ? '' : ` Click "Add ${hasReceivables ? 'Receivables' : 'Bank Balance'}" to create one.`}
             </td>
           </tr>
         ) : (
@@ -2420,6 +2448,7 @@ function BankBalanceGrid({
                     new Date(balance.lastUpdated).toLocaleDateString()
                   )}
                 </td>
+                {!readOnly && (
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <div className="flex gap-2 items-center">
                     {!(isReceivable && balance.status === 'closed') && (
@@ -2498,6 +2527,7 @@ function BankBalanceGrid({
                     </div>
                   </div>
                 </td>
+                )}
               </tr>
             );
           })
