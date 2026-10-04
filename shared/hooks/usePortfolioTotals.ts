@@ -2,13 +2,13 @@
 
 import { useMemo } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Landmark, BadgeIndianRupee, TrendingUp, PiggyBank, Building2, HandCoins } from 'lucide-react';
+import { Landmark, BadgeIndianRupee, BadgePercent, TrendingUp, PiggyBank, Building2, HandCoins } from 'lucide-react';
 import type { BankBalance, Investment } from '@/shared/types';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 import { usePortfolioData } from '@/shared/hooks/usePortfolioData';
 import { RETIREMENT_INVESTMENT_TYPES } from '@/shared/schemas/finance';
 
-export type AssetClassKey = 'bank' | 'investments' | 'stocks' | 'pf' | 'property' | 'recv';
+export type AssetClassKey = 'bank' | 'stocks' | 'pf' | 'property' | 'recv' | 'fd' | 'investments';
 
 export interface AssetClass {
   key: AssetClassKey;
@@ -26,6 +26,8 @@ export interface AssetClass {
 
 const isReceivable = (bb: BankBalance) => !!bb.tags?.includes('receivable');
 const STOCK_TYPES: Investment['type'][] = ['stocks', 'mutual-fund'];
+/** Fixed deposits get their own asset class; every other non-retirement, non-market record is an "other investment". */
+export const isFixedDeposit = (i: Investment) => i.type === 'fd';
 export const isRetirementInvestment = (i: Investment) => (RETIREMENT_INVESTMENT_TYPES as readonly string[]).includes(i.type);
 
 /** Expected receivable amount: principal plus simple interest to the due date (same rule as usePortfolioData). */
@@ -70,7 +72,10 @@ export function usePortfolioTotals() {
     const cashAccounts = bankBalances.filter((b) => !isReceivable(b));
     const receivables = bankBalances.filter(isReceivable);
 
-    const depVal = deposits.reduce((s, i) => s + getCurrentInvestmentValue(i), 0);
+    const fixedDeposits = deposits.filter(isFixedDeposit);
+    const otherInvestments = deposits.filter((i) => !isFixedDeposit(i));
+    const fdVal = fixedDeposits.reduce((s, i) => s + getCurrentInvestmentValue(i), 0);
+    const otherVal = otherInvestments.reduce((s, i) => s + getCurrentInvestmentValue(i), 0);
     const manualMarketVal = manualMarket.reduce((s, i) => s + getCurrentInvestmentValue(i), 0);
     const retInvVal = retInv.reduce((s, i) => s + getCurrentInvestmentValue(i), 0);
     const marketVal = data.totalStocks + data.totalMutualFunds + manualMarketVal;
@@ -84,7 +89,8 @@ export function usePortfolioTotals() {
       { key: 'pf', label: 'Retirement', href: '/portfolio/provident-fund', icon: PiggyBank, color: 'var(--c-ret)', value: retirement, count: ppfAccounts.length + retInv.length, note: `${ppfAccounts.length + retInv.length} account${ppfAccounts.length + retInv.length === 1 ? '' : 's'}` },
       { key: 'property', label: 'Properties', href: '/portfolio/properties', icon: Building2, color: 'var(--c-prop)', value: totalProperties, count: properties.length, note: `${properties.length} propert${properties.length === 1 ? 'y' : 'ies'}` },
       { key: 'recv', label: 'Receivables', href: '/portfolio/receivables', icon: HandCoins, color: 'var(--c-recv)', value: totalReceivables, count: receivables.length, note: `${receivables.length} ${receivables.length === 1 ? 'person' : 'people'}` },
-      { key: 'investments', label: 'Other investments', href: '/portfolio/investments', icon: BadgeIndianRupee, color: 'var(--c-dep)', value: depVal, count: deposits.length, note: `${deposits.length} investment${deposits.length === 1 ? '' : 's'} · deposits, bonds & more` },
+      { key: 'fd', label: 'Fixed deposits', href: '/portfolio/fixed-deposits', icon: BadgePercent, color: 'var(--c-dep)', value: fdVal, count: fixedDeposits.length, note: `${fixedDeposits.length} deposit${fixedDeposits.length === 1 ? '' : 's'}` },
+      { key: 'investments', label: 'Other investments', href: '/portfolio/investments', icon: BadgeIndianRupee, color: 'var(--c-fund)', value: otherVal, count: otherInvestments.length, note: `${otherInvestments.length} investment${otherInvestments.length === 1 ? '' : 's'} · bonds, PPF, gold & more` },
     ];
     const assets = raw.reduce((s, c) => s + c.value, 0);
     const classes: AssetClass[] = raw.map((c) => ({ ...c, share: assets > 0 ? (c.value / assets) * 100 : 0 }));
@@ -98,7 +104,10 @@ export function usePortfolioTotals() {
       liabilities: totalLoans,
       netWorth: assets - totalLoans,
       unrealised,
+      /** Every non-retirement, non-market record (fixed deposits + other investments) — liquidity and dashboard use this */
       deposits,
+      fixedDeposits,
+      otherInvestments,
       /** Manually added retirement accounts (NPS, PF, other); EPFO passbook PF accounts are ppfAccounts */
       retirementInvestments: retInv,
       cashAccounts,

@@ -191,7 +191,7 @@ export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSear
 
   // Portfolio children: the design's "Rich list" — dot · name · compact value · share bar.
   // Cash & bank · Stocks & funds · Retirement · Properties · Receivables (asset-class order),
-  // then Other investments — the catch-all for anything else — at the bottom.
+  // then Fixed deposits, and Other investments — the catch-all for anything else — at the bottom.
   const classRows = totals.classes;
   const classHrefs = new Set([...totals.classes.map((c) => c.href), '/portfolio/mutual-funds']);
   const dynamicRows = [...portfolioCategories]

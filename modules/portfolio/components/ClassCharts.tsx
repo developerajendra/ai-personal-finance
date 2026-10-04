@@ -69,7 +69,7 @@ export function DonutPanel({ title, subtitle, slices, centreLabel, action }: { t
               const body = (
                 <>
                   <Dot color={d.color} size={9} />
-                  <span className="min-w-0 flex-1 truncate">{d.name}</span>
+                  <span className="line-clamp-2 min-w-0 flex-1 break-words leading-snug" title={d.name}>{d.name}</span>
                   <span className="tabular-nums">{C(d.value)}</span>
                   <span className="w-12 text-right tabular-nums text-muted">{pct(total ? (d.value / total) * 100 : 0)}</span>
                 </>
@@ -135,7 +135,11 @@ export function BarsPanel({
                 tickLine={false}
                 tick={axisTick}
                 interval={0}
-                tickFormatter={(v: string) => (v.length > 14 ? `${v.slice(0, 13)}…` : v)}
+                // Fewer characters per label as bars get narrower, so neighbouring ticks never overlap
+                tickFormatter={(v: string) => {
+                  const max = rows.length > 6 ? 8 : rows.length > 4 ? 12 : 14;
+                  return v.length > max ? `${v.slice(0, max - 1)}…` : v;
+                }}
               />
               <YAxis axisLine={false} tickLine={false} tick={axisTick} width={52} tickFormatter={axisMoney} />
               <Tooltip cursor={{ fill: 'color-mix(in srgb, var(--color-text) 5%, transparent)' }} contentStyle={tooltipStyle} formatter={(v: number, n: string) => [M(v), n]} />

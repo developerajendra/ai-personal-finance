@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Investment } from '@/shared/types';
 import { Download, Edit2, Plus, Trash2, Upload } from 'lucide-react';
@@ -8,10 +8,10 @@ import { Loader } from '@/shared/components/Loader';
 import { Button, DetailRow, Drawer, Panel, Tag } from '@/shared/components/ui';
 import { DataTable } from '@/shared/components/DataTable';
 import { useMoney, fmtDate } from '@/shared/hooks/useMoney';
-import { daysUntil, isRetirementInvestment } from '@/shared/hooks/usePortfolioTotals';
+import { daysUntil, isFixedDeposit, isRetirementInvestment, type AssetClassKey } from '@/shared/hooks/usePortfolioTotals';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 import { ClassHeader } from './ClassPages';
-import { BarsPanel, DonutPanel, toSlices } from './ClassCharts';
+import { BarsPanel, DonutPanel, SERIES_COLORS, toSlices } from './ClassCharts';
 import { InvestmentForm } from './InvestmentForm';
 import { RowActions } from './RowActions';
 import { usePortfolioCrud } from '../hooks/usePortfolioCrud';
@@ -34,12 +34,119 @@ const statusLabel = (st: Investment['status']) => st.charAt(0).toUpperCase() + s
 
 type Mode = { kind: 'view'; item: Investment } | { kind: 'edit'; item: Investment } | { kind: 'add' } | null;
 
+/** Records that count toward a class's net-worth total: published, not closed (and not stocks / funds). */
+const countable = (i: Investment) => i.isPublished && i.status !== 'closed' && !isMarket(i);
+
+/** Fixed deposits page: every investment of type "fd" — maturity ladder, principal vs interest, and the list. */
+export function FixedDepositsView() {
+  return (
+    <InvestmentClassPage
+      classKey="fd"
+      include={isFixedDeposit}
+      defaultType="fd"
+      addLabel="Add fixed deposit"
+      tableTitle="Fixed deposits"
+      empty="No fixed deposits yet. Use “Add fixed deposit” to record one."
+      charts={(rows) => {
+        const counted = rows.filter(countable);
+        const buckets = [
+          { name: 'Matured', test: (d: number | null) => d != null && d < 0 },
+          { name: 'Next 3 months', test: (d: number | null) => d != null && d >= 0 && d <= 90 },
+          { name: '3–12 months', test: (d: number | null) => d != null && d > 90 && d <= 365 },
+          { name: '1–3 years', test: (d: number | null) => d != null && d > 365 && d <= 365 * 3 },
+          { name: 'Over 3 years', test: (d: number | null) => d != null && d > 365 * 3 },
+          { name: 'No date', test: (d: number | null) => d == null },
+        ];
+        const ladder = buckets.map((b, idx) => ({
+          name: b.name,
+          value: counted.filter((i) => b.test(daysUntil(i.maturityDate))).reduce((s, i) => s + getCurrentInvestmentValue(i), 0),
+          color: SERIES_COLORS[idx % SERIES_COLORS.length],
+        }));
+        const split = [...counted]
+          .map((i) => ({ name: i.name, value: getCurrentInvestmentValue(i), principal: i.amount || 0 }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 8)
+          .map((g) => ({ name: g.name, principal: Math.min(g.principal, g.value), interest: Math.max(0, g.value - g.principal) }));
+        return (
+          <>
+            <DonutPanel title="Maturity ladder" subtitle="Current value by when each deposit matures" slices={ladder} centreLabel="Deposits" />
+            <BarsPanel
+              title="Principal vs interest"
+              subtitle={counted.length > split.length ? `Largest ${split.length} of ${counted.length} deposits` : 'Amount deposited and the interest accrued so far'}
+              rows={split}
+              series={[
+                { key: 'principal', label: 'Principal', color: 'var(--c-ret)' },
+                { key: 'interest', label: 'Interest', color: 'var(--color-accent)' },
+              ]}
+              stacked
+            />
+          </>
+        );
+      }}
+    />
+  );
+}
+
 /**
- * Other investments page: every manually tracked investment that isn't a retirement account —
- * deposits, bonds, PPF, gold, manually entered stocks / funds, anything else. Charts, then the
- * full list with add / edit / delete / publish.
+ * Other investments page: every manually tracked investment that isn't a fixed deposit or a
+ * retirement account — bonds, PPF, gold, manually entered stocks / funds, anything else.
  */
 export function OtherInvestmentsView() {
+  return (
+    <InvestmentClassPage
+      classKey="investments"
+      include={(i) => !isFixedDeposit(i)}
+      defaultType="other"
+      addLabel="Add investment"
+      tableTitle="Investments"
+      empty="No investments yet. Use “Add investment” to record a bond, gold, PPF or anything else."
+      charts={(rows) => {
+        // Charts follow this class's net-worth total: published, not closed, not stocks / funds
+        const counted = rows.filter(countable);
+        const byType = toSlices(counted.map((i) => ({ name: typeLabel(i), value: getCurrentInvestmentValue(i) })));
+        const growth = [...counted]
+          .map((i) => ({ name: i.name, invested: i.amount || 0, value: getCurrentInvestmentValue(i) }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 8)
+          .map((g) => ({ name: g.name, invested: Math.min(g.invested, g.value), growth: Math.max(0, g.value - g.invested) }));
+        return (
+          <>
+            <DonutPanel title="By type" subtitle="Share of current value" slices={byType} centreLabel="Value" />
+            <BarsPanel
+              title="Invested vs growth"
+              subtitle={counted.length > growth.length ? `Largest ${growth.length} of ${counted.length} investments` : 'Amount put in and the interest or returns earned on it'}
+              rows={growth}
+              series={[
+                { key: 'invested', label: 'Invested', color: 'var(--c-ret)' },
+                { key: 'growth', label: 'Growth', color: 'var(--color-accent)' },
+              ]}
+              stacked
+            />
+          </>
+        );
+      }}
+    />
+  );
+}
+
+/** Shared body for investment-backed class pages: header with Add, two charts, the CRUD table. */
+function InvestmentClassPage({
+  classKey,
+  include,
+  defaultType,
+  addLabel,
+  tableTitle,
+  empty,
+  charts,
+}: {
+  classKey: AssetClassKey;
+  include: (i: Investment) => boolean;
+  defaultType: Investment['type'];
+  addLabel: string;
+  tableTitle: string;
+  empty: string;
+  charts: (rows: Investment[]) => ReactNode;
+}) {
   const [mode, setMode] = useState<Mode>(null);
   const { data: investments = [], isLoading } = useQuery<Investment[]>({
     queryKey: INVESTMENTS_KEY,
@@ -51,7 +158,7 @@ export function OtherInvestmentsView() {
     refetchOnWindowFocus: false,
   });
 
-  const header = <ClassHeader classKey="investments" actions={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>Add investment</Button>} />;
+  const header = <ClassHeader classKey={classKey} actions={<Button icon={Plus} onClick={() => setMode({ kind: 'add' })}>{addLabel}</Button>} />;
 
   if (isLoading) {
     return (
@@ -63,38 +170,34 @@ export function OtherInvestmentsView() {
   }
 
   // Retirement accounts (NPS, PF…) are managed on the Retirement page
-  const rows = investments.filter((i) => !isRetirementInvestment(i));
-  // Charts follow this class's net-worth total: published, not closed, not stocks / funds
-  const counted = rows.filter((i) => i.isPublished && i.status !== 'closed' && !isMarket(i));
-  const byType = toSlices(counted.map((i) => ({ name: typeLabel(i), value: getCurrentInvestmentValue(i) })));
-  const growth = [...counted]
-    .map((i) => ({ name: i.name, invested: i.amount || 0, value: getCurrentInvestmentValue(i) }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8)
-    .map((g) => ({ name: g.name, invested: Math.min(g.invested, g.value), growth: Math.max(0, g.value - g.invested) }));
+  const rows = investments.filter((i) => !isRetirementInvestment(i) && include(i));
 
   return (
     <>
       {header}
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-        <DonutPanel title="By type" subtitle="Share of current value" slices={byType} centreLabel="Value" />
-        <BarsPanel
-          title="Invested vs growth"
-          subtitle={counted.length > growth.length ? `Largest ${growth.length} of ${counted.length} investments` : 'Amount put in and the interest or returns earned on it'}
-          rows={growth}
-          series={[
-            { key: 'invested', label: 'Invested', color: 'var(--c-ret)' },
-            { key: 'growth', label: 'Growth', color: 'var(--color-accent)' },
-          ]}
-          stacked
-        />
-      </div>
-      <InvestmentsTable investments={rows} mode={mode} setMode={setMode} />
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">{charts(rows)}</div>
+      <InvestmentsTable investments={rows} mode={mode} setMode={setMode} title={tableTitle} empty={empty} addLabel={addLabel} defaultType={defaultType} />
     </>
   );
 }
 
-function InvestmentsTable({ investments, mode, setMode }: { investments: Investment[]; mode: Mode; setMode: (m: Mode) => void }) {
+function InvestmentsTable({
+  investments,
+  mode,
+  setMode,
+  title,
+  empty,
+  addLabel,
+  defaultType,
+}: {
+  investments: Investment[];
+  mode: Mode;
+  setMode: (m: Mode) => void;
+  title: string;
+  empty: string;
+  addLabel: string;
+  defaultType: Investment['type'];
+}) {
   const { M, S } = useMoney();
   const [error, setError] = useState('');
   const crud = usePortfolioCrud<Investment>('investments', [INVESTMENTS_KEY]);
@@ -129,9 +232,9 @@ function InvestmentsTable({ investments, mode, setMode }: { investments: Investm
   return (
     <Panel flush className="overflow-hidden">
       <div className="px-6 pb-4 pt-[22px]">
-        <h2 className="text-[19px]">Investments</h2>
+        <h2 className="text-[19px]">{title}</h2>
         <p className="mt-1 text-[13px] text-muted">
-          {investments.length} investment{investments.length === 1 ? '' : 's'}
+          {investments.length} record{investments.length === 1 ? '' : 's'}
           {drafts > 0 && ` · ${drafts} draft${drafts === 1 ? '' : 's'}`} · values follow each record’s growth rule · tap a row for details
         </p>
       </div>
@@ -140,7 +243,7 @@ function InvestmentsTable({ investments, mode, setMode }: { investments: Investm
         rowKey={(i) => i.id}
         onRowClick={(item) => setMode({ kind: 'view', item })}
         defaultSort={{ key: 'value', dir: 'desc' }}
-        empty="No investments yet. Use “Add investment” to record a deposit, bond, gold or anything else."
+        empty={empty}
         columns={[
           {
             key: 'name',
@@ -210,7 +313,7 @@ function InvestmentsTable({ investments, mode, setMode }: { investments: Investm
         open={!!mode}
         onClose={close}
         width={editing ? 640 : 460}
-        title={mode?.kind === 'add' ? 'Add investment' : mode?.kind === 'edit' ? `Edit ${mode.item.name}` : current?.name}
+        title={mode?.kind === 'add' ? addLabel : mode?.kind === 'edit' ? `Edit ${mode.item.name}` : current?.name}
         subtitle={current && !editing ? `${typeLabel(current)}${current.isPublished ? '' : ' · draft'}` : undefined}
         footer={
           current && !editing ? (
@@ -236,6 +339,7 @@ function InvestmentsTable({ investments, mode, setMode }: { investments: Investm
           <InvestmentForm
             key={current?.id ?? 'new'}
             investment={current ?? undefined}
+            defaultType={defaultType}
             isSaving={crud.busy}
             onCancel={close}
             // Records added here count toward net worth straight away; drafts come from imports

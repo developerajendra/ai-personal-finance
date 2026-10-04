@@ -8,6 +8,8 @@ import { convertToINR, convertFromINR, getConversionRateText, getCurrencySymbol,
 
 interface InvestmentFormProps {
   investment?: Investment;
+  /** Type preselected when adding (e.g. "fd" on the Fixed deposits page) */
+  defaultType?: Investment['type'];
   onSave: (investment: Investment) => void;
   onCancel: () => void;
   isSaving?: boolean;
@@ -15,6 +17,7 @@ interface InvestmentFormProps {
 
 export function InvestmentForm({
   investment,
+  defaultType = 'ppf',
   onSave,
   onCancel,
   isSaving = false,
@@ -62,8 +65,8 @@ export function InvestmentForm({
           currency: 'INR',
           originalAmount: 0,
           originalCurrency: 'INR',
-          type: 'ppf',
-          assetType: 'liquid',
+          type: defaultType,
+          assetType: getDefaultAssetType('', defaultType),
           startDate: new Date().toISOString().split('T')[0],
           status: 'active',
         }

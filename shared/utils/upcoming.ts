@@ -81,7 +81,7 @@ export function buildCashEvents(
         title: `${inv.name} payout`,
         sub: `Matured ${fmt(inv.maturityDate)} · payout not recorded`,
         amount,
-        href: '/portfolio/investments',
+        href: inv.type === 'fd' ? '/portfolio/fixed-deposits' : '/portfolio/investments',
       });
     } else if (d <= horizon) {
       upcoming.push({
@@ -91,7 +91,7 @@ export function buildCashEvents(
         sub: inv.maturityAmount == null ? 'Maturity amount not recorded · using current value' : 'Maturity proceeds',
         amount,
         expected: inv.maturityAmount == null,
-        href: '/portfolio/investments',
+        href: inv.type === 'fd' ? '/portfolio/fixed-deposits' : '/portfolio/investments',
       });
     }
   }

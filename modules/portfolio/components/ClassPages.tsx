@@ -36,17 +36,23 @@ export function ClassHeader({ classKey, actions, crumbs }: { classKey: AssetClas
       note = oldest ? `Oldest balance updated ${fmtDate(oldest)}` : null;
       break;
     }
+    case 'fd':
     case 'investments': {
-      const principal = t.deposits.reduce((s, i) => s + (i.amount || 0), 0);
-      const maturing = t.deposits.filter((i) => {
+      const list = classKey === 'fd' ? t.fixedDeposits : t.otherInvestments;
+      const principal = list.reduce((s, i) => s + (i.amount || 0), 0);
+      const maturing = list.filter((i) => {
         const d = daysUntil(i.maturityDate);
         return d != null && d >= 0 && d <= 365;
       }).length;
-      const matured = t.deposits.filter((i) => (daysUntil(i.maturityDate) ?? 1) < 0).length;
+      const matured = list.filter((i) => (daysUntil(i.maturityDate) ?? 1) < 0).length;
+      const rated = list.filter((i) => i.interestRate != null && (i.amount || 0) > 0);
+      const rateBase = rated.reduce((s, i) => s + i.amount, 0);
+      const avgRate = rateBase ? rated.reduce((s, i) => s + (i.interestRate || 0) * i.amount, 0) / rateBase : null;
       metas = [
-        { label: 'Records', value: t.deposits.length },
+        { label: classKey === 'fd' ? 'Deposits' : 'Records', value: list.length },
         { label: 'Principal', value: M(principal) },
         { label: 'Accrued', value: S(c.value - principal), tone: c.value - principal >= 0 ? 'gain' : 'loss' },
+        ...(classKey === 'fd' && avgRate != null ? [{ label: 'Avg rate', value: `${avgRate.toFixed(2)}%` }] : []),
         { label: 'Maturing in 12 months', value: maturing },
         ...(matured ? [{ label: 'Matured · payout pending', value: matured, tone: 'warn' as const }] : []),
       ];

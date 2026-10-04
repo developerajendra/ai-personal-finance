@@ -66,6 +66,7 @@ export const MOBILE_MORE: NavItem[] = [NAV.loans, NAV.subscriptions, NAV.upcomin
 export const SEARCH_EXTRA: { label: string; href: string; group: string }[] = [
   { label: 'Stocks & funds', href: '/portfolio/stocks', group: 'Portfolio' },
   { label: 'Mutual funds', href: '/portfolio/mutual-funds', group: 'Portfolio' },
+  { label: 'Fixed deposits', href: '/portfolio/fixed-deposits', group: 'Portfolio' },
   { label: 'Other investments', href: '/portfolio/investments', group: 'Portfolio' },
   { label: 'Cash & bank', href: '/portfolio/bank-balances', group: 'Portfolio' },
   { label: 'Retirement (EPF + NPS)', href: '/portfolio/provident-fund', group: 'Portfolio' },

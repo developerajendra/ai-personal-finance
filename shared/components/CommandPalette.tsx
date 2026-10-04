@@ -59,7 +59,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           sub: `${inv.type.replace('-', ' ')} · ${M(getCurrentInvestmentValue(inv))}`,
           kind: 'Record',
           icon: BadgeIndianRupee,
-          run: nav(isRetirementInvestment(inv) ? '/portfolio/provident-fund' : '/portfolio/investments'),
+          run: nav(isRetirementInvestment(inv) ? '/portfolio/provident-fund' : inv.type === 'fd' ? '/portfolio/fixed-deposits' : '/portfolio/investments'),
         })),
       ...t.stocks.map((s: any) => ({
         key: `stk-${s.tradingsymbol}`,
