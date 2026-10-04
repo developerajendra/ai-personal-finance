@@ -12,16 +12,19 @@ import { EXPENSE_PRESETS, MONTHS_SHORT } from '../useBudget';
 const field = 'w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]';
 const labelCls = 'block text-sm font-medium text-neutral-800 mb-1';
 
-/** Add / edit a budget line — an expense (fixed bill or variable spend) or an income, monthly or yearly. */
+/**
+ * Add / edit a budget line — an expense (fixed bill or variable spend) or an income, monthly or yearly.
+ * A new line picks Expense or Income here; an existing one keeps its kind.
+ */
 export function BudgetItemForm({
-  kind,
+  kind: defaultKind = 'expense',
   item,
   onSave,
   onCancel,
   isSaving = false,
   error,
 }: {
-  kind: BudgetItem['kind'];
+  kind?: BudgetItem['kind'];
   item?: BudgetItem;
   onSave: (input: BudgetItemInput & Record<string, unknown>) => void;
   onCancel: () => void;
@@ -29,6 +32,7 @@ export function BudgetItemForm({
   error?: string;
 }) {
   const t = usePortfolioTotals();
+  const [kind, setKind] = useState<BudgetItem['kind']>(item?.kind ?? defaultKind);
   const income = kind === 'income';
   const categories: readonly string[] = income ? BUDGET_INCOME_CATEGORIES : BUDGET_EXPENSE_CATEGORIES;
 
@@ -46,6 +50,12 @@ export function BudgetItemForm({
 
   const accounts = Array.from(new Set(t.cashAccounts.map((b) => `${b.bankName}${b.accountNumber ? ` ••${b.accountNumber.slice(-4)}` : ''}`)));
   const loans = t.activeLoans;
+
+  const changeKind = (k: BudgetItem['kind']) => {
+    setKind(k);
+    setCategory(k === 'income' ? 'Salary' : 'Home');
+    if (k === 'income') setLoanId('');
+  };
 
   const applyPreset = ([n, c, ct, f, d]: (typeof EXPENSE_PRESETS)[number]) => {
     setName(n);
@@ -88,6 +98,21 @@ export function BudgetItemForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p role="alert" className="rounded-lg bg-loss-bg p-3 text-[13.5px] text-loss">{error}</p>}
+
+      {!item && (
+        <div>
+          <span className={labelCls}>What are you adding?</span>
+          <Segmented<BudgetItem['kind']>
+            ariaLabel="Expense or income"
+            value={kind}
+            onChange={changeKind}
+            options={[
+              { value: 'expense', label: 'Expense' },
+              { value: 'income', label: 'Income' },
+            ]}
+          />
+        </div>
+      )}
 
       {!income && !item && (
         <div>

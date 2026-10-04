@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Dot, Panel, PanelHeader } from '@/shared/components/ui';
@@ -31,6 +32,8 @@ export interface Slice {
   name: string;
   value: number;
   color: string;
+  /** Legend row links here when set */
+  href?: string;
 }
 
 /** Donut with a centre total and a legend list — same treatment as the dashboard's Allocation panel. */
@@ -62,14 +65,27 @@ export function DonutPanel({ title, subtitle, slices, centreLabel, action }: { t
             </div>
           </div>
           <ul className="min-w-[160px] flex-1 space-y-2.5">
-            {data.map((d) => (
-              <li key={d.name} className="flex items-center gap-2.5 text-[14px]">
-                <Dot color={d.color} size={9} />
-                <span className="min-w-0 flex-1 truncate">{d.name}</span>
-                <span className="tabular-nums">{C(d.value)}</span>
-                <span className="w-12 text-right tabular-nums text-muted">{pct(total ? (d.value / total) * 100 : 0)}</span>
-              </li>
-            ))}
+            {data.map((d) => {
+              const body = (
+                <>
+                  <Dot color={d.color} size={9} />
+                  <span className="min-w-0 flex-1 truncate">{d.name}</span>
+                  <span className="tabular-nums">{C(d.value)}</span>
+                  <span className="w-12 text-right tabular-nums text-muted">{pct(total ? (d.value / total) * 100 : 0)}</span>
+                </>
+              );
+              return (
+                <li key={d.name}>
+                  {d.href ? (
+                    <Link href={d.href} className="flex items-center gap-2.5 text-[14px] hover:text-accent-700">
+                      {body}
+                    </Link>
+                  ) : (
+                    <span className="flex items-center gap-2.5 text-[14px]">{body}</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -91,6 +107,7 @@ export function BarsPanel({
   series,
   stacked,
   action,
+  colorKey,
 }: {
   title: string;
   subtitle?: ReactNode;
@@ -98,6 +115,8 @@ export function BarsPanel({
   series: BarSeries[];
   stacked?: boolean;
   action?: ReactNode;
+  /** Single-series charts: colour each bar from this row field (e.g. an asset-class colour) */
+  colorKey?: string;
 }) {
   const { M } = useMoney();
   return (
@@ -130,8 +149,9 @@ export function BarsPanel({
                   stackId={stacked ? 'a' : undefined}
                   radius={stacked && i < series.length - 1 ? 0 : [4, 4, 0, 0]}
                   maxBarSize={44}
-                  isAnimationActive={false}
-                />
+                  isAnimationActive={false}>
+                  {colorKey && series.length === 1 && rows.map((r, ri) => <Cell key={ri} fill={String(r[colorKey])} />)}
+                </Bar>
               ))}
             </BarChart>
           </ResponsiveContainer>

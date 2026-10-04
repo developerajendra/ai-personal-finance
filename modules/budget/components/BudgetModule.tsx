@@ -1,14 +1,14 @@
 'use client';
 
 import { useMemo, useState, type ReactNode } from 'react';
-import { Check, ChevronLeft, ChevronRight, Edit2, Plus, Trash2 } from 'lucide-react';
+import { Check, Edit2, Plus, Trash2 } from 'lucide-react';
 import type { BudgetItem } from '@/shared/types';
 import { BUDGET_EXPENSE_CATEGORIES, BUDGET_INCOME_CATEGORIES } from '@/shared/schemas/finance';
 import { cn } from '@/shared/utils/cn';
 import { Button, DetailRow, Drawer, EmptyState, PageHeader, Panel, PanelHeader, Skeleton, Tag } from '@/shared/components/ui';
 import { useMoney, fmtDate } from '@/shared/hooks/useMoney';
 import { usePortfolioTotals } from '@/shared/hooks/usePortfolioTotals';
-import { DonutPanel } from '@/modules/portfolio/components/ClassCharts';
+import { BarsPanel, DonutPanel } from '@/modules/portfolio/components/ClassCharts';
 import { BudgetItemForm } from './BudgetItemForm';
 import {
   MONTHS_SHORT,
@@ -105,6 +105,14 @@ export function BudgetModule() {
   const current = drawerId ? [...incomeRows, ...expenseRows].find((r) => r.item.id === drawerId) : undefined;
   const currentItem = drawer?.type === 'form' ? drawer.item : current?.item ?? (drawerId ? budget.items.find((i) => i.id === drawerId) : undefined);
 
+  const plannedVsActual = BUDGET_EXPENSE_CATEGORIES.map((c) => {
+    const rs = expenseRows.filter((r) => r.item.category === c);
+    return { name: c, planned: sum(rs, 'planned'), actual: sum(rs, 'actual') };
+  }).filter((r) => r.planned > 0 || r.actual > 0);
+  const overBudget = expenseRows.filter((r) => r.item.costType === 'variable' && r.actual > r.planned).length;
+  // Month dropdown: a year back to a year ahead, always including the selected month
+  const monthOptions = Array.from(new Set([...Array.from({ length: 25 }, (_, k) => shiftMonth(monthKey(), k - 12)), month])).sort().reverse();
+
   const byCategory = BUDGET_EXPENSE_CATEGORIES.map((c) => ({
     name: c,
     value: expenseRows.filter((r) => r.item.category === c).reduce((s, r) => s + r.planned, 0),
@@ -115,24 +123,19 @@ export function BudgetModule() {
     <div>
       <PageHeader
         crumbs={[{ label: 'Planning' }, { label: 'Budget' }]}
-        title={`Budget · ${monthLabel(month)}`}
+        title="Budget"
         actions={
           <>
-            <div className="flex items-center gap-1">
-              <Button variant="secondary" iconOnly icon={ChevronLeft} aria-label="Previous month" onClick={() => setMonth(shiftMonth(month, -1))} />
-              <span className="min-w-[124px] text-center text-[14px] font-semibold">{monthLabel(month)}</span>
-              <Button variant="secondary" iconOnly icon={ChevronRight} aria-label="Next month" onClick={() => setMonth(shiftMonth(month, 1))} />
-              {!isCurrent && (
-                <Button variant="ghost" size="sm" onClick={() => setMonth(monthKey())}>
-                  This month
-                </Button>
-              )}
-            </div>
-            <Button variant="secondary" icon={Plus} onClick={() => open({ type: 'form', kind: 'income' })}>
-              Add income
-            </Button>
+            <select aria-label="Month" value={month} onChange={(e) => setMonth(e.target.value)} className="input !w-auto min-w-[170px] font-semibold">
+              {monthOptions.map((m) => (
+                <option key={m} value={m}>
+                  {monthLabel(m)}
+                  {m === monthKey() ? ' (this month)' : ''}
+                </option>
+              ))}
+            </select>
             <Button icon={Plus} onClick={() => open({ type: 'form', kind: 'expense' })}>
-              Add expense
+              Add
             </Button>
           </>
         }
@@ -151,19 +154,54 @@ export function BudgetModule() {
 
       {budget.isLoading ? (
         <Skeleton className="h-[320px] w-full !rounded-panel" />
-      ) : budget.items.length === 0 ? (
+      ) : (
+        <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)]">
+          <DonutPanel title="Where it goes" subtitle={`Planned spending in ${monthLabel(month)}`} slices={byCategory} centreLabel="Planned" />
+          <BarsPanel
+            title="Planned vs actual"
+            subtitle="By category this month"
+            rows={plannedVsActual}
+            series={[
+              { key: 'planned', label: 'Planned', color: 'var(--c-prop)' },
+              { key: 'actual', label: 'Actual', color: 'var(--color-accent)' },
+            ]}
+          />
+          <Panel className="h-full lg:col-span-2 xl:col-span-1">
+            <PanelHeader title="Month at a glance" subtitle={isCurrent ? 'So far this month' : monthLabel(month)} />
+            <DetailRow label="Income received" value={`${M(received)} of ${M(plannedIn)}`} />
+            <DetailRow
+              label="Bills paid"
+              value={`${expenseRows.filter((r) => r.item.costType === 'fixed' && r.done).length} of ${expenseRows.filter((r) => r.item.costType === 'fixed').length}`}
+            />
+            <DetailRow
+              label="Spend limits used"
+              value={`${M(sum(expenseRows.filter((r) => r.item.costType === 'variable'), 'actual'))} of ${M(sum(expenseRows.filter((r) => r.item.costType === 'variable'), 'planned'))}`}
+            />
+            <DetailRow
+              label="Over budget"
+              value={
+                <span className={overBudget > 0 ? 'text-loss' : ''}>
+                  {overBudget} item{overBudget === 1 ? '' : 's'}
+                </span>
+              }
+            />
+            <div className="flex items-baseline justify-between pt-4">
+              <span className="text-[15px] font-semibold">Left after bills</span>
+              <span className={cn('text-[19px] font-bold tabular-nums', received - spent >= 0 ? 'text-ink' : 'text-loss')}>{M(received - spent)}</span>
+            </div>
+            <p className="mt-1 text-[12.5px] text-muted">Income received minus what you have spent this month.</p>
+          </Panel>
+        </div>
+      )}
+
+      {budget.isLoading ? null : budget.items.length === 0 ? (
         <Panel>
           <EmptyState
             title="Plan your month"
             action={
-              <div className="flex flex-wrap justify-center gap-2">
-                <Button variant="secondary" icon={Plus} onClick={() => open({ type: 'form', kind: 'income' })}>
-                  Add income
-                </Button>
-                <Button icon={Plus} onClick={() => open({ type: 'form', kind: 'expense' })}>
-                  Add expense
-                </Button>
-              </div>
+              <Button icon={Plus} onClick={() => open({ type: 'form', kind: 'expense' })}>
+                Add
+              </Button>
             }>
             Add your salary and the bills you pay every month or year — rent, electricity, maintenance, mobile, school fees, health — then mark them paid or log spends as
             the month goes.
@@ -171,28 +209,6 @@ export function BudgetModule() {
         </Panel>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-            <DonutPanel title="Where it goes" subtitle={`Planned spending in ${monthLabel(month)}`} slices={byCategory} centreLabel="Planned" />
-            <Panel className="h-full">
-              <PanelHeader title="Month at a glance" subtitle={isCurrent ? 'So far this month' : monthLabel(month)} />
-              <DetailRow label="Income received" value={`${M(received)} of ${M(plannedIn)}`} />
-              <DetailRow
-                label="Bills paid"
-                value={`${expenseRows.filter((r) => r.item.costType === 'fixed' && r.done).length} of ${expenseRows.filter((r) => r.item.costType === 'fixed').length}`}
-              />
-              <DetailRow
-                label="Spend limits used"
-                value={`${M(sum(expenseRows.filter((r) => r.item.costType === 'variable'), 'actual'))} of ${M(sum(expenseRows.filter((r) => r.item.costType === 'variable'), 'planned'))}`}
-              />
-              <DetailRow label="Over budget" value={<span className={expenseRows.some((r) => r.tone === 'loss' && r.item.costType === 'variable') ? 'text-loss' : ''}>{expenseRows.filter((r) => r.item.costType === 'variable' && r.actual > r.planned).length} items</span>} />
-              <div className="flex items-baseline justify-between pt-4">
-                <span className="text-[15px] font-semibold">Left after bills</span>
-                <span className={cn('text-[19px] font-bold tabular-nums', received - spent >= 0 ? 'text-ink' : 'text-loss')}>{M(received - spent)}</span>
-              </div>
-              <p className="mt-1 text-[12.5px] text-muted">Income received minus what you have spent this month.</p>
-            </Panel>
-          </div>
-
           <BudgetTable
             heading="Income"
             rows={incomeRows}
@@ -260,9 +276,7 @@ export function BudgetModule() {
           drawer?.type === 'form'
             ? drawer.item
               ? `Edit ${drawer.item.name}`
-              : drawer.kind === 'income'
-                ? 'Add income'
-                : 'Add expense'
+              : 'Add to budget'
             : drawer?.type === 'log'
               ? currentItem?.kind === 'income'
                 ? `Log income · ${currentItem?.name ?? ''}`

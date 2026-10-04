@@ -3,7 +3,7 @@
 import { AppShell } from "@/shared/components/AppShell";
 import { PageHeader } from "@/shared/components/ui";
 import { PortfolioHoldings } from "@/modules/portfolio/components/PortfolioHoldings";
-import { ClassCards } from "@/modules/portfolio/components/ClassCards";
+import { PortfolioCharts } from "@/modules/portfolio/components/PortfolioCharts";
 import { usePortfolioTotals } from "@/shared/hooks/usePortfolioTotals";
 import { useMoney } from "@/shared/hooks/useMoney";
 
@@ -28,7 +28,7 @@ export default function PortfolioPage() {
         }}
       />
 
-      <ClassCards classes={t.classes} />
+      <PortfolioCharts t={t} />
 
       <div className="mt-6">
         <PortfolioHoldings />
