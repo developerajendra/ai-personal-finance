@@ -29,11 +29,13 @@ const READ_ONLY_TABS: Partial<Record<ItemType, { href: string; label: string }>>
 
 interface PortfolioGridProps {
   defaultTab?: ItemType;
-  /** Show only this tab, fully editable (e.g. the Receivables page); hides the tab bar */
+  /** Show only this tab, fully editable (e.g. the Receivables page); hides the tab bar and its add button */
   lockedTab?: ItemType;
+  /** Bumped by the page header's add button to open the add form for the locked tab */
+  addRequest?: number;
 }
 
-export function PortfolioGrid({ defaultTab = 'investment', lockedTab }: PortfolioGridProps = {}) {
+export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest = 0 }: PortfolioGridProps = {}) {
   const [activeTab, setActiveTab] = useState<ItemType>(lockedTab ?? defaultTab);
   // Overview tabs whose add / edit / delete lives on their own page (none when locked to one tab)
   const readOnlyLink = lockedTab ? undefined : READ_ONLY_TABS[activeTab];
@@ -396,6 +398,21 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab }: Portfoli
     setEditingId(null);
     setShowForm(true);
   };
+
+  const formRef = useRef<HTMLDivElement>(null);
+  const scrollToForm = useRef(false);
+  useEffect(() => {
+    if (!addRequest || !lockedTab) return;
+    scrollToForm.current = true;
+    handleAdd(lockedTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addRequest]);
+  useEffect(() => {
+    // The form opens inline below the toolbar; bring it into view once it has rendered
+    if (!showForm || !scrollToForm.current) return;
+    scrollToForm.current = false;
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [showForm, addRequest]);
 
   const handleEdit = (item: PortfolioItem) => {
     setEditingItem(item);
@@ -1269,7 +1286,7 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab }: Portfoli
                 <ExternalLink className="w-4 h-4" />
                 Manage in {readOnlyLink!.label}
               </Link>
-            ) : (
+            ) : lockedTab ? null : (
             <button
               onClick={() => handleAdd(activeTab)}
               disabled={isSaving}
@@ -1292,7 +1309,7 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab }: Portfoli
       </div>
 
       {showForm && (
-        <div className="p-6 border-t border-divider bg-tile">
+        <div ref={formRef} className="scroll-mt-6 p-6 border-t border-divider bg-tile">
           {isSaving && (
             <div className="mb-4 p-3 bg-accent-100 rounded-lg flex items-center gap-2">
               <Loader size="sm" />
