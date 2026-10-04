@@ -126,7 +126,7 @@ export function DashboardModule() {
       <h1 className="sr-only">Dashboard</h1>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <NetWorthPanel netWorth={t.netWorth} isLoading={t.isLoading} />
+        <NetWorthPanel netWorth={t.netWorth} liquidAssets={t.totalLiquidAssets} fixedAssets={t.totalFixedAssets} ppf={t.totalPPF} isLoading={t.isLoading} />
         <AllocationPanel classes={t.classes} assets={t.assets} />
       </div>
 

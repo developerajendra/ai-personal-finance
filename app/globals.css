@@ -192,6 +192,12 @@
   html[data-theme="private"] .seg-opt[aria-pressed="true"] {
     color: #fff;
   }
+  /* Compact segmented control for in-panel toggles */
+  .seg-sm .seg-opt {
+    min-height: 24px;
+    padding: 2px 9px;
+    font-size: 12px;
+  }
 
   /* Tags / pills */
   .tag {
