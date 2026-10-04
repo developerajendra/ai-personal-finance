@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ArrowRight, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import type { Subscription } from '@/shared/types';
 import { cn } from '@/shared/utils/cn';
 import { Button, Dot, EmptyState, PageHeader, Panel, PanelHeader, Segmented, Skeleton, StackBar, Tag } from '@/shared/components/ui';
@@ -196,57 +195,5 @@ export function SubscriptionsModule() {
 
       <SubscriptionForm open={form.open} editing={form.editing} onClose={() => setForm({ open: false, editing: null })} />
     </div>
-  );
-}
-
-/** Overview card: monthly total, due this week, and the next few renewals as tiles. */
-export function SubscriptionsCard() {
-  const { M } = useMoney();
-  const { active, perMonth, dueThisWeek, isLoading } = useSubscriptions();
-  const [form, setForm] = useState(false);
-  const upcoming = [...active].sort((a, b) => a.nextDate.localeCompare(b.nextDate)).slice(0, 8);
-
-  return (
-    <Panel>
-      <PanelHeader
-        title="Subscriptions"
-        subtitle={isLoading ? ' ' : `${M(perMonth)} per month · ${active.length} active · ${dueThisWeek} due this week`}
-        action={
-          <>
-            <Button variant="secondary" size="sm" icon={Plus} onClick={() => setForm(true)}>
-              <span className="hidden sm:inline">Add subscription</span>
-              <span className="sm:hidden">Add</span>
-            </Button>
-            <Link href="/subscriptions" className="flex items-center gap-1 rounded-md px-2 py-1 text-[14px] font-medium text-accent-700 hover:bg-accent-100">
-              View all <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </>
-        }
-      />
-      {upcoming.length === 0 ? (
-        <p className="text-[14px] text-muted">{isLoading ? 'Loading…' : 'No subscriptions yet — add the services you pay for to track renewals.'}</p>
-      ) : (
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
-          {upcoming.map((s) => {
-            const dl = dateLine(s);
-            return (
-              <Link key={s.id} href="/subscriptions" className="flex items-center gap-3 rounded-[14px] bg-tile px-3.5 py-3 transition-colors hover:bg-accent-100">
-                <SubTile s={s} size={38} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-[15px] font-semibold">{s.name}</span>
-                    <span className="flex-none text-[13.5px] font-semibold tabular-nums">{priceLabel(s)}</span>
-                  </span>
-                  <span className={cn('block truncate text-[12.5px]', dl.soon ? 'text-warn' : 'text-muted')}>
-                    {dl.text} · {dl.sub}
-                  </span>
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-      <SubscriptionForm open={form} editing={null} onClose={() => setForm(false)} />
-    </Panel>
   );
 }

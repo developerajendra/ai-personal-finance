@@ -52,18 +52,4 @@ export function useSnapshots() {
   return { monthly, yearly, years, isLoading };
 }
 
-/** Asset-class values from a stored snapshot (Performance groups PPF records with deposits, as snapshots do). */
-export function snapshotClasses(s: FinancialSnapshot) {
-  return {
-    property: s.totalProperties || 0,
-    /** all non-market investments incl. PPF-type records */
-    deposits: s.totalInvestments || 0,
-    market: (s.totalStocks || 0) + (s.totalMutualFunds || 0),
-    /** EPF passbook balances */
-    epf: s.totalPPF || 0,
-    receivables: s.totalReceivables || 0,
-    cash: s.totalBankBalances || 0,
-    loans: s.totalLoans || 0,
-    netWorth: s.netWorth || 0,
-  };
-}
+export { snapshotClasses } from '@/shared/utils/netWorthHistory';

@@ -1,9 +1,13 @@
 import type { BankBalance, Investment, Loan, Subscription, Transaction } from '@/shared/types';
 import { convertToINR, type Currency } from '@/shared/utils/currency';
 import { getCurrentInvestmentValue, getMaturityAmount } from '@/shared/utils/investmentValue';
+import { emiCheck } from '@/shared/utils/dashboardInsights';
+
+export type CashEventKind = 'emi' | 'maturity' | 'receivable' | 'salary' | 'subscription';
 
 export interface CashEvent {
   id: string;
+  kind: CashEventKind;
   /** yyyy-mm-dd */
   date: string;
   title: string;
@@ -12,6 +16,12 @@ export interface CashEvent {
   amount: number;
   /** projected rather than contractual (salary, maturity value not recorded) */
   expected?: boolean;
+  /**
+   * 'unknown': no amount recorded (amount is 0 and must not be summed as a real zero);
+   * 'unverified': recorded amount fails a consistency check (amount shown, excluded from totals).
+   * Only emitted when buildCashEvents is called with { unverifiedEmis: true }.
+   */
+  amountStatus?: 'unknown' | 'unverified';
   href: string;
 }
 
@@ -43,15 +53,20 @@ function receivableTotal(bb: BankBalance) {
 export function buildCashEvents(
   input: { loans: Loan[]; investments: Investment[]; bankBalances: BankBalance[]; transactions?: Transaction[]; subscriptions?: Subscription[] },
   months = 12,
+  opts: { unverifiedEmis?: boolean } = {},
 ) {
   const today = startOfToday();
   const horizon = new Date(today.getFullYear(), today.getMonth() + months, today.getDate());
   const upcoming: CashEvent[] = [];
   const overdue: CashEvent[] = [];
 
-  // Loan EMIs
+  // Loan EMIs. Without opts.unverifiedEmis (the Upcoming page), a loan with no EMI is skipped as before;
+  // with it (the dashboard), it appears with amountStatus so it is never counted as a zero payment.
   for (const loan of input.loans) {
-    if (loan.status !== 'active' || !loan.emiAmount) continue;
+    if (loan.status !== 'active') continue;
+    const check = emiCheck(loan);
+    if (!opts.unverifiedEmis && !loan.emiAmount) continue;
+    const amountStatus = !opts.unverifiedEmis ? undefined : check.status === 'unknown' ? 'unknown' : check.status === 'implausible' ? 'unverified' : undefined;
     const end = loan.endDate ? new Date(loan.endDate) : null;
     const day = Math.min(Math.max(loan.emiDate || 1, 1), 28);
     for (let i = 0; i <= months; i++) {
@@ -59,10 +74,12 @@ export function buildCashEvents(
       if (d < today || d > horizon || (end && d > end)) continue;
       upcoming.push({
         id: `emi-${loan.id}-${ymd(d)}`,
+        kind: 'emi',
         date: ymd(d),
         title: `${loan.name} EMI`,
         sub: `${loan.interestRate}% · ${loan.type.replace('-', ' ')}`,
-        amount: -loan.emiAmount,
+        amount: amountStatus === 'unknown' ? 0 : -(loan.emiAmount || 0),
+        amountStatus,
         href: '/portfolio/loans',
       });
     }
@@ -78,6 +95,7 @@ export function buildCashEvents(
     if (d < today) {
       overdue.push({
         id: `mat-${inv.id}`,
+        kind: 'maturity',
         date: ymd(d),
         title: `${inv.name} payout`,
         sub: `Matured ${fmt(inv.maturityDate)} · payout not recorded`,
@@ -87,6 +105,7 @@ export function buildCashEvents(
     } else if (d <= horizon) {
       upcoming.push({
         id: `mat-${inv.id}`,
+        kind: 'maturity',
         date: ymd(d),
         title: `${inv.name} matures`,
         sub: maturityAmount == null ? 'Maturity amount not recorded · using current value' : inv.maturityAmount == null ? 'Maturity proceeds · calculated from interest' : 'Maturity proceeds',
@@ -104,6 +123,7 @@ export function buildCashEvents(
     if (Number.isNaN(d.getTime())) continue;
     const ev: CashEvent = {
       id: `recv-${bb.id}`,
+      kind: 'receivable',
       date: ymd(d),
       title: `${bb.bankName} · receivable`,
       sub: `Due ${fmt(bb.dueDate)}${bb.interestRate ? ` · principal + ${bb.interestRate}% simple interest` : ''}`,
@@ -127,6 +147,7 @@ export function buildCashEvents(
       if (d <= today || d > horizon) continue;
       upcoming.push({
         id: `sal-${ymd(d)}`,
+        kind: 'salary',
         date: ymd(d),
         title: salaries[0]!.description || 'Salary',
         sub: `Projected from the last ${salaries.length === 1 ? 'salary credit' : 'two salary credits'}`,
@@ -152,6 +173,7 @@ export function buildCashEvents(
       if (d > horizon) break;
       upcoming.push({
         id: `sub-${sub.id}-${ymd(d)}`,
+        kind: 'subscription',
         date: ymd(d),
         title: `${sub.name} renews`,
         sub: `${sub.plan ? `${sub.plan} · ` : ''}${sub.cycle === 'Yearly' ? 'Yearly' : 'Monthly'} subscription${sub.paidWith ? ` · ${sub.paidWith}` : ''}`,

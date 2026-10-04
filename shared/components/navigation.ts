@@ -26,7 +26,7 @@ const starts = (...prefixes: string[]) => (p: string) => prefixes.some((x) => p 
 
 export const NAV: Record<string, NavItem> = {
   overview: { key: 'overview', label: 'Dashboard', href: '/dashboard', icon: LayoutGrid, match: (p) => p === '/dashboard' || p === '/dashboard/chart' },
-  performance: { key: 'performance', label: 'Performance', href: '/performance', icon: LineChart, match: starts('/performance') },
+  performance: { key: 'performance', label: 'Trends & analysis', href: '/performance', icon: LineChart, match: starts('/performance') },
   portfolio: {
     key: 'portfolio',
     label: 'Portfolio',
@@ -72,7 +72,7 @@ export const SEARCH_EXTRA: { label: string; href: string; group: string }[] = [
   { label: 'Retirement (EPF + NPS)', href: '/portfolio/provident-fund', group: 'Portfolio' },
   { label: 'Receivables', href: '/portfolio/receivables', group: 'Portfolio' },
   { label: 'Properties', href: '/portfolio/properties', group: 'Portfolio' },
-  { label: 'Monthly snapshots', href: '/performance/snapshots', group: 'Performance' },
+  { label: 'Monthly snapshots', href: '/performance/snapshots', group: 'Trends & analysis' },
   { label: 'AI analysis', href: '/data/analysis', group: 'Imports & data' },
   { label: 'Net worth chart', href: '/dashboard/chart', group: 'Dashboard' },
 ];

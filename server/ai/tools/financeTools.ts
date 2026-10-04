@@ -176,7 +176,7 @@ export const FINANCE_TOOLS: ToolDefinition[] = [
   {
     name: "get_financial_overview",
     description:
-      "Get verified totals of the user's published portfolio (investments, loans, properties, bank balances, holdings, net worth). Use for questions about totals or net worth.",
+      "Get verified totals of the user's published portfolio: net worth, total assets, loans, and assets by class (cash & bank, stocks & funds, retirement, properties, receivables, fixed deposits, other investments) — the same figures the dashboard shows. Net worth already includes receivables. Use for any question about totals or net worth and quote these numbers as-is.",
     parameters: { type: "object", properties: {} },
   },
   {

@@ -6,9 +6,9 @@ export default function SnapshotsPage() {
   return (
     <AppShell>
       <PageHeader
-        crumbs={[{ label: "Performance", href: "/performance" }, { label: "Monthly snapshots" }]}
+        crumbs={[{ label: "Trends & analysis", href: "/performance" }, { label: "Monthly snapshots" }]}
         title="Monthly snapshots"
-        meta="Month-end values of every asset class · Performance charts are built from these"
+        meta="Month-end values of every asset class · Trends & analysis is built from these"
       />
       <ArchiveModule />
     </AppShell>
