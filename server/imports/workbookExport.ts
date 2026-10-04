@@ -4,7 +4,7 @@ import type { BankBalance } from "@/shared/types";
 import { getCurrentInvestmentValue } from "@/shared/utils/investmentValue";
 import { loadPortfolio, loadStocks, loadMutualFunds } from "@/server/finance/portfolio/service";
 import { loadPPFAccounts } from "@/server/finance/provident-fund/ppfStorage";
-import { LEDGER_SHEETS } from "@/server/imports/workbookImport";
+import { WORKBOOK_SHEETS } from "@/server/imports/workbookImport";
 
 /** Excel serial date from an ISO string, so dates stay real dates in Excel. */
 function xlDate(iso?: string | null) {
@@ -35,7 +35,7 @@ function sheet(header: string[], rows: unknown[][], dateCols: number[] = []) {
 }
 
 /**
- * Build the Ledger portfolio workbook (all records, drafts included). The same
+ * Build the portfolio workbook (all records, drafts included). The same
  * format is accepted by the importer, so export → import round-trips.
  */
 export async function buildPortfolioWorkbook(userId: string): Promise<Buffer> {
@@ -75,7 +75,7 @@ export async function buildPortfolioWorkbook(userId: string): Promise<Buffer> {
       investments.map((i) => [i.name, i.type, i.assetType ?? "", i.amount, i.originalCurrency || i.currency || "INR", i.interestRate ?? "", i.status, xlDate(i.startDate), xlDate(i.maturityDate), i.maturityAmount ?? 0, i.ruleLabel ?? "", i.description ?? "", (i.tags ?? []).join(", ")]),
       [7, 8],
     ),
-    LEDGER_SHEETS.investments,
+    WORKBOOK_SHEETS.investments,
   );
 
   const bankRow = (b: BankBalance) => [b.bankName, b.accountNumber ?? "", b.accountType, b.balance, b.originalCurrency || b.currency || "INR", b.interestRate ?? "", b.status, xlDate(b.lastUpdated), xlDate(b.issueDate), xlDate(b.dueDate), b.description ?? "", (b.tags ?? []).join(", ")];
@@ -86,7 +86,7 @@ export async function buildPortfolioWorkbook(userId: string): Promise<Buffer> {
       [...cash.map(bankRow), ...(recv.length ? [["─── Receivables ───"], ...recv.map(bankRow)] : [])],
       [7, 8, 9],
     ),
-    LEDGER_SHEETS.bank,
+    WORKBOOK_SHEETS.bank,
   );
 
   XLSX.utils.book_append_sheet(
@@ -96,7 +96,7 @@ export async function buildPortfolioWorkbook(userId: string): Promise<Buffer> {
       loans.map((l) => [l.name, l.type, l.principalAmount, l.outstandingAmount, l.emiAmount, l.emiDate, l.interestRate, l.tenureMonths, l.status, xlDate(l.startDate), xlDate(l.endDate), l.description ?? ""]),
       [9, 10],
     ),
-    LEDGER_SHEETS.loans,
+    WORKBOOK_SHEETS.loans,
   );
 
   XLSX.utils.book_append_sheet(
@@ -106,7 +106,7 @@ export async function buildPortfolioWorkbook(userId: string): Promise<Buffer> {
       properties.map((p) => [p.name, p.type, p.assetType ?? "", p.purchasePrice, p.currentValue ?? "", xlDate(p.purchaseDate), p.location, p.status, p.description ?? ""]),
       [5],
     ),
-    LEDGER_SHEETS.properties,
+    WORKBOOK_SHEETS.properties,
   );
 
   XLSX.utils.book_append_sheet(
@@ -115,7 +115,7 @@ export async function buildPortfolioWorkbook(userId: string): Promise<Buffer> {
       ["Symbol", "Exchange", "Quantity", "Avg Price (₹)", "Last Price (₹)", "Current Value (₹)", "P&L (₹)", "P&L (%)"],
       stocks.map((s) => [s.tradingsymbol, s.exchange, s.quantity, s.average_price, s.last_price, s.last_price * s.quantity, s.pnl, s.pnl_percentage]),
     ),
-    LEDGER_SHEETS.stocks,
+    WORKBOOK_SHEETS.stocks,
   );
 
   XLSX.utils.book_append_sheet(
@@ -124,7 +124,7 @@ export async function buildPortfolioWorkbook(userId: string): Promise<Buffer> {
       ["Symbol", "Fund Name", "Folio", "Quantity", "Avg Price (₹)", "Last Price (₹)", "Current Value (₹)", "P&L (₹)", "P&L (%)"],
       funds.map((f) => [f.tradingsymbol, f.fund_name, f.folio, f.quantity, f.average_price, f.last_price, f.last_price * f.quantity, f.pnl, f.pnl_percentage]),
     ),
-    LEDGER_SHEETS.funds,
+    WORKBOOK_SHEETS.funds,
   );
 
   XLSX.utils.book_append_sheet(
@@ -134,7 +134,7 @@ export async function buildPortfolioWorkbook(userId: string): Promise<Buffer> {
       pf.map((p) => [p.memberId ?? "", p.memberName ?? "", p.establishmentId ?? "", p.establishmentName ?? "", (p.depositEmployeeShare || 0) - (p.withdrawEmployeeShare || 0), (p.depositEmployerShare || 0) - (p.withdrawEmployerShare || 0), p.grandTotal, xlDate(p.lastUpdated || p.extractedAt)]),
       [7],
     ),
-    LEDGER_SHEETS.pf,
+    WORKBOOK_SHEETS.pf,
   );
 
   XLSX.utils.book_append_sheet(
@@ -144,7 +144,7 @@ export async function buildPortfolioWorkbook(userId: string): Promise<Buffer> {
       transactions.map((t) => [xlDate(t.date), t.description, t.category, t.type, t.amount, t.balance ?? 0, t.account ?? "", t.source]),
       [0],
     ),
-    LEDGER_SHEETS.transactions,
+    WORKBOOK_SHEETS.transactions,
   );
 
   return XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;

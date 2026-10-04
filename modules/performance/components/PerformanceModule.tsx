@@ -241,7 +241,7 @@ export function PerformanceModule() {
           <Segmented value={exact ? 'Exact' : 'Short'} onChange={(v) => setExact(v === 'Exact')} options={['Short', 'Exact']} />
         </div>
         <div className="overflow-x-auto">
-          <table className="ledger-table min-w-[980px]">
+          <table className="data-table min-w-[980px]">
             <thead>
               <tr>
                 <th className="!pl-6">{mode === 'Monthly' ? 'Month' : 'Year'}</th>

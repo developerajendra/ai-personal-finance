@@ -5,7 +5,7 @@ import { buildPortfolioWorkbook } from "@/server/imports/workbookExport";
 
 export const dynamic = "force-dynamic";
 
-/** GET: download every portfolio record as the Ledger workbook (re-importable from Imports). */
+/** GET: download every portfolio record as the portfolio workbook (re-importable from Imports). */
 export async function GET() {
   try {
     const session = await getSession();

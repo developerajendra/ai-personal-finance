@@ -1,6 +1,6 @@
-# Ledger v7 → ai-personal-finance: implementation specs
+# Personal Finance v7 → ai-personal-finance: implementation specs
 
-Design source: `Ledger Finance v7.dc.html`. Target: the local `ai-personal-finance` folder (ahead of GitHub main): Next.js 14 App Router, Tailwind 3, lucide-react, TanStack Query, recharts.
+Design source: `Personal Finance v7.dc.html`. Target: the local `ai-personal-finance` folder (ahead of GitHub main): Next.js 14 App Router, Tailwind 3, lucide-react, TanStack Query, recharts.
 **Rule:** restyle only. Keep every query key, API call, event, form and route exactly as it works today. Match the UI to the design.
 
 ## 0. Tokens (do first)
@@ -21,7 +21,7 @@ Design source: `Ledger Finance v7.dc.html`. Target: the local `ai-personal-finan
 Accents (`--accent`): Blue #0071e3 · Indigo #5856d6 · Graphite #3a3a3c · Teal #0e8a9b · Purple #8944ab · Navy #1d3d8f · Orange #e8590c · Pink #d6336c. Copy the 100–900 ramps from the design's theme CSS.
 Font: `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif`. Radii: 6/10/16, panels 18. Panel shadow: `0 1px 2px rgba(0,0,0,.04), 0 0 0 .5px rgba(0,0,0,.05)`.
 `tailwind.config.ts`: map `colors.{bg,panel,tile,text,muted,divider,accent,gain,loss}` to `var(--…)` so components use `bg-panel text-muted` and so on.
-Persist the theme and accent in `localStorage` (`ledger-theme`, `ledger-accent`) and set `<html data-theme data-accent>` from a small client component inside `Providers.tsx`.
+Persist the theme and accent in `localStorage` (`pf-theme`, `pf-accent`) and set `<html data-theme data-accent>` from a small client component inside `Providers.tsx`.
 
 ## 1. Sidebar: `shared/components/Sidebar.tsx`
 Restyle only. Keep: `baseNavigation`, the dynamic categories fetch plus the `portfolioCategoriesUpdated` listener, `handleDeleteCategory` (receivables can't be deleted), Gmail status polling, logout, collapse.

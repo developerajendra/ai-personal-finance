@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * Ledger UI kit — the shared building blocks from the v7 design.
+ * Personal Finance UI kit — the shared building blocks from the v7 design.
  * Every screen composes these instead of repeating markup; colours, radii and
- * shadows all come from the theme tokens (see app/ledger-theme.css).
+ * shadows all come from the theme tokens (see app/theme.css).
  */
 
 import Link from 'next/link';

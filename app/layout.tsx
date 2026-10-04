@@ -4,7 +4,7 @@ import { Providers } from "@/shared/providers/Providers";
 import { THEME_BOOT_SCRIPT } from "@/shared/providers/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "Ledger · Personal Finance",
+  title: "Personal Finance",
   description: "Comprehensive personal finance management tool with AI insights",
   icons: {
     icon: "/favicon.svg",

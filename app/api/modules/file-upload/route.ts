@@ -4,7 +4,7 @@ import { Transaction } from "@/shared/types";
 import { analyzeExcelData, ExcelAnalysisResult } from "@/server/imports/excelAnalyzer";
 import { generateCacheKey, saveToCache, loadFromCache } from "@/server/imports/analysisCache";
 import { importPortfolio, type PortfolioImportResult } from "@/server/imports/portfolioImport";
-import { isLedgerWorkbook, importLedgerWorkbook } from "@/server/imports/workbookImport";
+import { isPortfolioWorkbook, importPortfolioWorkbook } from "@/server/imports/workbookImport";
 import { getSession } from "@/server/auth/session";
 import { errorResponse } from "@/server/http/errors";
 
@@ -52,12 +52,12 @@ export async function POST(request: NextRequest) {
       const bufferNode = Buffer.from(buffer);
       fileInfoForCache = { name: file.name, buffer: bufferNode };
 
-      // Ledger portfolio workbooks (multi-sheet export) have known columns:
+      // Portfolio workbooks (multi-sheet export) have known columns:
       // import every sheet directly instead of guessing with AI.
       if (/\.(xlsx|xls)$/i.test(file.name)) {
         const workbook = XLSX.read(buffer, { type: "buffer" });
-        if (isLedgerWorkbook(workbook)) {
-          const result = await importLedgerWorkbook(userId, workbook);
+        if (isPortfolioWorkbook(workbook)) {
+          const result = await importPortfolioWorkbook(userId, workbook);
           const added = newlyCreatedCount(result);
           return NextResponse.json({
             success: true,

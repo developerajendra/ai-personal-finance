@@ -1,6 +1,6 @@
 repo: developerajendra/ai-personal-finance
 branch: main
-design: Ledger Finance v7.dc.html
+design: Personal Finance v7.dc.html
 
 local: ai-personal-finance (attached folder, ahead of GitHub main)
 
@@ -15,7 +15,7 @@ date: 2026-10-02T15:53:10Z
 
 ## Sync history
 - 2026-10-02T15:51:35Z: GitHub main check, no changes
-- 2026-10-02T15:50:38Z: Initial map of Ledger v7 screens to routes/modules/APIs; wrote handoff/IMPLEMENTATION.md; logged repo features not yet in design
+- 2026-10-02T15:50:38Z: Initial map of Personal Finance v7 screens to routes/modules/APIs; wrote handoff/IMPLEMENTATION.md; logged repo features not yet in design
 
 ## Screen map
 | Design screen | Repo route | Repo files |

@@ -21,14 +21,23 @@ export const ACCENT_SWATCH: Record<Accent, string> = {
 };
 
 const KEYS = {
-  skin: 'ledger-theme',
-  accent: 'ledger-accent',
-  currency: 'ledger-currency',
-  hidden: 'ledger-hidden',
+  skin: 'pf-theme',
+  accent: 'pf-accent',
+  currency: 'pf-currency',
+  hidden: 'pf-hidden',
 } as const;
 
-/** Inline script run in <head> so the saved skin/accent apply before first paint. */
-export const THEME_BOOT_SCRIPT = `(function(){try{var d=document.documentElement;var s=localStorage.getItem('${KEYS.skin}');var a=localStorage.getItem('${KEYS.accent}');if(s){s=s.toLowerCase();d.setAttribute('data-skin',s);d.setAttribute('data-theme',s==='private'?'private':'apple');}if(a){d.setAttribute('data-accent',a.toLowerCase());}}catch(e){}})();`;
+/** Preference keys from when the app was branded "Ledger"; copied to the new keys once. */
+const LEGACY_KEYS: [string, string][] = [
+  ['ledger-theme', KEYS.skin],
+  ['ledger-accent', KEYS.accent],
+  ['ledger-currency', KEYS.currency],
+  ['ledger-hidden', KEYS.hidden],
+  ['ledger-nav-hidden', 'pf-nav-hidden'],
+];
+
+/** Inline script run in <head>: carries over legacy preferences, then applies the saved skin/accent before first paint. */
+export const THEME_BOOT_SCRIPT = `(function(){try{var m=${JSON.stringify(LEGACY_KEYS)};for(var i=0;i<m.length;i++){var o=localStorage.getItem(m[i][0]);if(o!==null){if(localStorage.getItem(m[i][1])===null)localStorage.setItem(m[i][1],o);localStorage.removeItem(m[i][0]);}}}catch(e){}try{var d=document.documentElement;var s=localStorage.getItem('${KEYS.skin}');var a=localStorage.getItem('${KEYS.accent}');if(s){s=s.toLowerCase();d.setAttribute('data-skin',s);d.setAttribute('data-theme',s==='private'?'private':'apple');}if(a){d.setAttribute('data-accent',a.toLowerCase());}}catch(e){}})();`;
 
 function read<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {

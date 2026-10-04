@@ -1,4 +1,4 @@
-@import "./ledger-theme.css";
+@import "./theme.css";
 
 @tailwind base;
 @tailwind components;
@@ -49,7 +49,7 @@
 }
 
 
-/* Ledger component classes. Kept outside @layer so Tailwind never purges classes that are
+/* Personal Finance component classes. Kept outside @layer so Tailwind never purges classes that are
    composed dynamically (e.g. `tag-${tone}`), and placed before utilities so utilities still win. */
 
   /* Panel: the one boxed surface. Padding comes from the caller (default p-[22px_24px]). */
@@ -239,13 +239,13 @@
     color: var(--color-neutral-600);
   }
 
-  /* Ledger table */
-  .ledger-table {
+  /* Data table */
+  .data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
   }
-  .ledger-table thead th {
+  .data-table thead th {
     background: var(--tile-bg);
     color: var(--color-neutral-600);
     font-size: 11.5px;
@@ -256,15 +256,15 @@
     padding: 12px 16px;
     white-space: nowrap;
   }
-  .ledger-table tbody td {
+  .data-table tbody td {
     padding: 14px 16px;
     border-top: 1px solid var(--color-divider);
     vertical-align: middle;
   }
-  .ledger-table tbody tr:hover td {
+  .data-table tbody tr:hover td {
     background: color-mix(in srgb, var(--tile-bg) 60%, transparent);
   }
-  .ledger-table .num {
+  .data-table .num {
     text-align: right;
     white-space: nowrap;
   }

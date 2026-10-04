@@ -36,7 +36,7 @@ export function VoiceModeView({ isListening, isThinking = false, isSpeaking = fa
   return (
     <div className="flex h-full w-full flex-col bg-[var(--dialog-bg)] text-ink">
       <div className="flex items-center justify-between px-4 pt-3.5">
-        <span className="text-[13px] font-medium text-muted">Ledger AI · Voice</span>
+        <span className="text-[13px] font-medium text-muted">Personal Finance AI · Voice</span>
         <span className="text-[12px] text-muted">Finance questions only</span>
       </div>
 

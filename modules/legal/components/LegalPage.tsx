@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { LedgerLogo } from '@/shared/components/Sidebar';
+import { AppLogo } from '@/shared/components/Sidebar';
 import { LEGAL } from '@/shared/legal';
 
 export interface LegalSection {
@@ -19,7 +19,7 @@ export function LegalPage({ title, intro, sections, current }: { title: string; 
       <header className="border-b border-divider bg-panel">
         <div className="mx-auto flex max-w-[820px] items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5" aria-label={`${LEGAL.appName} home`}>
-            <LedgerLogo size={28} />
+            <AppLogo size={28} />
             <span className="font-heading text-[18px] font-bold">{LEGAL.appName}</span>
           </Link>
           <nav aria-label="Legal" className="flex gap-1 text-[14px]">

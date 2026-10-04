@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PanelLeftOpen } from 'lucide-react';
-import { Sidebar, LedgerLogo } from '@/shared/components/Sidebar';
+import { Sidebar, AppLogo } from '@/shared/components/Sidebar';
 import { MobileTabBar } from '@/shared/components/MobileTabBar';
 import { CommandPalette } from '@/shared/components/CommandPalette';
 import { cn } from '@/shared/utils/cn';
@@ -24,7 +24,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
   // Whether the whole sidebar is hidden, remembered across visits
   useEffect(() => {
     try {
-      setNavHidden(localStorage.getItem('ledger-nav-hidden') === '1');
+      setNavHidden(localStorage.getItem('pf-nav-hidden') === '1');
     } catch {
       /* storage unavailable */
     }
@@ -33,7 +33,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
     () =>
       setNavHidden((h) => {
       try {
-        localStorage.setItem('ledger-nav-hidden', h ? '0' : '1');
+        localStorage.setItem('pf-nav-hidden', h ? '0' : '1');
       } catch {
         /* storage unavailable */
       }
@@ -79,9 +79,9 @@ export function AppFrame({ children }: { children: ReactNode }) {
         </button>
         {/* Mobile header: logo only (navigation lives in the floating tab bar) */}
         <div className="flex items-center px-4 pt-4 md:hidden">
-          <Link href="/dashboard" className="flex items-center gap-2.5" aria-label="Ledger home">
-            <LedgerLogo size={28} />
-            <span className="font-heading text-[19px] font-bold">Ledger</span>
+          <Link href="/dashboard" className="flex items-center gap-2.5" aria-label="Personal Finance home">
+            <AppLogo size={28} />
+            <span className="font-heading text-[19px] font-bold">Personal Finance</span>
           </Link>
         </div>
         {children}
