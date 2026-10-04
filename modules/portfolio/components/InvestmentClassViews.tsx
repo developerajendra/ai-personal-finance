@@ -3,20 +3,37 @@
 import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Investment } from '@/shared/types';
-import { Download, Edit2, Plus, Trash2, Upload } from 'lucide-react';
+import { Download, Edit2, Info, Plus, Trash2, Upload } from 'lucide-react';
 import { Loader } from '@/shared/components/Loader';
 import { Button, DetailRow, Drawer, Panel, Tag } from '@/shared/components/ui';
 import { DataTable } from '@/shared/components/DataTable';
 import { useMoney, fmtDate } from '@/shared/hooks/useMoney';
 import { daysUntil, isFixedDeposit, isRetirementInvestment, type AssetClassKey } from '@/shared/hooks/usePortfolioTotals';
-import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
+import { getCurrentInvestmentValue, getMaturityAmount, DEFAULT_COMPOUNDING_MONTHS } from '@/shared/utils/investmentValue';
 import { ClassHeader } from './ClassPages';
 import { BarsPanel, DonutPanel, SERIES_COLORS, toSlices } from './ClassCharts';
 import { InvestmentForm } from './InvestmentForm';
 import { RowActions } from './RowActions';
+import { DraftTabs, useDraftView } from './DraftFilter';
 import { usePortfolioCrud } from '../hooks/usePortfolioCrud';
 
 const INVESTMENTS_KEY = ['investments', 'all'];
+
+/** "4 Oct 2026, 3:15 pm" — when a manually maintained record was last changed. */
+export const fmtDateTime = (iso: string) =>
+  new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+/** Shown at the top of a closed record's details. */
+export function ClosedNotice({ what = 'investment' }: { what?: string }) {
+  return (
+    <p role="status" className="mb-4 flex items-start gap-2 rounded-lg bg-tile p-3 text-[13.5px] text-muted">
+      <Info className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>
+        This {what} is <strong className="text-ink">closed</strong>. It is not counted in net worth or any totals — record where the money went (a bank balance or another investment) so it is counted there.
+      </span>
+    </p>
+  );
+}
 
 const TYPE_LABELS: Record<string, string> = {
   ppf: 'PPF',
@@ -201,7 +218,8 @@ function InvestmentsTable({
   const { M, S } = useMoney();
   const [error, setError] = useState('');
   const crud = usePortfolioCrud<Investment>('investments', [INVESTMENTS_KEY]);
-  const drafts = investments.filter((i) => !i.isPublished).length;
+  const draftView = useDraftView(investments);
+  const closed = draftView.visible.filter((i) => i.status === 'closed').length;
 
   const close = () => {
     if (crud.busy) return;
@@ -234,16 +252,19 @@ function InvestmentsTable({
       <div className="px-6 pb-4 pt-[22px]">
         <h2 className="text-[19px]">{title}</h2>
         <p className="mt-1 text-[13px] text-muted">
-          {investments.length} record{investments.length === 1 ? '' : 's'}
-          {drafts > 0 && ` · ${drafts} draft${drafts === 1 ? '' : 's'}`} · values follow each record’s growth rule · tap a row for details
+          {draftView.visible.length} {draftView.view === 'draft' ? 'draft' : 'published'} record{draftView.visible.length === 1 ? '' : 's'}
+          {closed > 0 && ` · ${closed} closed (not counted in net worth)`} · values follow each record’s growth rule · tap a row for details
         </p>
+        <div className="mt-3">
+          <DraftTabs {...draftView} />
+        </div>
       </div>
       <DataTable<Investment>
-        rows={investments}
+        rows={draftView.visible}
         rowKey={(i) => i.id}
         onRowClick={(item) => setMode({ kind: 'view', item })}
         defaultSort={{ key: 'value', dir: 'desc' }}
-        empty={empty}
+        empty={draftView.view === 'draft' ? 'No drafts — records added from chat, WhatsApp or imports land here for review.' : empty}
         columns={[
           {
             key: 'name',
@@ -258,6 +279,7 @@ function InvestmentsTable({
                 <div className="text-[12.5px] text-muted">
                   {typeLabel(i)}
                   {isMarket(i) && ' · counted in Stocks & funds'}
+                  {i.status === 'closed' && ' · closed, not counted'}
                 </div>
               </>
             ),
@@ -305,7 +327,15 @@ function InvestmentsTable({
           {
             key: 'actions',
             label: '',
-            render: (i) => <RowActions label={i.name} onEdit={() => setMode({ kind: 'edit', item: i })} onDelete={() => handleDelete(i)} />,
+            render: (i) => (
+              <RowActions
+                label={i.name}
+                onEdit={() => setMode({ kind: 'edit', item: i })}
+                isPublished={i.isPublished}
+                onTogglePublish={() => attempt(() => crud.setPublished(i.id, !i.isPublished))}
+                onDelete={() => handleDelete(i)}
+              />
+            ),
           },
         ]}
       />
@@ -348,20 +378,34 @@ function InvestmentsTable({
         )}
         {current && !editing && (
           <>
+            {current.status === 'closed' && <ClosedNotice />}
             <DetailRow label="Current value" value={M(getCurrentInvestmentValue(current), 2)} />
             <DetailRow label="Invested" value={M(current.amount)} />
             <DetailRow label="Gain" value={<span className={gain(current) >= 0 ? 'text-gain' : 'text-loss'}>{S(gain(current))}</span>} />
             {current.interestRate != null && <DetailRow label="Rate" value={`${current.interestRate}% p.a.`} />}
+            {current.type === 'fd' && <DetailRow label="Compounding" value={`Every ${current.compoundingMonths ?? DEFAULT_COMPOUNDING_MONTHS} month${(current.compoundingMonths ?? DEFAULT_COMPOUNDING_MONTHS) === 1 ? '' : 's'}`} />}
             {current.ruleLabel && <DetailRow label="Growth rule" value={current.ruleLabel} />}
             <DetailRow label="Started" value={fmtDate(current.startDate)} />
             {current.maturityDate && <DetailRow label="Matures" value={fmtDate(current.maturityDate)} />}
-            {current.maturityAmount != null && <DetailRow label="Maturity amount" value={M(current.maturityAmount)} />}
+            {getMaturityAmount(current) != null && (
+              <DetailRow
+                label="Maturity amount"
+                value={<>{M(getMaturityAmount(current)!, 2)}{current.maturityAmount == null && <span className="text-[12.5px] text-muted"> · calculated</span>}</>}
+              />
+            )}
             <DetailRow label="Asset type" value={current.assetType === 'fixed' ? 'Fixed' : 'Liquid'} />
             <DetailRow label="Status" value={<Tag tone={statusTone(current.status)}>{statusLabel(current.status)}</Tag>} />
             <DetailRow
               label="Visibility"
-              value={current.isPublished ? (isMarket(current) ? 'Published · counted in Stocks & funds' : 'Published · counts toward net worth') : <Tag tone="warn">Draft · not in net worth</Tag>}
+              value={
+                current.status === 'closed'
+                  ? 'Closed · not counted in net worth'
+                  : current.isPublished
+                    ? isMarket(current) ? 'Published · counted in Stocks & funds' : 'Published · counts toward net worth'
+                    : <Tag tone="warn">Draft · not in net worth</Tag>
+              }
             />
+            {current.updatedAt && <DetailRow label="Last updated" value={fmtDateTime(current.updatedAt)} />}
             {current.description && <p className="mt-4 text-[14px] text-muted">{current.description}</p>}
           </>
         )}

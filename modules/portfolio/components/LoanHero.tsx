@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/shared/utils/cn';
-import { EmptyState, Metric, Panel, PanelHeader, Segmented } from '@/shared/components/ui';
+import { Loan } from '@/shared/types';
+import { EmptyState, Metric, Panel, PanelHeader } from '@/shared/components/ui';
 import { useMoney, fmtDate, monthShort } from '@/shared/hooks/useMoney';
-import { usePortfolioTotals } from '@/shared/hooks/usePortfolioTotals';
 import { fetchLoanSnapshots } from './LoanAnalyticsModule';
 
 const titleCase = (v: string) => v.replace('-', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
@@ -13,19 +13,16 @@ const titleCase = (v: string) => v.replace('-', ' ').replace(/\b\w/g, (l) => l.t
 /**
  * Loan hero from the design: outstanding balance, principal-repaid progress,
  * EMI / rate / tenure / interest metrics, and the outstanding balance by month.
- * Uses the published loans and the same ['loan-analytics-snapshots'] query as LoanAnalyticsModule.
+ * Shows the loan picked in the page filter; with a year, figures come from that year's snapshots.
+ * Uses the same ['loan-analytics-snapshots'] query as LoanAnalyticsModule.
  */
-export function LoanHero() {
+export function LoanHero({ loan, year }: { loan: Loan | undefined; year: number | null }) {
   const { M, C } = useMoney();
-  const t = usePortfolioTotals();
   const { data } = useQuery({ queryKey: ['loan-analytics-snapshots'], queryFn: fetchLoanSnapshots });
-  const loans = useMemo(() => [...t.activeLoans].sort((a, b) => b.outstandingAmount - a.outstandingAmount), [t.activeLoans]);
-  const [selId, setSelId] = useState<string | null>(null);
-  const loan = loans.find((l) => l.id === selId) ?? loans[0];
 
   const snaps = useMemo(
-    () => (data?.snapshots ?? []).map((x) => x.snapshot).filter((s) => loan && s.loanId === loan.id), // latest first
-    [data, loan],
+    () => (data?.snapshots ?? []).map((x) => x.snapshot).filter((s) => loan && s.loanId === loan.id && (year == null || s.year === year)), // latest first
+    [data, loan, year],
   );
 
   if (!loan) {
@@ -47,16 +44,13 @@ export function LoanHero() {
   const now = new Date();
   const nextDue = new Date(now.getFullYear(), now.getMonth() + (now.getDate() > (loan.emiDate || 1) ? 1 : 0), Math.min(loan.emiDate || 1, 28));
   const end = new Date(now.getFullYear(), now.getMonth() + remaining, 1);
-  const series = [...snaps].slice(0, 8).reverse();
+  const series = [...snaps].slice(0, year == null ? 8 : 12).reverse();
   const min = Math.min(...series.map((s) => s.outstandingAmount));
   const max = Math.max(...series.map((s) => s.outstandingAmount));
   const base = min - (max - min || min * 0.02) * 0.6;
 
   return (
     <div className="mb-6 space-y-4">
-      {loans.length > 1 && (
-        <Segmented value={loan.id} onChange={setSelId} options={loans.map((l) => ({ value: l.id, label: l.name }))} ariaLabel="Loan" />
-      )}
       <Panel>
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
           <div className="min-w-0">
@@ -68,8 +62,13 @@ export function LoanHero() {
             <p className="mt-2 text-[15px] text-muted">
               {latest ? (
                 <>
-                  Outstanding as of the {monthShort(latest.month)} {latest.year} snapshot ·{' '}
-                  <span className={cn(ageDays != null && ageDays > 60 ? 'text-loss' : 'text-muted')}>data {ageDays} days old</span>
+                  Outstanding as of the {monthShort(latest.month)} {latest.year} snapshot
+                  {year == null && (
+                    <>
+                      {' · '}
+                      <span className={cn(ageDays != null && ageDays > 60 ? 'text-loss' : 'text-muted')}>data {ageDays} days old</span>
+                    </>
+                  )}
                 </>
               ) : (
                 <>Outstanding as recorded on {fmtDate(loan.updatedAt)}</>
@@ -105,7 +104,7 @@ export function LoanHero() {
 
       {series.length > 1 && (
         <Panel className="max-w-[880px]">
-          <PanelHeader title="Outstanding balance by month" />
+          <PanelHeader title={year == null ? 'Outstanding balance by month' : `Outstanding balance by month · ${year}`} />
           <div className="flex h-[150px] items-end gap-[clamp(10px,4vw,56px)] px-2">
             {series.map((s) => (
               <div key={s.id} className="flex flex-1 flex-col items-center justify-end gap-1.5">

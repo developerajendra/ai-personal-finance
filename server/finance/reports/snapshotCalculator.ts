@@ -94,7 +94,8 @@ export async function calculateSnapshotAsOfDate(
   const filteredInvestments = allInvestments.filter((inv) => {
     if (!inv.isPublished) return false;
     if (inv.status === "closed") {
-      const closedDate = inv.endDate || inv.maturityDate || inv.updatedAt;
+      // A deposit can be closed before it matures, so the maturity date is no guide to when it stopped counting
+      const closedDate = inv.endDate || inv.updatedAt;
       if (closedDate && new Date(closedDate) <= asOfDate) return false;
     }
     return new Date(inv.startDate) <= asOfDate;
@@ -123,7 +124,7 @@ export async function calculateSnapshotAsOfDate(
   );
 
   const nonReceivableBalances = bankBalances.filter(
-    (bb: BankBalance) => bb.isPublished && !bb.tags?.includes("receivable")
+    (bb: BankBalance) => bb.isPublished && !bb.tags?.includes("receivable") && bb.status !== "closed"
   );
   const totalBankBalances = nonReceivableBalances.reduce(
     (sum, bb) => sum + (bb.balance || 0),
@@ -189,7 +190,7 @@ export async function calculateSnapshotAsOfDate(
     (bb: BankBalance) => {
       if (!bb.isPublished) return false;
       if (bb.tags?.includes("receivable")) return true;
-      return bb.assetType !== "fixed";
+      return bb.status !== "closed" && bb.assetType !== "fixed";
     }
   );
   const liquidAssetsFromBankBalances = liquidBankFilter.reduce(

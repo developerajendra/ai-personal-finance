@@ -73,6 +73,7 @@ export interface Investment {
   maturityAmount?: number; // Maturity amount in INR (always converted to INR for calculations)
   originalMaturityAmount?: number; // Original maturity amount in the selected currency (before conversion)
   interestRate?: number;
+  compoundingMonths?: number; // FD interest compounding period in months (default 3 = quarterly)
   ruleLabel?: string; // e.g., "5x in 12 Years"
   ruleFormula?: string; // JavaScript formula to calculate value based on date, e.g., "principal * Math.pow(5, (daysElapsed / (12 * 365)))"
   description?: string;

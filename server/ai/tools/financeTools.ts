@@ -15,6 +15,7 @@ import {
   listTransactions,
 } from "@/server/finance/transactions/service";
 import { getPortfolioOverview } from "@/server/finance/reports/overview";
+import { createReceivableOnce } from "@/server/finance/accounts/service";
 import { INVESTMENT_STATUSES, INVESTMENT_TYPES } from "@/shared/schemas/finance";
 import { formatIndianNumber } from "@/shared/utils/currency";
 
@@ -77,12 +78,22 @@ const updateInvestmentArgs = z.object({
   description: optionalText,
 });
 
+const createReceivableArgs = z.object({
+  personName: optionalText,
+  amount: optionalNumber,
+  issueDate: optionalDate,
+  dueDate: optionalDate,
+  interestRate: optionalNumber,
+  description: optionalText,
+});
+
 const summaryArgs = z.object({ from: optionalDate, to: optionalDate });
 
 const REQUIRED: Record<string, string[]> = {
   record_transaction: ["amount", "direction", "description"],
   create_investment: ["amount", "investmentType"],
   update_investment: ["investmentName"],
+  create_receivable: ["personName", "amount"],
 };
 
 const FIELD_QUESTIONS: Record<string, string> = {
@@ -91,9 +102,10 @@ const FIELD_QUESTIONS: Record<string, string> = {
   description: "what it was for",
   investmentType: `the investment type (${INVESTMENT_TYPES.join(", ")})`,
   investmentName: "which investment to update",
+  personName: "who you lent the money to",
 };
 
-export const WRITE_TOOLS = new Set(["record_transaction", "create_investment", "update_investment"]);
+export const WRITE_TOOLS = new Set(["record_transaction", "create_investment", "update_investment", "create_receivable"]);
 
 export const FINANCE_TOOLS: ToolDefinition[] = [
   {
@@ -146,6 +158,22 @@ export const FINANCE_TOOLS: ToolDefinition[] = [
     },
   },
   {
+    name: "create_receivable",
+    description:
+      "Record money the user lent or gave to a person and expects back (personal lending) as a DRAFT receivable — use this instead of record_transaction for e.g. 'I gave 20k to Ishwari'. Include ONLY values the user stated; never invent an amount.",
+    parameters: {
+      type: "object",
+      properties: {
+        personName: { type: "string", description: "Who received the money, e.g. 'Ishwari'" },
+        amount: { type: "number", description: "Amount lent in INR, positive" },
+        issueDate: { type: "string", description: "YYYY-MM-DD the money was given; omit for today" },
+        dueDate: { type: "string", description: "YYYY-MM-DD it is due back, if stated" },
+        interestRate: { type: "number", description: "Agreed annual interest in percent, if stated" },
+        description: { type: "string" },
+      },
+    },
+  },
+  {
     name: "get_financial_overview",
     description:
       "Get verified totals of the user's published portfolio (investments, loans, properties, bank balances, holdings, net worth). Use for questions about totals or net worth.",
@@ -177,7 +205,13 @@ function missingFields(tool: string, args: Record<string, unknown>): string[] {
 
 export function clarificationQuestion(tool: string, missing: string[]): string {
   const what =
-    tool === "record_transaction" ? "record this transaction" : tool === "create_investment" ? "create this investment" : "update the investment";
+    tool === "record_transaction"
+      ? "record this transaction"
+      : tool === "create_investment"
+        ? "create this investment"
+        : tool === "create_receivable"
+          ? "record this receivable"
+          : "update the investment";
   const parts = missing.map((m) => FIELD_QUESTIONS[m] ?? m);
   const list = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0];
   return `To ${what} I still need ${list}. (Reply "cancel" to stop.)`;
@@ -295,6 +329,41 @@ export async function executeTool(
           content: JSON.stringify({ saved: true, investment: updated }),
           record: { type: "investment", id: updated.id, created: false },
           confirmation: `Investment updated: ${updated.name} — ${Object.keys(patch).join(", ")} changed.`,
+        };
+      }
+
+      case "create_receivable": {
+        const parsed = createReceivableArgs.safeParse(rawInput ?? {});
+        if (!parsed.success) return { kind: "error", content: `Invalid arguments: ${parsed.error.issues[0]?.message}` };
+        const args = { ...(options.collected ?? {}), ...definedArgs(parsed.data) };
+        const missing = missingFields(name, args);
+        if (missing.length) return { kind: "clarify", action: name, collected: args, missing, question: clarificationQuestion(name, missing) };
+        if (typeof args.amount !== "number" || args.amount <= 0) {
+          return { kind: "clarify", action: name, collected: { ...args, amount: undefined }, missing: ["amount"], question: "The amount must be greater than 0. How much did you lend?" };
+        }
+        const issueDate = (args.issueDate as string) ?? ctx.today;
+        const { receivable, created } = await createReceivableOnce(
+          ctx.userId,
+          {
+            bankName: args.personName,
+            accountType: "other",
+            balance: args.amount,
+            issueDate,
+            dueDate: args.dueDate,
+            interestRate: args.interestRate,
+            description: args.description,
+            lastUpdated: issueDate,
+          },
+          { channel: ctx.channel, sourceRef: ctx.sourceRef ? `${ctx.sourceRef}:recv:${options.writeIndex ?? 0}` : undefined }
+        );
+        return {
+          kind: "result",
+          content: JSON.stringify({ saved: true, draft: true, alreadyRecorded: !created, receivable }),
+          record: { type: "receivable", id: receivable.id, created },
+          confirmation:
+            `Draft receivable saved: ${rs(receivable.balance)} lent to ${receivable.bankName} on ${issueDate}` +
+            `${receivable.dueDate ? `, due ${receivable.dueDate.slice(0, 10)}` : ""}` +
+            `${receivable.interestRate ? ` @ ${receivable.interestRate}%` : ""}. Review and publish it in Portfolio → Receivables.`,
         };
       }
 

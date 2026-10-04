@@ -221,7 +221,7 @@ const sections: LegalSection[] = [
         <p>You can:</p>
         <ul>
           <li>
-            <strong>Access and export</strong> your portfolio records at any time from the Portfolio page (export to a spreadsheet).
+            <strong>Access and export</strong> your portfolio records at any time from Imports &amp; data (export everything to an Excel workbook).
           </li>
           <li>
             <strong>Correct</strong> any record by editing it in the app.

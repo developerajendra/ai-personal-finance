@@ -96,7 +96,8 @@ export async function fetchLoanSnapshots(): Promise<{ snapshots: Array<{ snapsho
   return { snapshots: allSnapshots };
 }
 
-export function LoanAnalyticsModule() {
+/** Snapshot analytics; `loanId` / `year` come from the loans page filter (null = no filter). */
+export function LoanAnalyticsModule({ loanId = null, year = null }: { loanId?: string | null; year?: number | null } = {}) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
   const dayOfMonth = new Date().getDate();
@@ -166,7 +167,10 @@ export function LoanAnalyticsModule() {
     queryFn: fetchLoanSnapshots,
   });
 
-  const snapshots = snapshotsData?.snapshots || [];
+  const snapshots = (snapshotsData?.snapshots || []).filter(
+    (x) => (loanId == null || x.snapshot.loanId === loanId) && (year == null || x.snapshot.year === year),
+  );
+  const emailMetadata = (emailMetadataData?.metadata || []).filter((m: any) => loanId == null || m.loanId === loanId);
   const loans = loansData || [];
 
   // Group snapshots by year and month (show latest first)
@@ -370,8 +374,7 @@ export function LoanAnalyticsModule() {
           </div>
 
           {/* Email Metadata Display */}
-          {emailMetadataData?.metadata &&
-            emailMetadataData.metadata.length > 0 && (
+          {emailMetadata.length > 0 && (
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Left Column: Data Source Information */}
                 <div className="rounded-[14px] bg-tile p-4">
@@ -379,7 +382,7 @@ export function LoanAnalyticsModule() {
                     Data Source Information
                   </h3>
                   <div className="space-y-4">
-                    {emailMetadataData.metadata.map((meta: any) => {
+                    {emailMetadata.map((meta: any) => {
                       const firstEmailDate = new Date(meta.firstEmailDate);
                       const lastEmailDate = new Date(meta.lastEmailDate);
 
@@ -421,7 +424,7 @@ export function LoanAnalyticsModule() {
 
                 {/* Right Column: All Processed Emails */}
                 {(() => {
-                  const allEmails = emailMetadataData.metadata.flatMap(
+                  const allEmails = emailMetadata.flatMap(
                     (meta: any) => meta.emails || [],
                   );
                   if (allEmails.length === 0) return null;
@@ -478,7 +481,7 @@ export function LoanAnalyticsModule() {
                   <h2 className="text-[19px] text-ink">Loan analytics summary</h2>
                   <p className="text-muted text-[13.5px] mt-1">
                     {snapshots.length} snapshot
-                    {snapshots.length !== 1 ? 's' : ''} recorded
+                    {snapshots.length !== 1 ? 's' : ''} recorded{year != null && ` in ${year}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -519,8 +522,8 @@ export function LoanAnalyticsModule() {
           {snapshotKeys.length === 0 ? (
             <div className="mt-4 bg-warn-bg rounded-panel p-6 text-center">
               <p className="text-warn mb-4">
-                No loan snapshots available. Click "Fetch Latest Quarterly
-                Summary" to process the latest email.
+                No snapshots for this loan yet. Click “Fetch quarterly
+                summary” to process the latest email.
               </p>
             </div>
           ) : (

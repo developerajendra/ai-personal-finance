@@ -5,6 +5,14 @@ import { Investment } from '@/shared/types';
 import { Save, X, Sparkles } from 'lucide-react';
 import { ButtonLoader } from '@/shared/components/Loader';
 import { convertToINR, convertFromINR, getConversionRateText, getCurrencySymbol, type Currency } from '@/shared/utils/currency';
+import { compoundValue, getMaturityAmount, DEFAULT_COMPOUNDING_MONTHS } from '@/shared/utils/investmentValue';
+
+const COMPOUNDING_OPTIONS = [
+  { months: 1, label: 'Monthly' },
+  { months: 3, label: 'Quarterly (3 months)' },
+  { months: 6, label: 'Half-yearly (6 months)' },
+  { months: 12, label: 'Yearly (12 months)' },
+];
 
 interface InvestmentFormProps {
   investment?: Investment;
@@ -66,13 +74,24 @@ export function InvestmentForm({
           originalAmount: 0,
           originalCurrency: 'INR',
           type: defaultType,
+          compoundingMonths: defaultType === 'fd' ? DEFAULT_COMPOUNDING_MONTHS : undefined,
           assetType: getDefaultAssetType('', defaultType),
           startDate: new Date().toISOString().split('T')[0],
           status: 'active',
         }
   );
 
+  // A stored maturity amount that doesn't match the calculation was entered by hand — keep it
+  const [maturityOverridden, setMaturityOverridden] = useState(() => {
+    if (!investment || investment.maturityAmount == null) return false;
+    const calculated = getMaturityAmount({ ...investment, maturityAmount: undefined });
+    return calculated == null || Math.abs(calculated - investment.maturityAmount) > 1;
+  });
+
   const selectedCurrency = (formData.currency || 'INR') as Currency;
+  const isFd = formData.type === 'fd';
+  const compoundingMonths = formData.compoundingMonths ?? DEFAULT_COMPOUNDING_MONTHS;
+  const compoundingLabel = (COMPOUNDING_OPTIONS.find((o) => o.months === compoundingMonths)?.label ?? `every ${compoundingMonths} months`).split(' (')[0]!.toLowerCase();
   const inputAmount = formData.originalAmount ?? formData.amount ?? 0;
   const inputMaturityAmount = formData.originalMaturityAmount ?? formData.maturityAmount ?? undefined;
 
@@ -222,11 +241,15 @@ export function InvestmentForm({
 
   // Calculate current value based on formula if rule exists
   const calculatedValue = useMemo(() => {
-    if (!formData.ruleFormula || !formData.startDate) return null;
-    
+    if (!formData.startDate) return null;
+
     const currentDate = new Date();
-    const result = calculateFromFormula(currentDate, inrConvertedValue, formData.ruleFormula, formData.startDate);
-    
+    const result = formData.ruleFormula
+      ? calculateFromFormula(currentDate, inrConvertedValue, formData.ruleFormula, formData.startDate)
+      : isFd && formData.interestRate
+      ? compoundValue(inrConvertedValue, formData.interestRate, formData.startDate, currentDate, formData.maturityDate, compoundingMonths)
+      : null;
+
     if (result === null) return null;
 
     // Convert back to original currency if not INR
@@ -234,37 +257,42 @@ export function InvestmentForm({
       return convertFromINR(result, selectedCurrency);
     }
     return result;
-  }, [formData.ruleFormula, formData.startDate, inrConvertedValue, selectedCurrency, updateTrigger]);
+  }, [formData.ruleFormula, formData.startDate, formData.maturityDate, formData.interestRate, isFd, compoundingMonths, inrConvertedValue, selectedCurrency, updateTrigger]);
 
-  // Calculate expected maturity value
-  const expectedMaturityValue = useMemo(() => {
-    // If maturity amount is provided, use that (manually entered)
-    if (inputMaturityAmount !== undefined) {
+  // Maturity value at the maturity date, from the growth rule or (FDs) compound interest
+  const calculatedMaturity = useMemo(() => {
+    if (!formData.maturityDate || !formData.startDate) return null;
+    const maturityDate = new Date(formData.maturityDate);
+    if (formData.ruleFormula) {
+      const result = calculateFromFormula(maturityDate, inrConvertedValue, formData.ruleFormula, formData.startDate);
+      if (result !== null) return { inr: result, calculationMethod: 'formula' as const };
+    }
+    if (isFd && formData.interestRate) {
       return {
-        original: inputMaturityAmount,
-        inr: inrConvertedMaturityValue || inputMaturityAmount,
-        isCalculated: false,
-        calculationMethod: 'manual' as const,
+        inr: compoundValue(inrConvertedValue, formData.interestRate, formData.startDate, maturityDate, formData.maturityDate, compoundingMonths),
+        calculationMethod: 'interest' as const,
       };
     }
-
-    // If maturity date and formula exist, calculate from formula
-    if (formData.maturityDate && formData.ruleFormula && formData.startDate) {
-      const maturityDate = new Date(formData.maturityDate);
-      const result = calculateFromFormula(maturityDate, inrConvertedValue, formData.ruleFormula, formData.startDate);
-      
-      if (result !== null) {
-        return {
-          original: selectedCurrency !== 'INR' ? convertFromINR(result, selectedCurrency) : result,
-          inr: result,
-          isCalculated: true,
-          calculationMethod: 'formula' as const,
-        };
-      }
-    }
-
     return null;
-  }, [inputMaturityAmount, inrConvertedMaturityValue, formData.maturityDate, formData.ruleFormula, formData.startDate, inrConvertedValue, selectedCurrency, updateTrigger]);
+  }, [formData.maturityDate, formData.startDate, formData.ruleFormula, formData.interestRate, isFd, compoundingMonths, inrConvertedValue, updateTrigger]);
+
+  // Calculate expected maturity value: a manual override wins, then the calculation
+  const expectedMaturityValue = useMemo(() => {
+    const manual = inputMaturityAmount !== undefined
+      ? { original: inputMaturityAmount, inr: inrConvertedMaturityValue ?? inputMaturityAmount, isCalculated: false, calculationMethod: 'manual' as const }
+      : null;
+    if (manual && (maturityOverridden || !calculatedMaturity)) return manual;
+    if (calculatedMaturity) {
+      const inr = Math.round(calculatedMaturity.inr * 100) / 100;
+      return {
+        original: selectedCurrency !== 'INR' ? Math.round(convertFromINR(inr, selectedCurrency) * 100) / 100 : inr,
+        inr,
+        isCalculated: true,
+        calculationMethod: calculatedMaturity.calculationMethod,
+      };
+    }
+    return null;
+  }, [inputMaturityAmount, inrConvertedMaturityValue, maturityOverridden, calculatedMaturity, selectedCurrency]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,8 +300,8 @@ export function InvestmentForm({
     // Use inputAmount directly to preserve precision (it comes from the input field)
     const originalAmount = formData.originalAmount ?? inputAmount;
     
-    // Determine maturity amount: use manually entered value, or calculated value, or undefined
-    const originalMaturityAmount = formData.originalMaturityAmount ?? (expectedMaturityValue ? expectedMaturityValue.original : undefined);
+    // Determine maturity amount: manual override or calculated value, or undefined
+    const originalMaturityAmount = expectedMaturityValue ? expectedMaturityValue.original : undefined;
     
     // Always store amount in INR for calculations
     // Round to 2 decimal places to avoid floating point precision issues
@@ -303,6 +331,7 @@ export function InvestmentForm({
       maturityAmount: maturityAmountInINR, // Always in INR
       originalMaturityAmount: originalMaturityAmount,
       interestRate: formData.interestRate,
+      compoundingMonths: formData.type === 'fd' ? compoundingMonths : undefined,
       ruleLabel: formData.ruleLabel,
       ruleFormula: formData.ruleFormula,
       description: formData.description,
@@ -371,6 +400,7 @@ export function InvestmentForm({
               setFormData({
                 ...formData,
                 type: newType,
+                compoundingMonths: newType === 'fd' ? formData.compoundingMonths ?? DEFAULT_COMPOUNDING_MONTHS : undefined,
                 // Auto-update assetType if name contains "gold"
                 assetType: getDefaultAssetType(formData.name || '', newType),
               });
@@ -483,7 +513,9 @@ export function InvestmentForm({
               Maturity Amount ({getCurrencySymbol(selectedCurrency)})
               {expectedMaturityValue.isCalculated && (
                 <span className="text-xs text-muted font-normal ml-2">
-                  (Calculated from formula)
+                  {expectedMaturityValue.calculationMethod === 'interest'
+                    ? `(${formData.interestRate}% compounded ${compoundingLabel})`
+                    : '(Calculated from formula)'}
                 </span>
               )}
             </label>
@@ -491,9 +523,10 @@ export function InvestmentForm({
               <input
                 type="number"
                 step="0.01"
-                value={inputMaturityAmount !== undefined ? inputMaturityAmount : expectedMaturityValue.original}
+                value={expectedMaturityValue.original}
                 onChange={(e) => {
                   const value = e.target.value ? parseFloat(e.target.value) : undefined;
+                  setMaturityOverridden(value !== undefined);
                   setFormData({
                     ...formData,
                     originalMaturityAmount: value,
@@ -517,6 +550,17 @@ export function InvestmentForm({
               <p className="text-xs text-accent-700 mt-1">
                 💡 Auto-calculated. You can override by entering a different value.
               </p>
+            )}
+            {!expectedMaturityValue.isCalculated && calculatedMaturity && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMaturityOverridden(false);
+                  setFormData({ ...formData, originalMaturityAmount: undefined, maturityAmount: undefined });
+                }}
+                className="text-xs text-accent-700 hover:underline mt-1">
+                Use calculated amount
+              </button>
             )}
           </div>
         )}
@@ -559,6 +603,23 @@ export function InvestmentForm({
             className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]"
           />
         </div>
+
+        {isFd && (
+          <div>
+            <label className="block text-sm font-medium text-neutral-800 mb-1">
+              Compounding *
+            </label>
+            <select
+              required
+              value={compoundingMonths}
+              onChange={(e) => setFormData({ ...formData, compoundingMonths: Number(e.target.value) })}
+              className="w-full px-3 py-2 border border-divider rounded-md focus:outline-none focus:ring-2 focus:ring-accent bg-[var(--input-bg)]">
+              {COMPOUNDING_OPTIONS.map((o) => (
+                <option key={o.months} value={o.months}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-neutral-800 mb-1">
@@ -635,7 +696,7 @@ export function InvestmentForm({
       </div>
 
       {/* Display calculated value if rule formula exists - Always show if formula exists */}
-      {formData.ruleFormula && formData.startDate && (
+      {(formData.ruleFormula || calculatedValue !== null) && formData.startDate && (
         <div className="bg-accent-100 border border-accent-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -657,7 +718,9 @@ export function InvestmentForm({
                 <p className="text-sm text-loss mt-1">Error calculating value. Please check your formula.</p>
               )}
               <p className="text-xs text-muted mt-1">
-                Updates automatically based on current date and formula
+                {formData.ruleFormula
+                  ? 'Updates automatically based on current date and formula'
+                  : `${formData.interestRate}% p.a. compounded ${compoundingLabel}, up to the maturity date`}
               </p>
             </div>
           </div>
@@ -688,7 +751,9 @@ export function InvestmentForm({
               ) : formData.maturityDate && formData.ruleFormula ? (
                 <p className="text-sm text-muted mt-1">Calculating from formula...</p>
               ) : (
-                <p className="text-sm text-muted mt-1">Enter maturity amount or ensure formula is set</p>
+                <p className="text-sm text-muted mt-1">
+                  {isFd ? 'Enter the interest rate to calculate the maturity amount' : 'Enter maturity amount or ensure formula is set'}
+                </p>
               )}
             </div>
           </div>

@@ -106,10 +106,12 @@ const ANSWER_RULES = `- Answer questions about:
 /** Tool-calling providers: writes go through validated tools, never free text. */
 const TOOL_RULES = `ACTIONS (tools):
 - To record an expense/income use record_transaction; to add an investment use create_investment; to change one use update_investment.
+- Money the user gave or lent to a person (e.g. "I gave 20k to Ishwari on 15 Sep") is personal lending: use create_receivable, NOT record_transaction. Only treat it as an expense if the user says it was a gift or a payment for something.
 - Pass ONLY values the user explicitly stated. If something is missing, still call the tool with what you have — the system will ask the user. Never guess amounts, types or dates.
 - Use get_financial_overview / get_transaction_summary for exact totals instead of adding numbers yourself.
 - After a tool saves something, briefly confirm it. Never claim something was saved unless a tool result says "saved": true.
-- Investments created by chat are DRAFTS; the user reviews and publishes them in Portfolio → Investments.`;
+- Investments created by chat are DRAFTS; the user reviews and publishes them in Portfolio → Investments.
+- Receivables created by chat are DRAFTS; the user reviews and publishes them in Portfolio → Receivables.`;
 
 /** Text-only providers (e.g. local Ollama) keep the original <action> protocol. */
 const LEGACY_ACTION_RULES = `- CRITICAL: When user asks to CREATE, ADD, or INVEST money (e.g., "create a new fixed deposit", "add an investment of 5000", "create investment", "make an investment"):

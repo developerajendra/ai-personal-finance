@@ -12,6 +12,8 @@ import { ClassHeader } from './ClassPages';
 import { BarsPanel, DonutPanel, SERIES_COLORS } from './ClassCharts';
 import { PropertyForm } from './PropertyForm';
 import { RowActions } from './RowActions';
+import { DraftTabs, useDraftView } from './DraftFilter';
+import { fmtDateTime } from './InvestmentClassViews';
 import { usePortfolioCrud } from '../hooks/usePortfolioCrud';
 
 const PROPERTIES_KEY = ['properties', 'all'];
@@ -84,7 +86,7 @@ function PropertiesTable({ properties, mode, setMode }: { properties: Property[]
   const appreciation = (p: Property) => value(p) - p.purchasePrice;
   const apPct = (p: Property) => (p.purchasePrice > 0 ? (appreciation(p) / p.purchasePrice) * 100 : 0);
   const statusTone = (st: Property['status']) => (st === 'owned' ? 'gain' : st === 'rented-out' ? 'accent' : 'warn');
-  const drafts = properties.filter((p) => !p.isPublished).length;
+  const draftView = useDraftView(properties);
 
   const close = () => {
     if (crud.busy) return;
@@ -116,16 +118,18 @@ function PropertiesTable({ properties, mode, setMode }: { properties: Property[]
       <div className="px-6 pb-4 pt-[22px]">
         <h2 className="text-[19px]">Properties</h2>
         <p className="mt-1 text-[13px] text-muted">
-          {properties.length} propert{properties.length === 1 ? 'y' : 'ies'}
-          {drafts > 0 && ` · ${drafts} draft${drafts === 1 ? '' : 's'}`} · current values are owner estimates · tap a row for details
+          {properties.length} propert{properties.length === 1 ? 'y' : 'ies'} · current values are owner estimates · tap a row for details
         </p>
+        <div className="mt-3">
+          <DraftTabs {...draftView} />
+        </div>
       </div>
       <DataTable<Property>
-        rows={properties}
+        rows={draftView.visible}
         rowKey={(p) => p.id}
         onRowClick={(item) => setMode({ kind: 'view', item })}
         defaultSort={{ key: 'value', dir: 'desc' }}
-        empty="No properties yet. Use “Add property” to record one."
+        empty={draftView.view === 'draft' ? 'No draft properties.' : 'No properties yet. Use “Add property” to record one.'}
         columns={[
           {
             key: 'name',
@@ -172,7 +176,15 @@ function PropertiesTable({ properties, mode, setMode }: { properties: Property[]
           {
             key: 'actions',
             label: '',
-            render: (p) => <RowActions label={p.name} onEdit={() => setMode({ kind: 'edit', item: p })} onDelete={() => handleDelete(p)} />,
+            render: (p) => (
+              <RowActions
+                label={p.name}
+                onEdit={() => setMode({ kind: 'edit', item: p })}
+                isPublished={p.isPublished}
+                onTogglePublish={() => attempt(() => crud.setPublished(p.id, !p.isPublished))}
+                onDelete={() => handleDelete(p)}
+              />
+            ),
           },
         ]}
       />
@@ -223,6 +235,7 @@ function PropertiesTable({ properties, mode, setMode }: { properties: Property[]
             <DetailRow label="Asset type" value={current.assetType === 'liquid' ? 'Liquid' : 'Fixed'} />
             <DetailRow label="Status" value={<Tag tone={statusTone(current.status)}>{titleCase(current.status)}</Tag>} />
             <DetailRow label="Visibility" value={current.isPublished ? 'Published · counts toward net worth' : <Tag tone="warn">Draft · not in net worth</Tag>} />
+            {current.updatedAt && <DetailRow label="Last updated" value={fmtDateTime(current.updatedAt)} />}
             {current.description && <p className="mt-4 text-[14px] text-muted">{current.description}</p>}
           </>
         )}

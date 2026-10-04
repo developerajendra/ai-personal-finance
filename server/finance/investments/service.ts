@@ -18,7 +18,7 @@ import {
 
 const CLEARABLE = [
   "currency", "originalAmount", "originalCurrency", "assetType", "endDate", "maturityDate",
-  "maturityAmount", "originalMaturityAmount", "interestRate", "ruleLabel", "ruleFormula",
+  "maturityAmount", "originalMaturityAmount", "interestRate", "compoundingMonths", "ruleLabel", "ruleFormula",
   "description", "tags",
 ] as const;
 

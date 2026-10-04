@@ -72,17 +72,66 @@ function evaluateFormula(
   }
 }
 
+export const DEFAULT_COMPOUNDING_MONTHS = 3;
+const MS_PER_YEAR = 365 * 24 * 60 * 60 * 1000;
+
+/**
+ * Compound interest: principal × (1 + r/n)^(n·t), with n compounding periods a year
+ * and t the years from start to `asOf`, capped at the maturity date when given.
+ */
+export function compoundValue(
+  principal: number,
+  annualRatePct: number,
+  startDate: string,
+  asOf: Date,
+  maturityDate?: string,
+  compoundingMonths: number = DEFAULT_COMPOUNDING_MONTHS
+): number {
+  const start = new Date(startDate);
+  let end = asOf;
+  if (maturityDate) {
+    const maturity = new Date(maturityDate);
+    if (!Number.isNaN(maturity.getTime()) && maturity < end) end = maturity;
+  }
+  const years = Math.max(0, (end.getTime() - start.getTime()) / MS_PER_YEAR);
+  if (!years || !annualRatePct || Number.isNaN(years)) return principal;
+  const periodsPerYear = 12 / Math.max(1, compoundingMonths);
+  return principal * Math.pow(1 + annualRatePct / 100 / periodsPerYear, periodsPerYear * years);
+}
+
+function principalInrOf(inv: Investment): number {
+  const currency = (inv.originalCurrency || inv.currency || "INR") as Currency;
+  return convertToINR(inv.originalAmount ?? inv.amount ?? 0, currency);
+}
+
+/**
+ * FD value without a growth rule: compound the interest rate, or — when only a
+ * maturity amount was recorded — grow steadily from principal to that amount.
+ */
+function fdValueAtDate(inv: Investment, principalInr: number, asOfDate: Date): number | null {
+  if (inv.type !== "fd" || !inv.startDate) return null;
+  if (inv.interestRate && inv.interestRate > 0) {
+    return compoundValue(principalInr, inv.interestRate, inv.startDate, asOfDate, inv.maturityDate, inv.compoundingMonths);
+  }
+  if (inv.maturityDate && inv.maturityAmount && principalInr > 0 && inv.maturityAmount > principalInr) {
+    const start = new Date(inv.startDate).getTime();
+    const term = new Date(inv.maturityDate).getTime() - start;
+    if (!(term > 0)) return null;
+    const progress = Math.min(1, Math.max(0, (asOfDate.getTime() - start) / term));
+    return principalInr * Math.pow(inv.maturityAmount / principalInr, progress);
+  }
+  return null;
+}
+
 /**
  * Get investment value in INR at a given date.
- * Uses ruleFormula when available, otherwise principal.
+ * Uses ruleFormula when available, then FD interest, otherwise principal.
  */
 export function getInvestmentValueAtDate(
   inv: Investment,
   asOfDate: Date
 ): number {
-  const currency = (inv.originalCurrency || inv.currency || "INR") as Currency;
-  const principal = inv.originalAmount ?? inv.amount ?? 0;
-  const principalInr = convertToINR(principal, currency);
+  const principalInr = principalInrOf(inv);
 
   if (inv.ruleFormula && inv.startDate) {
     const calculated = evaluateFormula(
@@ -93,7 +142,18 @@ export function getInvestmentValueAtDate(
     );
     if (calculated !== null) return calculated;
   }
-  return principalInr;
+  return fdValueAtDate(inv, principalInr, asOfDate) ?? principalInr;
+}
+
+/**
+ * Maturity amount in INR: the recorded figure, else the value at the maturity date
+ * (from the growth rule or FD interest). Null when neither is available.
+ */
+export function getMaturityAmount(inv: Investment): number | null {
+  if (inv.maturityAmount != null && inv.maturityAmount > 0) return inv.maturityAmount;
+  if (!inv.maturityDate || !inv.startDate) return null;
+  const hasGrowth = !!inv.ruleFormula || (inv.type === "fd" && !!inv.interestRate);
+  return hasGrowth ? getInvestmentValueAtDate(inv, new Date(inv.maturityDate)) : null;
 }
 
 /**

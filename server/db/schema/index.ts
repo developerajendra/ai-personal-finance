@@ -75,6 +75,7 @@ export const investments = sqliteTable("investments", {
   maturityAmount: real("maturity_amount"),
   originalMaturityAmount: real("original_maturity_amount"),
   interestRate: real("interest_rate"),
+  compoundingMonths: integer("compounding_months"),
   ruleLabel: text("rule_label"),
   ruleFormula: text("rule_formula"),
   description: text("description"),

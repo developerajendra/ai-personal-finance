@@ -15,6 +15,8 @@ import { ClassHeader } from './ClassPages';
 import { BarsPanel, DonutPanel, SERIES_COLORS } from './ClassCharts';
 import { RetirementAccountForm, retirementTypeLabel } from './RetirementAccountForm';
 import { RowActions } from './RowActions';
+import { DraftTabs, useDraftView } from './DraftFilter';
+import { ClosedNotice, fmtDateTime } from './InvestmentClassViews';
 import { usePortfolioCrud } from '../hooks/usePortfolioCrud';
 import { format } from 'date-fns';
 
@@ -128,12 +130,18 @@ function RetirementAccountsTable({ accounts, mode, setMode }: { accounts: Invest
     attempt(() => crud.remove(i.id));
   };
   const current = mode?.kind === 'edit' ? mode.item : null;
+  const draftView = useDraftView(accounts);
 
   return (
     <Panel flush className="overflow-hidden">
       <div className="px-6 pb-4 pt-[22px]">
         <h2 className="text-[19px]">Other retirement accounts</h2>
-        <p className="mt-1 text-[13px] text-muted">NPS, PF and other balances added by hand from your statements · tap a row to edit</p>
+        <p className="mt-1 text-[13px] text-muted">NPS, PF and other balances added by hand from your statements · closed accounts are not counted · tap a row to edit</p>
+        {accounts.length > 0 && (
+          <div className="mt-3">
+            <DraftTabs {...draftView} />
+          </div>
+        )}
       </div>
       {accounts.length === 0 ? (
         <div className="px-6 pb-6">
@@ -143,8 +151,9 @@ function RetirementAccountsTable({ accounts, mode, setMode }: { accounts: Invest
         </div>
       ) : (
         <DataTable<Investment>
-          rows={accounts}
+          rows={draftView.visible}
           rowKey={(i) => i.id}
+          empty={draftView.view === 'draft' ? 'No draft accounts.' : 'No published accounts.'}
           onRowClick={(item) => setMode({ kind: 'edit', item })}
           defaultSort={{ key: 'value', dir: 'desc' }}
           columns={[
@@ -186,7 +195,15 @@ function RetirementAccountsTable({ accounts, mode, setMode }: { accounts: Invest
             {
               key: 'actions',
               label: '',
-              render: (i) => <RowActions label={i.name} onEdit={() => setMode({ kind: 'edit', item: i })} onDelete={() => handleDelete(i)} />,
+              render: (i) => (
+                <RowActions
+                  label={i.name}
+                  onEdit={() => setMode({ kind: 'edit', item: i })}
+                  isPublished={i.isPublished}
+                  onTogglePublish={() => attempt(() => crud.setPublished(i.id, !i.isPublished))}
+                  onDelete={() => handleDelete(i)}
+                />
+              ),
             },
           ]}
         />
@@ -196,7 +213,11 @@ function RetirementAccountsTable({ accounts, mode, setMode }: { accounts: Invest
         onClose={close}
         width={640}
         title={current ? `Edit ${current.name}` : 'Add new account'}
-        subtitle={current ? retirementTypeLabel(current.type) : 'NPS, PF or other retirement account'}
+        subtitle={
+          current
+            ? `${retirementTypeLabel(current.type)}${current.isPublished ? '' : ' · draft'}${current.updatedAt ? ` · last updated ${fmtDateTime(current.updatedAt)}` : ''}`
+            : 'NPS, PF or other retirement account'
+        }
         footer={
           current ? (
             <Button variant="danger" icon={Trash2} disabled={crud.busy} onClick={() => handleDelete(current)}>
@@ -205,6 +226,7 @@ function RetirementAccountsTable({ accounts, mode, setMode }: { accounts: Invest
           ) : undefined
         }>
         {error && <p role="alert" className="mb-4 rounded-lg bg-loss-bg p-3 text-[13.5px] text-loss">{error}</p>}
+        {current?.status === 'closed' && <ClosedNotice what="account" />}
         {mode && (
           <RetirementAccountForm
             key={current?.id ?? 'new'}

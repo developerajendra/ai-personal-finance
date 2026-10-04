@@ -6,7 +6,7 @@ tables fail with `no such column` / `no such table` (HTTP 500).
 
 Pending migrations are applied atomically: drizzle sends all pending statements and their
 `__drizzle_migrations` rows to libsql as one batch, so a failure leaves the schema unchanged.
-No existing table is dropped, rebuilt or reset by `0001`–`0004`; they only add tables,
+No existing table is dropped, rebuilt or reset by `0001`–`0005`; they only add tables,
 nullable columns and indexes.
 
 ## Steps

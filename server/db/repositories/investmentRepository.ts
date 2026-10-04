@@ -24,6 +24,7 @@ function toAppModel(row: InvestmentRow): Investment {
     maturityAmount: row.maturityAmount ?? undefined,
     originalMaturityAmount: row.originalMaturityAmount ?? undefined,
     interestRate: row.interestRate ?? undefined,
+    compoundingMonths: row.compoundingMonths ?? undefined,
     ruleLabel: row.ruleLabel ?? undefined,
     ruleFormula: row.ruleFormula ?? undefined,
     description: row.description ?? undefined,

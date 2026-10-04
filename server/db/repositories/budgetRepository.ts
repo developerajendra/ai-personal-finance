@@ -83,6 +83,12 @@ export async function findEntries(userId: string, month: string, exec: Executor 
   return rows.map(toEntry);
 }
 
+/** Every logged entry across all months, oldest first (used by the full export). */
+export async function findAllEntries(userId: string, exec: Executor = db): Promise<BudgetEntry[]> {
+  const rows = await exec.select().from(budgetEntries).where(eq(budgetEntries.userId, userId)).orderBy(asc(budgetEntries.date));
+  return rows.map(toEntry);
+}
+
 export async function insertEntry(userId: string, values: BudgetEntryValues, exec: Executor = db): Promise<BudgetEntry> {
   const [row] = await exec.insert(budgetEntries).values({ ...values, userId }).returning();
   return toEntry(row);

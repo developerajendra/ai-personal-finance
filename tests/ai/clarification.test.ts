@@ -3,6 +3,7 @@ import { createUser, scriptedProvider } from "../helpers";
 import { handleMessage, parseLegacyActions } from "@/server/ai/orchestrator";
 import { listTransactions } from "@/server/finance/transactions/service";
 import { listInvestments } from "@/server/finance/investments/service";
+import { bankBalanceService } from "@/server/finance/accounts/service";
 
 describe("conversation clarification", () => {
   it("asks for a missing amount, then saves once it arrives", async () => {
@@ -68,6 +69,30 @@ describe("conversation clarification", () => {
     const out = await handleMessage({ userId: user, channel: "web", message: "spent -5" }, { provider });
     expect(out.reply).toMatch(/greater than 0/);
     expect(await listTransactions(user)).toHaveLength(0);
+  });
+
+  it("saves money lent to a person as a draft receivable, not an expense", async () => {
+    const user = await createUser();
+    const provider = scriptedProvider([
+      { text: "", toolCalls: [{ id: "c1", name: "create_receivable", input: { personName: "Ishwari", amount: 20000, issueDate: "2026-09-15" } }] },
+      { text: "Saved as a draft receivable.", toolCalls: [] },
+    ]);
+    const out = await handleMessage({ userId: user, channel: "web", message: "i gave 20k to ishwari on 15th of september" }, { provider });
+    const [recv, ...rest] = await bankBalanceService.list(user);
+    expect(rest).toHaveLength(0);
+    expect(recv).toMatchObject({ bankName: "Ishwari", balance: 20000, issueDate: "2026-09-15", isPublished: false });
+    expect(recv.tags).toContain("receivable");
+    expect(await listTransactions(user)).toHaveLength(0);
+    expect(out.reply).toContain("Portfolio → Receivables");
+  });
+
+  it("records a WhatsApp receivable once per message", async () => {
+    const user = await createUser();
+    const call = { text: "", toolCalls: [{ id: "c1", name: "create_receivable", input: { personName: "Ravi", amount: 5000 } }] };
+    const provider = scriptedProvider([call, { text: "ok", toolCalls: [] }, call, { text: "ok", toolCalls: [] }]);
+    await handleMessage({ userId: user, channel: "whatsapp", message: "lent ravi 5000", sourceRef: "wamid.1" }, { provider });
+    await handleMessage({ userId: user, channel: "whatsapp", message: "lent ravi 5000", sourceRef: "wamid.1" }, { provider });
+    expect(await bankBalanceService.list(user)).toHaveLength(1);
   });
 
   it("keeps the legacy <action> protocol for text-only providers", () => {

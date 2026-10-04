@@ -1,6 +1,7 @@
 import "server-only";
 import * as XLSX from "xlsx";
 import type { BankBalance, Investment, Loan, PPFAccount, Property, Transaction, ZerodhaMutualFund, ZerodhaStock } from "@/shared/types";
+import { INVESTMENT_TYPES } from "@/shared/schemas/finance";
 import { convertFromINR, type Currency } from "@/shared/utils/currency";
 import { importPortfolio, type PortfolioImportResult } from "@/server/imports/portfolioImport";
 import { loadStocks, loadMutualFunds, saveStocks, saveMutualFunds } from "@/server/finance/portfolio/service";
@@ -8,9 +9,10 @@ import { loadPPFAccounts, savePPFAccounts } from "@/server/finance/provident-fun
 
 /**
  * Deterministic importer for the portfolio workbook (the multi-sheet
- * "portfolio-export-YYYY-MM-DD.xlsx" format: Summary, Investments, Bank Balances
+ * "portfolio-export-YYYY-MM-DD.xlsx" format: Investments, Bank Balances
  * & Receivables, Loans, Properties, Stocks, Mutual Funds, Provident Fund,
- * Transactions). Columns are known, so no AI is involved and every row maps
+ * Transactions; the export's other sheets — Summary, Categories, history,
+ * budget — are informational and ignored here). Columns are known, so no AI is involved and every row maps
  * 1:1 to a record. Amount columns are in ₹; rows in another currency are
  * converted back to their original amount so values aren't converted twice.
  */
@@ -42,6 +44,8 @@ function rows(wb: XLSX.WorkBook, sheet: string): Row[] {
 
 const str = (v: unknown) => (v == null ? "" : String(v).trim());
 const optStr = (v: unknown) => str(v) || undefined;
+/** Rows exported as drafts ("Published: No") come back as drafts; anything else is published. */
+const published = (r: Row) => str(r["Published"]).toLowerCase() !== "no";
 
 function num(v: unknown): number | undefined {
   if (v == null || v === "") return undefined;
@@ -98,13 +102,14 @@ export function parsePortfolioWorkbook(wb: XLSX.WorkBook) {
       const rule = str(r["Rule"]);
       return {
         name: str(r["Name"]),
-        type: pick(r["Type"], ["ppf", "fd", "mutual-fund", "stocks", "bonds", "other"] as const, "other"),
+        type: pick(r["Type"], INVESTMENT_TYPES, "other"),
         assetType: (pick(r["Asset Type"], ["fixed", "liquid", ""] as const, "") || undefined) as Investment["assetType"],
         amount: amountInr,
         currency: ccy,
         originalAmount: ccy === "INR" ? undefined : convertFromINR(amountInr, ccy),
         originalCurrency: ccy === "INR" ? undefined : ccy,
         interestRate: num(r["Interest Rate (%)"]),
+        compoundingMonths: num(r["Compounding (Months)"]),
         status: pick(r["Status"], ["active", "matured", "closed"] as const, "active"),
         startDate: toISODate(r["Start Date"]) ?? new Date().toISOString().slice(0, 10),
         maturityDate: toISODate(r["Maturity Date"]),
@@ -114,7 +119,7 @@ export function parsePortfolioWorkbook(wb: XLSX.WorkBook) {
         ruleFormula: rule ? ruleToFormula(rule) : undefined,
         description: optStr(r["Description"]),
         tags: str(r["Tags"]) ? str(r["Tags"]).split(/[,;]\s*/).filter(Boolean) : undefined,
-        isPublished: true,
+        isPublished: published(r),
       };
     });
 
@@ -137,9 +142,10 @@ export function parsePortfolioWorkbook(wb: XLSX.WorkBook) {
         lastUpdated: toISODate(r["Last Updated"]),
         issueDate: toISODate(r["Issue Date"]),
         dueDate: toISODate(r["Due Date"]),
+        paidDate: toISODate(r["Paid Date"]),
         description: optStr(r["Description"]),
         tags: tags.length ? tags : undefined,
-        isPublished: true,
+        isPublished: published(r),
       };
     });
 
@@ -158,7 +164,7 @@ export function parsePortfolioWorkbook(wb: XLSX.WorkBook) {
       startDate: toISODate(r["Start Date"]) ?? new Date().toISOString().slice(0, 10),
       endDate: toISODate(r["End Date"]),
       description: optStr(r["Description"]),
-      isPublished: true,
+      isPublished: published(r),
     }));
 
   const properties: Partial<Property>[] = rows(wb, WORKBOOK_SHEETS.properties)
@@ -173,7 +179,7 @@ export function parsePortfolioWorkbook(wb: XLSX.WorkBook) {
       location: str(r["Location"]),
       status: pick(r["Status"], ["owned", "rented-out", "under-construction"] as const, "owned"),
       description: optStr(r["Description"]),
-      isPublished: true,
+      isPublished: published(r),
     }));
 
   const stocks: ZerodhaStock[] = rows(wb, WORKBOOK_SHEETS.stocks)

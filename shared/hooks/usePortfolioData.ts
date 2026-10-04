@@ -34,12 +34,18 @@ export function usePortfolioData() {
     },
   });
 
-  const investments = data?.investments ?? (EMPTY as PortfolioSnapshot['investments']);
-  const loans = data?.loans ?? (EMPTY as PortfolioSnapshot['loans']);
+  // Closed records are history: the money now lives in another record, so nothing downstream counts them
+  const allInvestments = data?.investments ?? (EMPTY as PortfolioSnapshot['investments']);
+  const investments = useMemo(() => allInvestments.filter((inv) => inv.status !== 'closed'), [allInvestments]);
+  const allLoans = data?.loans ?? (EMPTY as PortfolioSnapshot['loans']);
+  const loans = useMemo(() => allLoans.filter((l) => l.status === 'active'), [allLoans]);
   const properties = data?.properties ?? (EMPTY as PortfolioSnapshot['properties']);
   const allBankBalances = data?.bankBalances ?? (EMPTY as PortfolioSnapshot['bankBalances']);
   // Paid receivables are history, not assets — the received money lives in another record now
-  const bankBalances = useMemo(() => allBankBalances.filter((bb) => !isSettledReceivable(bb)), [allBankBalances]);
+  const bankBalances = useMemo(
+    () => allBankBalances.filter((bb) => !isSettledReceivable(bb) && (bb.tags?.includes('receivable') || bb.status !== 'closed')),
+    [allBankBalances]
+  );
   const stocks = data?.stocks ?? (EMPTY as PortfolioSnapshot['stocks']);
   const mutualFunds = data?.mutualFunds ?? (EMPTY as PortfolioSnapshot['mutualFunds']);
   const ppfAccounts = data?.ppfAccounts ?? (EMPTY as PortfolioSnapshot['ppfAccounts']);

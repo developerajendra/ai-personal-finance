@@ -5,9 +5,10 @@ import { importPortfolioWorkbook, isPortfolioWorkbook, parsePortfolioWorkbook, r
 import { buildPortfolioWorkbook } from "@/server/imports/workbookExport";
 import { listInvestments } from "@/server/finance/investments/service";
 import { listTransactions } from "@/server/finance/transactions/service";
-import { loadPortfolio, loadStocks, loadMutualFunds } from "@/server/finance/portfolio/service";
+import { loadPortfolio, loadStocks, loadMutualFunds, setPublished } from "@/server/finance/portfolio/service";
 import { loadPPFAccounts } from "@/server/finance/provident-fund/ppfStorage";
-import { getCurrentInvestmentValue } from "@/shared/utils/investmentValue";
+import { createCategory } from "@/server/finance/portfolio/categoryService";
+import { getCurrentInvestmentValue, getInvestmentValueAtDate } from "@/shared/utils/investmentValue";
 
 const serial = (iso: string) => new Date(`${iso}T00:00:00Z`).getTime() / 864e5 + 25569;
 
@@ -88,7 +89,7 @@ describe("Portfolio workbook import", () => {
     expect(invs.every((i) => i.isPublished)).toBe(true);
     // Principal of the NPR deposit is ₹6,25,000 at start (not ₹3,90,625 from double conversion)
     const fd = invs.find((i) => i.name === "Nepal FD")!;
-    const atStart = getCurrentInvestmentValue({ ...fd, ruleFormula: undefined });
+    const atStart = getInvestmentValueAtDate({ ...fd, ruleFormula: undefined }, new Date(fd.startDate));
     expect(atStart).toBeCloseTo(625000, 0);
     expect(fd.ruleFormula).toContain("Math.pow(5");
 
@@ -118,5 +119,52 @@ describe("Portfolio workbook import", () => {
     expect(sum(b.investments.map(getCurrentInvestmentValue))).toBeCloseTo(sum(a.investments.map(getCurrentInvestmentValue)), 0);
     expect(b.loans.map((l) => l.outstandingAmount)).toEqual(a.loans.map((l) => l.outstandingAmount));
     expect(b.transactions).toHaveLength(a.transactions.length);
+  });
+
+  it("export includes categories, history sheets and published-only summary totals", async () => {
+    const user = await createUser();
+    await importPortfolioWorkbook(user, sampleWorkbook());
+    const fd = (await loadPortfolio(user)).investments.find((i) => i.type === "fd")!;
+    await setPublished(user, "investment", fd.id, false);
+    await createCategory(user, { name: "Gold", slug: "gold", href: "/portfolio/gold", type: "investment" });
+    const wb = XLSX.read(await buildPortfolioWorkbook(user), { type: "buffer" });
+
+    for (const name of ["Summary", "Categories", "Loan EMI History", "Budget", "Budget Entries", "Subscriptions", "Net Worth History"]) {
+      expect(wb.SheetNames).toContain(name);
+    }
+    const cats = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets["Categories"]);
+    expect(cats).toEqual([expect.objectContaining({ Name: "Gold", Slug: "gold", Type: "investment" })]);
+
+    // The draft is listed but not counted in the summary, which matches the dashboard
+    const inv = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets["Investments"]);
+    expect(inv.find((r) => r["Name"] === fd.name)?.["Published"]).toBe("No");
+    const summary = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets["Summary"]);
+    const row = (label: string) => summary.find((r) => r["Category"] === label);
+    expect(row("Fixed deposits")?.["Amount (₹)"]).toBe(0);
+    expect(row("Draft records (not in totals)")?.["Records"]).toBe(1);
+
+    // …and comes back as a draft on re-import
+    const target = await createUser();
+    await importPortfolioWorkbook(target, wb);
+    const back = (await loadPortfolio(target)).investments;
+    expect(back.find((i) => i.name === fd.name)?.isPublished).toBe(false);
+    expect(back.filter((i) => i.isPublished)).toHaveLength(back.length - 1);
+  });
+
+  it("keeps retirement investment types and compounding on import", () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["Name"]]), "Loans");
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet([
+        ["Name", "Type", "Amount (₹)", "Compounding (Months)", "Start Date"],
+        ["EPF", "epf", 100000, "", serial("2020-01-01")],
+        ["Bank FD", "fd", 50000, 12, serial("2024-01-01")],
+      ]),
+      "Investments",
+    );
+    const { investments } = parsePortfolioWorkbook(wb);
+    expect(investments.map((i) => i.type)).toEqual(["epf", "fd"]);
+    expect(investments[1].compoundingMonths).toBe(12);
   });
 });

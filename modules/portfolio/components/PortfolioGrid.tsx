@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/shared/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, Clock, XOctagon, Undo2, Search, Download, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, Clock, XOctagon, Undo2, Search, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { UnderlineTabs } from '@/shared/components/ui';
+import { Drawer, UnderlineTabs } from '@/shared/components/ui';
+import { RowActions } from './RowActions';
 import { InvestmentForm } from './InvestmentForm';
 import { LoanForm } from './LoanForm';
 import { PropertyForm } from './PropertyForm';
@@ -12,7 +13,7 @@ import { BankBalanceForm } from './BankBalanceForm';
 import { Loader } from '@/shared/components/Loader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { convertFromINR } from '@/shared/utils/currency';
-import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
+import { getCurrentInvestmentValue, getMaturityAmount } from '@/shared/utils/investmentValue';
 
 type PortfolioItem = Investment | Loan | Property | BankBalance;
 type ItemType = 'investment' | 'loan' | 'property' | 'bank-balance' | 'receivables';
@@ -378,20 +379,12 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
     setShowForm(true);
   };
 
-  const formRef = useRef<HTMLDivElement>(null);
-  const scrollToForm = useRef(false);
   useEffect(() => {
+    // The page header's Add button opens the form drawer
     if (!addRequest || !lockedTab) return;
-    scrollToForm.current = true;
     handleAdd(lockedTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addRequest]);
-  useEffect(() => {
-    // The form opens inline below the toolbar; bring it into view once it has rendered
-    if (!showForm || !scrollToForm.current) return;
-    scrollToForm.current = false;
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [showForm, addRequest]);
 
   const handleEdit = (item: PortfolioItem) => {
     setEditingItem(item);
@@ -570,6 +563,10 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
     }
   };
 
+  /** Bank balances and receivables share one endpoint; split them by the "receivable" tag. */
+  const inActiveTab = (item: any) =>
+    activeTab === 'receivables' ? !!item.tags?.includes('receivable') : activeTab === 'bank-balance' ? !item.tags?.includes('receivable') : true;
+
   const handlePublishToggle = async (id: string, currentStatus: boolean) => {
     setIsPublishing(id);
     try {
@@ -579,13 +576,17 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: activeTab,
+          // Receivables are bank balances tagged "receivable"
+          type: activeTab === 'receivables' ? 'bank-balance' : activeTab,
           id,
           isPublished: !currentStatus,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to update publish status');
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update publish status');
+      }
 
       const newStatus = !currentStatus;
       setToast({
@@ -627,14 +628,14 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
       if (draftCountResponse.ok) {
         const draftData = await draftCountResponse.json();
         const draftArray = Array.isArray(draftData) ? draftData : draftData.data || [];
-        draftCount = draftArray.length;
+        draftCount = draftArray.filter(inActiveTab).length;
         setDraftCount(draftCount);
       }
 
       if (publishedCountResponse.ok) {
         const publishedData = await publishedCountResponse.json();
         const publishedArray = Array.isArray(publishedData) ? publishedData : publishedData.data || [];
-        publishedCount = publishedArray.length;
+        publishedCount = publishedArray.filter(inActiveTab).length;
         setPublishedCount(publishedCount);
       }
 
@@ -1053,10 +1054,6 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
                 </>
               )}
             </button>
-            <a href="/api/portfolio/export" className="btn btn-secondary" download>
-              <Download className="w-4 h-4" />
-              Export
-            </a>
           </div>
         </div>
 
@@ -1287,8 +1284,17 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
         </div>
       </div>
 
-      {showForm && (
-        <div ref={formRef} className="scroll-mt-6 p-6 border-t border-divider bg-tile">
+      <Drawer
+        open={showForm}
+        onClose={() => {
+          if (isSaving) return;
+          setShowForm(false);
+          setEditingId(null);
+          setEditingItem(null);
+        }}
+        width={640}
+        title={`${editingId ? 'Edit' : 'Add'} ${formType === 'receivables' ? 'receivable' : formType === 'bank-balance' ? 'bank balance' : formType}`}>
+        <div>
           {isSaving && (
             <div className="mb-4 p-3 bg-accent-100 rounded-lg flex items-center gap-2">
               <Loader size="sm" />
@@ -1356,7 +1362,7 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
             />
           )}
         </div>
-      )}
+      </Drawer>
 
       <div ref={contentContainerRef} className="overflow-x-auto relative">
         {isLoading && (
@@ -1811,7 +1817,11 @@ function InvestmentGrid({
                     : <span className="text-muted">—</span>}
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold text-accent-700">
-                  {item.maturityAmount !== undefined && item.maturityAmount !== null && item.maturityAmount > 0 ? (
+                  {!isReadOnly && item.maturityAmount == null && getMaturityAmount(item as Investment) != null ? (
+                    <span title="Calculated from the interest rate">
+                      ₹{getMaturityAmount(item as Investment)!.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  ) : item.maturityAmount !== undefined && item.maturityAmount !== null && item.maturityAmount > 0 ? (
                     (() => {
                       const currency = (item.originalCurrency || item.currency || 'INR') as 'INR' | 'NPR' | 'USD';
                       if (currency !== 'INR' && item.originalMaturityAmount !== undefined) {
@@ -2447,82 +2457,28 @@ function BankBalanceGrid({
                 </td>
                 {!readOnly && (
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <div className="flex gap-2 items-center">
-                    {!(isReceivable && balance.status === 'closed') && (
-                      <button
-                        onClick={() => onEdit(balance)}
-                        className="text-accent-700 hover:text-accent-700"
-                        title="Edit">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => onDelete(balance.id)}
-                      disabled={isDeleting === balance.id}
-                      className="text-loss hover:text-loss disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Delete">
-                      {isDeleting === balance.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </button>
-                    <div className="relative" ref={(el) => { menuRefs.current[balance.id] = el; }}>
-                      <button
-                        onClick={() => setOpenMenuId(openMenuId === balance.id ? null : balance.id)}
-                        className="text-muted hover:text-ink p-1"
-                        title="More options">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      {openMenuId === balance.id && (
-                        <div className="absolute right-0 mt-1 w-48 bg-panel rounded-md shadow-lg border border-divider z-10">
-                          <button
-                            onClick={() => onPublishToggle(balance.id, balance.isPublished || false)}
-                            disabled={isPublishing === balance.id}
-                            className="w-full text-left px-4 py-2 text-sm text-neutral-800 hover:bg-tile flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                            {isPublishing === balance.id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Processing...
-                              </>
-                            ) : balance.isPublished ? (
-                              <>
-                                <XCircle className="w-4 h-4" />
-                                Unpublish
-                              </>
-                            ) : (
-                              <>
-                                <Check className="w-4 h-4" />
-                                Publish
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              onDuplicate(balance);
-                              setOpenMenuId(null);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-neutral-800 hover:bg-tile flex items-center gap-2 border-t border-divider">
-                            <Copy className="w-4 h-4" />
-                            Duplicate
-                          </button>
-                          {isReceivable && balance.status !== 'closed' && (
-                            <button
-                              onClick={() => {
-                                setConfirmPaidId(balance.id);
-                                // Prefill with the calculated expected total; the user can override it
-                                setSettledAmountInput(String(Math.round((interestCalc?.totalWithInterest ?? balance.balance) * 100) / 100));
-                                setOpenMenuId(null);
-                              }}
-                              className="w-full text-left px-4 py-2 text-sm text-gain hover:bg-gain-bg flex items-center gap-2 border-t border-divider">
-                              <CheckCircle className="w-4 h-4" />
-                              Mark as Paid
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <RowActions
+                    label={balance.bankName}
+                    onEdit={isReceivable && balance.status === 'closed' ? undefined : () => onEdit(balance)}
+                    isPublished={!!balance.isPublished}
+                    onTogglePublish={() => onPublishToggle(balance.id, balance.isPublished || false)}
+                    onDelete={() => onDelete(balance.id)}
+                    extra={[
+                      { label: 'Duplicate', icon: Copy, onClick: () => onDuplicate(balance) },
+                      ...(isReceivable && balance.status !== 'closed'
+                        ? [{
+                            label: 'Mark as paid',
+                            icon: CheckCircle,
+                            tone: 'gain' as const,
+                            onClick: () => {
+                              setConfirmPaidId(balance.id);
+                              // Prefill with the calculated expected total; the user can override it
+                              setSettledAmountInput(String(Math.round((interestCalc?.totalWithInterest ?? balance.balance) * 100) / 100));
+                            },
+                          }]
+                        : []),
+                    ]}
+                  />
                 </td>
                 )}
               </tr>

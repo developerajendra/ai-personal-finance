@@ -13,6 +13,8 @@ import { ClassHeader } from './ClassPages';
 import { BankBalanceForm } from './BankBalanceForm';
 import { usePortfolioCrud } from '../hooks/usePortfolioCrud';
 import { RowActions } from './RowActions';
+import { DraftTabs, useDraftView } from './DraftFilter';
+import { ClosedNotice, fmtDateTime } from './InvestmentClassViews';
 
 const BANK_KEY = ['bankBalances', 'all'];
 
@@ -42,8 +44,8 @@ export function BankBalancesDetailView() {
 
   // Filter out receivables - they should only appear in the receivables page
   const accounts = bankBalances.filter((balance) => !balance.tags?.includes('receivable'));
-  // Charts follow net worth: published accounts only
-  const published = accounts.filter((b) => b.isPublished);
+  // Charts follow net worth: published, not closed accounts only
+  const published = accounts.filter((b) => b.isPublished && b.status !== 'closed');
   const byBank = toSlices(published.map((b) => ({ name: b.bankName, value: b.balance })));
   const byType = toSlices(published.map((b) => ({ name: typeName(b), value: b.balance })), Infinity).map((s) => ({ name: s.name, balance: s.value }));
 
@@ -75,7 +77,7 @@ function BankAccountsTable({ balances, mode, setMode }: { balances: BankBalance[
   const crud = usePortfolioCrud<BankBalance>('bank-balances', [BANK_KEY]);
   const ccy = (b: BankBalance) => b.originalCurrency || b.currency || 'INR';
   const activeAccounts = balances.filter((b) => b.status === 'active').length;
-  const drafts = balances.filter((b) => !b.isPublished).length;
+  const draftView = useDraftView(balances);
 
   const close = () => {
     if (crud.busy) return;
@@ -108,17 +110,19 @@ function BankAccountsTable({ balances, mode, setMode }: { balances: BankBalance[
         <div>
           <h2 className="text-[19px]">Accounts</h2>
           <p className="mt-1 text-[13px] text-muted">
-            {balances.length} accounts · {activeAccounts} active
-            {drafts > 0 && ` · ${drafts} draft${drafts === 1 ? '' : 's'}`} · tap a row for details
+            {balances.length} accounts · {activeAccounts} active · closed accounts are not counted in net worth · tap a row for details
           </p>
+        </div>
+        <div className="mt-3">
+          <DraftTabs {...draftView} />
         </div>
       </div>
       <DataTable<BankBalance>
-        rows={balances}
+        rows={draftView.visible}
         rowKey={(b) => b.id}
         onRowClick={(item) => setMode({ kind: 'view', item })}
         defaultSort={{ key: 'balance', dir: 'desc' }}
-        empty="No bank accounts yet. Use “Add account” to record your first balance."
+        empty={draftView.view === 'draft' ? 'No draft accounts.' : 'No bank accounts yet. Use “Add account” to record your first balance.'}
         columns={[
           {
             key: 'bank',
@@ -164,6 +168,8 @@ function BankAccountsTable({ balances, mode, setMode }: { balances: BankBalance[
               <RowActions
                 label={b.bankName}
                 onEdit={() => setMode({ kind: 'edit', item: b })}
+                isPublished={b.isPublished}
+                onTogglePublish={() => attempt(() => crud.setPublished(b.id, !b.isPublished))}
                 onDelete={() => handleDelete(b)}
               />
             ),
@@ -207,14 +213,16 @@ function BankAccountsTable({ balances, mode, setMode }: { balances: BankBalance[
         )}
         {current && !editing && (
           <>
+            {current.status === 'closed' && <ClosedNotice what="account" />}
             <DetailRow label="Balance" value={M(current.balance, 2)} />
             {ccy(current) !== 'INR' && <DetailRow label="Original amount" value={O(current.originalAmount ?? current.balance, ccy(current))} />}
             <DetailRow label="Currency" value={ccy(current)} />
             {current.accountNumber && <DetailRow label="Account" value={`••${current.accountNumber.slice(-4)}`} />}
             <DetailRow label="Asset type" value={current.assetType === 'fixed' ? 'Fixed' : 'Liquid'} />
-            <DetailRow label="Last updated" value={fmtDate(current.lastUpdated)} />
+            <DetailRow label="Balance as of" value={fmtDate(current.lastUpdated)} />
             <DetailRow label="Status" value={<Tag tone={statusTone(current.status)}>{current.status}</Tag>} />
-            <DetailRow label="Visibility" value={current.isPublished ? 'Published · counts toward net worth' : <Tag tone="warn">Draft · not in net worth</Tag>} />
+            <DetailRow label="Visibility" value={current.status === 'closed' ? 'Closed · not counted in net worth' : current.isPublished ? 'Published · counts toward net worth' : <Tag tone="warn">Draft · not in net worth</Tag>} />
+            {current.updatedAt && <DetailRow label="Last updated" value={fmtDateTime(current.updatedAt)} />}
             {current.description && <p className="mt-4 text-[14px] text-muted">{current.description}</p>}
           </>
         )}

@@ -73,6 +73,7 @@ export const investmentInputSchema = z.object({
   maturityAmount: optionalMoneySchema,
   originalMaturityAmount: optionalMoneySchema,
   interestRate: optionalNumber,
+  compoundingMonths: z.preprocess(toNumber, z.number().int().min(1).max(120).optional()),
   ruleLabel: optionalString(200),
   ruleFormula: optionalString(1000),
   description: optionalString(),

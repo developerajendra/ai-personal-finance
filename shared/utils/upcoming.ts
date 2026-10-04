@@ -1,6 +1,6 @@
 import type { BankBalance, Investment, Loan, Subscription, Transaction } from '@/shared/types';
 import { convertToINR, type Currency } from '@/shared/utils/currency';
-import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
+import { getCurrentInvestmentValue, getMaturityAmount } from '@/shared/utils/investmentValue';
 
 export interface CashEvent {
   id: string;
@@ -73,7 +73,8 @@ export function buildCashEvents(
     if (inv.status === 'closed' || !inv.maturityDate) continue;
     const d = new Date(inv.maturityDate);
     if (Number.isNaN(d.getTime())) continue;
-    const amount = inv.maturityAmount ?? getCurrentInvestmentValue(inv);
+    const maturityAmount = getMaturityAmount(inv);
+    const amount = maturityAmount ?? getCurrentInvestmentValue(inv);
     if (d < today) {
       overdue.push({
         id: `mat-${inv.id}`,
@@ -88,7 +89,7 @@ export function buildCashEvents(
         id: `mat-${inv.id}`,
         date: ymd(d),
         title: `${inv.name} matures`,
-        sub: inv.maturityAmount == null ? 'Maturity amount not recorded · using current value' : 'Maturity proceeds',
+        sub: maturityAmount == null ? 'Maturity amount not recorded · using current value' : inv.maturityAmount == null ? 'Maturity proceeds · calculated from interest' : 'Maturity proceeds',
         amount,
         expected: inv.maturityAmount == null,
         href: inv.type === 'fd' ? '/portfolio/fixed-deposits' : '/portfolio/investments',

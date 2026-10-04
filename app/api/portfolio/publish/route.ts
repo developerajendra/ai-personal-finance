@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
     const userId = session.userId;
 
     const body = await request.json();
-    const { type, id, isPublished } = body;
+    const { id, isPublished } = body;
+    // Receivables are bank balances tagged "receivable"
+    const type = body.type === "receivables" ? "bank-balance" : body.type;
 
     if (!type || !id || typeof isPublished !== "boolean") {
       return NextResponse.json(
