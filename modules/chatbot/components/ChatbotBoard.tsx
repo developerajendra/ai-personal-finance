@@ -42,6 +42,9 @@ export function ChatbotBoard() {
   const [isListening, setIsListening] = useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false); // Track if we're in voice conversation mode
+  const [isSpeaking, setIsSpeaking] = useState(false); // Assistant reply is being read aloud
+  const [isMuted, setIsMuted] = useState(false); // Mic paused in voice mode (replies still play)
+  const isMutedRef = useRef(false);
   const [currentTranscript, setCurrentTranscript] = useState(""); // Track current voice transcript
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -121,7 +124,7 @@ export function ChatbotBoard() {
             setTimeout(() => {
               if (recognitionRef.current && !isLoadingRef.current) {
                 try {
-                  recognitionRef.current?.start();
+                  if (!isMutedRef.current) recognitionRef.current?.start();
                 } catch (e) {
                   // Ignore errors
                 }
@@ -137,7 +140,7 @@ export function ChatbotBoard() {
             setTimeout(() => {
               if (recognitionRef.current && isVoiceModeRef.current && !isLoadingRef.current) {
                 try {
-                  recognitionRef.current?.start();
+                  if (!isMutedRef.current) recognitionRef.current?.start();
                 } catch (e) {
                   // Ignore errors if already started
                 }
@@ -202,9 +205,11 @@ export function ChatbotBoard() {
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
       
-      if (onEnd) {
-        utterance.onend = onEnd;
-      }
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = utterance.onerror = () => {
+        setIsSpeaking(false);
+        onEnd?.();
+      };
       
       synthRef.current.speak(utterance);
     } else {
@@ -220,6 +225,8 @@ export function ChatbotBoard() {
         setIsVoiceEnabled(true); // Auto-enable voice output in voice mode
         setCurrentTranscript(""); // Clear previous transcript
         // Start listening immediately
+        isMutedRef.current = false;
+        setIsMuted(false);
         recognitionRef.current?.start();
       } catch (error) {
         console.error("Error starting speech recognition:", error);
@@ -235,15 +242,32 @@ export function ChatbotBoard() {
     isVoiceModeRef.current = false;
     setIsListening(false);
     setCurrentTranscript(""); // Clear transcript
+    setIsSpeaking(false);
+    isMutedRef.current = false;
+    setIsMuted(false);
     // Cancel any ongoing speech
     if (synthRef.current) {
       synthRef.current.cancel();
     }
   };
 
-  const switchToTextMode = () => {
-    stopListening();
+  /** Pause or resume the mic without leaving voice mode; replies keep playing. */
+  const toggleMute = () => {
+    const next = !isMutedRef.current;
+    isMutedRef.current = next;
+    setIsMuted(next);
+    if (next) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else if (!isLoadingRef.current) {
+      try {
+        recognitionRef.current?.start();
+      } catch {
+        // Already listening
+      }
+    }
   };
+
 
   const handleSendFromVoice = async (transcript: string) => {
     if (!transcript.trim() || isLoadingRef.current) return;
@@ -294,7 +318,7 @@ export function ChatbotBoard() {
           setTimeout(() => {
             try {
               if (isVoiceModeRef.current && !isLoadingRef.current && recognitionRef.current) {
-                recognitionRef.current.start();
+                if (!isMutedRef.current) recognitionRef.current.start();
               }
             } catch (e) {
               // Ignore errors
@@ -321,7 +345,7 @@ export function ChatbotBoard() {
           setTimeout(() => {
             try {
               if (isVoiceModeRef.current && !isLoadingRef.current && recognitionRef.current) {
-                recognitionRef.current.start();
+                if (!isMutedRef.current) recognitionRef.current.start();
               }
             } catch (e) {
               // Ignore errors
@@ -382,7 +406,7 @@ export function ChatbotBoard() {
             if (recognitionRef.current && !isLoadingRef.current) {
               setTimeout(() => {
                 try {
-                  recognitionRef.current?.start();
+                  if (!isMutedRef.current) recognitionRef.current?.start();
                 } catch (e) {
                   // Ignore errors
                 }
@@ -408,7 +432,7 @@ export function ChatbotBoard() {
             if (recognitionRef.current && !isLoadingRef.current) {
               setTimeout(() => {
                 try {
-                  recognitionRef.current?.start();
+                  if (!isMutedRef.current) recognitionRef.current?.start();
                 } catch (e) {
                   // Ignore errors
                 }
@@ -439,13 +463,15 @@ export function ChatbotBoard() {
     >
       {/* Voice Mode Overlay - shows within popup */}
       {isVoiceMode && (
-        <div className="absolute inset-0 z-50 flex flex-col rounded-dialog bg-gradient-to-br from-accent-900 via-accent-700 to-accent">
+        <div className="absolute inset-0 z-50 flex flex-col overflow-hidden rounded-[inherit]">
           <VoiceModeView
             isListening={isListening}
+            isThinking={isLoading && !isSpeaking}
+            isSpeaking={isSpeaking}
+            isMuted={isMuted}
             transcript={currentTranscript}
+            onToggleMute={toggleMute}
             onClose={stopListening}
-            onSwitchToText={switchToTextMode}
-            userName="User"
           />
         </div>
       )}

@@ -1,202 +1,93 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { X, Keyboard } from "lucide-react";
+import { Mic, MicOff, X } from "lucide-react";
+import { cn } from "@/shared/utils/cn";
+
+type VoiceState = "listening" | "thinking" | "speaking" | "muted" | "idle";
 
 interface VoiceModeViewProps {
   isListening: boolean;
+  /** Waiting for the assistant's reply */
+  isThinking?: boolean;
+  /** Reply is being read aloud */
+  isSpeaking?: boolean;
+  isMuted?: boolean;
   transcript: string;
+  onToggleMute?: () => void;
   onClose: () => void;
-  onSwitchToText: () => void;
-  userName?: string;
 }
 
-export function VoiceModeView({
-  isListening,
-  transcript,
-  onClose,
-  onSwitchToText,
-  userName = "User",
-}: VoiceModeViewProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number>();
+const STATUS: Record<VoiceState, string> = {
+  listening: "Listening",
+  thinking: "Thinking",
+  speaking: "Speaking",
+  muted: "Mic is off",
+  idle: "Start speaking",
+};
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-
-    let animationId: number;
-    let time = 0;
-
-    const drawWaveform = () => {
-      if (!ctx) return;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const centerY = canvas.height / 2;
-      const bars = 50;
-      const barWidth = canvas.width / bars;
-      const maxHeight = canvas.height * 0.4;
-
-      for (let i = 0; i < bars; i++) {
-        const x = i * barWidth;
-        const barHeight = isListening
-          ? Math.sin((time + i * 0.1) * 0.05) * maxHeight * 0.5 +
-            Math.sin((time + i * 0.2) * 0.03) * maxHeight * 0.3 +
-            maxHeight * 0.2
-          : maxHeight * 0.1;
-
-        // Create gradient for each bar
-        const gradient = ctx.createLinearGradient(x, centerY - barHeight, x, centerY + barHeight);
-        
-        // Color scheme: teal, blue, magenta
-        const colors = [
-          { offset: 0, color: "rgba(20, 184, 166, 0.8)" }, // teal
-          { offset: 0.5, color: "rgba(59, 130, 246, 0.8)" }, // blue
-          { offset: 1, color: "rgba(219, 39, 119, 0.8)" }, // magenta
-        ];
-
-        colors.forEach(({ offset, color }) => {
-          gradient.addColorStop(offset, color);
-        });
-
-        ctx.fillStyle = gradient;
-        ctx.fillRect(x, centerY - barHeight / 2, barWidth - 2, barHeight);
-      }
-
-      // Add particle effects
-      if (isListening) {
-        for (let i = 0; i < 20; i++) {
-          const x = (time * 2 + i * 50) % canvas.width;
-          const y = centerY + Math.sin(time * 0.02 + i) * 30;
-          const size = Math.random() * 3 + 1;
-          
-          ctx.fillStyle = `rgba(219, 39, 119, ${0.3 + Math.random() * 0.3})`;
-          ctx.beginPath();
-          ctx.arc(x, y, size, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      time += 1;
-      animationId = requestAnimationFrame(drawWaveform);
-    };
-
-    drawWaveform();
-
-    return () => {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-    };
-  }, [isListening]);
+/**
+ * Voice conversation screen in the style of ChatGPT's voice mode: a calm, theme-coloured
+ * surface with one large animated orb (breathes while listening, shimmers while thinking,
+ * pulses while speaking), a status line with live captions, and round mute / end controls.
+ */
+export function VoiceModeView({ isListening, isThinking = false, isSpeaking = false, isMuted = false, transcript, onToggleMute, onClose }: VoiceModeViewProps) {
+  const state: VoiceState = isSpeaking ? "speaking" : isThinking ? "thinking" : isMuted ? "muted" : isListening ? "listening" : "idle";
 
   return (
-    <div className="w-full h-full bg-gradient-to-br from-accent-900 via-accent-700 to-accent flex flex-col relative">
-      {/* Background wave patterns */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
-                           radial-gradient(circle at 80% 80%, rgba(219, 39, 119, 0.3) 0%, transparent 50%),
-                           radial-gradient(circle at 40% 20%, rgba(20, 184, 166, 0.3) 0%, transparent 50%)`,
-        }} />
+    <div className="flex h-full w-full flex-col bg-[var(--dialog-bg)] text-ink">
+      <div className="flex items-center justify-between px-4 pt-3.5">
+        <span className="text-[13px] font-medium text-muted">Ledger AI · Voice</span>
+        <span className="text-[12px] text-muted">Finance questions only</span>
       </div>
 
-      {/* Header */}
-      <div className="relative z-10 p-3 flex items-center justify-between">
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-        >
-          <X className="w-5 h-5 text-white" />
-        </button>
-        <h2 className="text-white text-base font-semibold">Voice Search</h2>
-        <button
-          onClick={onSwitchToText}
-          className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-          title="Switch to text mode"
-        >
-          <Keyboard className="w-5 h-5 text-white" />
-        </button>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 relative z-10 overflow-y-auto">
-        {/* Greeting */}
-        <div className="text-center mb-4">
-          <p className="text-white/70 text-xs mb-1">Hi, {userName}</p>
-          <h1 className="text-white text-xl font-bold mb-2">
-            How can I help you? 👋
-          </h1>
+      <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6">
+        <div className="voice-orb" data-state={state} aria-hidden>
+          <div className="voice-orb__glow" />
+          <div className="voice-orb__core">
+            <div className="voice-orb__swirl" />
+            <div className="voice-orb__shine" />
+          </div>
         </div>
 
-        {/* Waveform Visualization */}
-        <div className="w-full mb-4">
-          <canvas
-            ref={canvasRef}
-            className="w-full h-32 rounded-xl"
-            style={{ background: "rgba(255, 255, 255, 0.05)" }}
-          />
-        </div>
-
-        {/* Transcript */}
-        {transcript && (
-          <div className="w-full text-center px-2">
-            <p className="text-white text-sm">
-              <span className="opacity-70">{transcript.slice(0, -10)}</span>
-              <span className="opacity-100">{transcript.slice(-10)}</span>
+        <div className="min-h-[76px] w-full max-w-[420px] text-center" aria-live="polite">
+          <p className="text-[15px] font-semibold">
+            {STATUS[state]}
+            {(state === "listening" || state === "thinking") && <span className="voice-dots" aria-hidden />}
+          </p>
+          {transcript && state !== "speaking" ? (
+            <p className="mt-2 line-clamp-3 text-[14px] leading-relaxed text-muted">“{transcript}”</p>
+          ) : (
+            <p className="mt-2 text-[13px] text-muted">
+              {state === "muted" ? "Tap the mic to keep talking" : state === "speaking" ? "Tap the mic to pause listening" : "Ask about your net worth, loans, budget…"}
             </p>
-          </div>
-        )}
-
-        {/* Listening indicator */}
-        {isListening && !transcript && (
-          <div className="mt-4">
-            <p className="text-white/70 text-xs animate-pulse">Listening...</p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Bottom Controls */}
-      <div className="relative z-10 p-4 flex items-center justify-center gap-4">
+      <div className="flex items-center justify-center gap-6 pb-7 pt-2">
+        {onToggleMute && (
+          <button
+            type="button"
+            onClick={onToggleMute}
+            aria-pressed={isMuted}
+            aria-label={isMuted ? "Turn mic on" : "Turn mic off"}
+            title={isMuted ? "Turn mic on" : "Turn mic off"}
+            className={cn(
+              "grid h-14 w-14 place-items-center rounded-full transition-colors",
+              isMuted ? "bg-loss-bg text-loss" : "bg-tile text-ink hover:bg-[color-mix(in_srgb,var(--color-text)_10%,transparent)]",
+            )}>
+            {isMuted ? <MicOff className="h-[22px] w-[22px]" /> : <Mic className="h-[22px] w-[22px]" />}
+          </button>
+        )}
         <button
+          type="button"
           onClick={onClose}
-          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
-        >
-          <X className="w-5 h-5 text-white" />
-        </button>
-
-        {/* Voice Assistant Button */}
-        <button
-          className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
-            isListening
-              ? "bg-gradient-to-br from-loss via-accent-500 to-accent-700 shadow-lg shadow-purple-500/50 scale-110"
-              : "bg-gradient-to-br from-accent via-accent-500 to-loss shadow-lg"
-          }`}
-        >
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-white/30 animate-ping" />
-            <div className="relative w-6 h-6 bg-white rounded-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-gradient-to-br from-loss to-accent-700 rounded-full" />
-            </div>
-          </div>
-        </button>
-
-        <button
-          onClick={onSwitchToText}
-          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
-          title="Switch to text mode"
-        >
-          <Keyboard className="w-5 h-5 text-white" />
+          aria-label="End voice mode"
+          title="End voice mode"
+          className="grid h-14 w-14 place-items-center rounded-full bg-[var(--fin-loss)] text-white transition-opacity hover:opacity-90">
+          <X className="h-[22px] w-[22px]" />
         </button>
       </div>
     </div>
   );
 }
-

@@ -763,6 +763,126 @@
     opacity: 1;
   }
 }
+/* ---------------------------------------------------------- Voice mode orb */
+/* One accent-coloured sphere: breathes while listening, shimmers while thinking,
+   pulses while speaking, rests (desaturated) when the mic is off. */
+.voice-orb {
+  position: relative;
+  width: min(200px, 46vmin);
+  aspect-ratio: 1;
+}
+.voice-orb__glow {
+  position: absolute;
+  inset: -18%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-accent) 38%, transparent) 0%, transparent 68%);
+  filter: blur(18px);
+  animation: voiceGlow 3.2s ease-in-out infinite;
+}
+.voice-orb__core {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 32% 28%,
+    color-mix(in srgb, var(--color-accent) 18%, white) 0%,
+    color-mix(in srgb, var(--color-accent) 55%, white) 28%,
+    var(--color-accent) 62%,
+    color-mix(in srgb, var(--color-accent) 85%, black) 100%
+  );
+  box-shadow: inset 0 -14px 34px color-mix(in srgb, var(--color-accent) 75%, black), inset 0 10px 30px color-mix(in srgb, white 35%, transparent), 0 18px 40px -18px color-mix(in srgb, var(--color-accent) 70%, transparent);
+  animation: voiceBreathe 3.2s ease-in-out infinite;
+}
+.voice-orb__swirl {
+  position: absolute;
+  inset: -25%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    color-mix(in srgb, white 65%, transparent) 60deg,
+    transparent 140deg,
+    color-mix(in srgb, var(--color-accent) 30%, white) 220deg,
+    transparent 300deg
+  );
+  mix-blend-mode: soft-light;
+  animation: voiceSpin 9s linear infinite;
+}
+.voice-orb__shine {
+  position: absolute;
+  left: 18%;
+  top: 12%;
+  width: 34%;
+  height: 24%;
+  border-radius: 9999px;
+  background: radial-gradient(ellipse, rgba(255, 255, 255, 0.55), transparent 70%);
+  filter: blur(8px);
+}
+.voice-orb[data-state="thinking"] .voice-orb__core {
+  animation: voiceShimmer 1.4s ease-in-out infinite;
+}
+.voice-orb[data-state="thinking"] .voice-orb__swirl {
+  animation-duration: 2.4s;
+}
+.voice-orb[data-state="speaking"] .voice-orb__core {
+  animation: voiceSpeak 0.62s ease-in-out infinite alternate;
+}
+.voice-orb[data-state="speaking"] .voice-orb__glow {
+  animation: voiceSpeakGlow 0.62s ease-in-out infinite alternate;
+}
+.voice-orb[data-state="speaking"] .voice-orb__swirl {
+  animation-duration: 4s;
+}
+.voice-orb[data-state="muted"] .voice-orb__core,
+.voice-orb[data-state="idle"] .voice-orb__core {
+  animation: none;
+}
+.voice-orb[data-state="muted"] {
+  filter: grayscale(0.85) opacity(0.55);
+}
+.voice-orb[data-state="muted"] .voice-orb__glow,
+.voice-orb[data-state="muted"] .voice-orb__swirl {
+  animation: none;
+  opacity: 0.4;
+}
+@keyframes voiceBreathe {
+  0%, 100% { transform: scale(0.96); }
+  50% { transform: scale(1.04); }
+}
+@keyframes voiceGlow {
+  0%, 100% { opacity: 0.55; transform: scale(0.95); }
+  50% { opacity: 0.9; transform: scale(1.05); }
+}
+@keyframes voiceShimmer {
+  0%, 100% { transform: scale(0.97); filter: brightness(0.95); }
+  50% { transform: scale(1); filter: brightness(1.15); }
+}
+@keyframes voiceSpeak {
+  from { transform: scale(0.97); }
+  to { transform: scale(1.09); }
+}
+@keyframes voiceSpeakGlow {
+  from { opacity: 0.6; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1.14); }
+}
+@keyframes voiceSpin {
+  to { transform: rotate(360deg); }
+}
+/* Animated trailing dots after "Listening" / "Thinking" */
+.voice-dots::after {
+  content: "";
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+  animation: voiceDots 1.2s steps(4, end) infinite;
+}
+@keyframes voiceDots {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75%, 100% { content: "..."; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
