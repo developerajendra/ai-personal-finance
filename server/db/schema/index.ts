@@ -153,6 +153,7 @@ export const bankBalances = sqliteTable("bank_balances", {
   dueDate: text("due_date"),
   interestRate: real("interest_rate"),
   paidDate: text("paid_date"),
+  settledAmount: real("settled_amount"),
   tags: text("tags", { mode: "json" }).$type<string[]>(),
   createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),

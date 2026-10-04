@@ -27,6 +27,7 @@ function toAppModel(row: BankBalanceRow): BankBalance {
     dueDate: row.dueDate ?? undefined,
     interestRate: row.interestRate ?? undefined,
     paidDate: row.paidDate ?? undefined,
+    settledAmount: row.settledAmount ?? undefined,
     tags: row.tags ?? undefined,
     createdAt: row.createdAt ?? new Date().toISOString(),
     updatedAt: row.updatedAt ?? new Date().toISOString(),

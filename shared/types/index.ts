@@ -157,6 +157,7 @@ export interface BankBalance {
   dueDate?: string; // Expected date when receivable should be received (ISO date string)
   interestRate?: number; // Annual interest rate as percentage (e.g., 12 for 12%)
   paidDate?: string; // Date when the receivable was marked as paid (ISO date string)
+  settledAmount?: number; // Final amount actually received (INR) when marked as paid
   tags?: string[]; // Tags to identify receivables (e.g., ['receivable'])
 }
 

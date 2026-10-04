@@ -645,7 +645,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
     }
   };
 
-  const handleMarkAsPaid = async (id: string) => {
+  const handleMarkAsPaid = async (id: string, settledAmount: number) => {
     try {
       const now = new Date().toISOString();
       const existingItem = items.find((item) => item.id === id) as BankBalance | undefined;
@@ -655,6 +655,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         ...existingItem,
         status: 'closed' as const,
         paidDate: now,
+        settledAmount,
         lastUpdated: now,
         updatedAt: now,
       };
@@ -669,6 +670,8 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
 
       // Update local state
       setItems(items.map((item) => (item.id === id ? updatedData : item)));
+      // Paid receivables drop out of net worth — refresh the shared totals
+      queryClient.invalidateQueries({ queryKey: ['portfolio-snapshot'] });
       setToast({
         message: 'Receivable marked as paid successfully!',
         type: 'success',
@@ -694,6 +697,7 @@ export function PortfolioGrid({ defaultTab = 'investment' }: PortfolioGridProps 
         bankName: `${rest.bankName} (Copy)`,
         status: 'active',
         paidDate: undefined,
+        settledAmount: undefined,
         isPublished: true,
         createdAt: now,
         updatedAt: now,
@@ -2245,7 +2249,7 @@ function BankBalanceGrid({
   onDelete: (id: string) => void;
   onEdit: (bankBalance: BankBalance) => void;
   onPublishToggle: (id: string, isPublished: boolean) => void;
-  onMarkAsPaid: (id: string) => Promise<void> | void;
+  onMarkAsPaid: (id: string, settledAmount: number) => Promise<void> | void;
   onDuplicate: (item: BankBalance) => void;
   viewMode: ViewMode;
   openMenuId: string | null;
@@ -2256,6 +2260,10 @@ function BankBalanceGrid({
 }) {
   const [confirmPaidId, setConfirmPaidId] = useState<string | null>(null);
   const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+  const [settledAmountInput, setSettledAmountInput] = useState('');
+  const settledAmountValue = Number(settledAmountInput);
+  const isSettledAmountValid = settledAmountInput.trim() !== '' && Number.isFinite(settledAmountValue) && settledAmountValue >= 0;
+  const closePaidModal = () => { setConfirmPaidId(null); setIsMarkingPaid(false); setSettledAmountInput(''); };
   const confirmPaidBalance = confirmPaidId ? bankBalances.find(b => b.id === confirmPaidId) : null;
   // Check if any balance is a receivable
   const hasReceivables = bankBalances.some(b => b.tags?.includes('receivable'));
@@ -2388,7 +2396,12 @@ function BankBalanceGrid({
                       {interestCalc ? `₹${interestCalc.interestAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-accent-700">
-                      {interestCalc ? `₹${interestCalc.totalWithInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                      {isReceivable && balance.status === 'closed' && balance.settledAmount != null ? (
+                        <div>
+                          ₹{balance.settledAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <p className="text-xs font-normal text-muted">Received</p>
+                        </div>
+                      ) : interestCalc ? `₹${interestCalc.totalWithInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                     </td>
                   </>
                 )}
@@ -2471,6 +2484,8 @@ function BankBalanceGrid({
                             <button
                               onClick={() => {
                                 setConfirmPaidId(balance.id);
+                                // Prefill with the calculated expected total; the user can override it
+                                setSettledAmountInput(String(Math.round((interestCalc?.totalWithInterest ?? balance.balance) * 100) / 100));
                                 setOpenMenuId(null);
                               }}
                               className="w-full text-left px-4 py-2 text-sm text-gain hover:bg-gain-bg flex items-center gap-2 border-t border-divider">
@@ -2497,7 +2512,7 @@ function BankBalanceGrid({
               <div className="fixed inset-0 z-50 flex items-center justify-center">
                 <div
                   className="absolute inset-0 bg-black/50"
-                  onClick={() => { setConfirmPaidId(null); setIsMarkingPaid(false); }}
+                  onClick={closePaidModal}
                 />
                 <div className="relative bg-panel rounded-lg shadow-lg border border-divider p-6 w-full max-w-md mx-4">
                   <h3 className="text-lg font-semibold text-ink mb-2">
@@ -2506,7 +2521,8 @@ function BankBalanceGrid({
                   <p className="text-sm text-muted mb-4">
                     Are you sure you want to mark the receivable from{' '}
                     <span className="font-semibold text-ink">{confirmPaidBalance.bankName}</span>{' '}
-                    as paid? This will close the activity and disable editing.
+                    as paid? This will close the activity, disable editing and remove it from your net worth
+                    (record the received money wherever you put it, e.g. a bank balance or investment).
                   </p>
                   <div className="bg-tile rounded-lg p-3 mb-4 text-sm">
                     <div className="flex justify-between mb-1">
@@ -2517,15 +2533,44 @@ function BankBalanceGrid({
                       </span>
                     </div>
                     {confirmPaidBalance.interestRate && (
-                      <div className="flex justify-between">
+                      <div className="flex justify-between mb-1">
                         <span className="text-muted">Interest Rate:</span>
                         <span className="font-medium">{confirmPaidBalance.interestRate}%</span>
                       </div>
                     )}
+                    {(() => {
+                      const expected = calculateInterest(confirmPaidBalance);
+                      return expected ? (
+                        <div className="flex justify-between">
+                          <span className="text-muted">Calculated total:</span>
+                          <span className="font-medium">
+                            ₹{expected.totalWithInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
+                  <label htmlFor="settled-amount" className="block text-sm font-medium text-ink mb-1">
+                    Final amount received (₹)
+                  </label>
+                  <input
+                    id="settled-amount"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    value={settledAmountInput}
+                    onChange={(e) => setSettledAmountInput(e.target.value)}
+                    disabled={isMarkingPaid}
+                    autoFocus
+                    className="w-full px-3 py-2 mb-1 text-sm border border-divider rounded-md bg-panel focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                  <p className="text-xs text-muted mb-4">
+                    Pre-filled with the calculated total — change it if the actual amount differs.
+                  </p>
                   <div className="flex justify-end gap-3">
                     <button
-                      onClick={() => { setConfirmPaidId(null); setIsMarkingPaid(false); }}
+                      onClick={closePaidModal}
                       disabled={isMarkingPaid}
                       className="px-4 py-2 text-sm text-neutral-800 bg-tile hover:bg-neutral-200 transition-colors disabled:opacity-50 rounded-pill font-medium">
                       Cancel
@@ -2533,11 +2578,10 @@ function BankBalanceGrid({
                     <button
                       onClick={async () => {
                         setIsMarkingPaid(true);
-                        await onMarkAsPaid(confirmPaidId);
-                        setIsMarkingPaid(false);
-                        setConfirmPaidId(null);
+                        await onMarkAsPaid(confirmPaidId, Math.round(settledAmountValue * 100) / 100);
+                        closePaidModal();
                       }}
-                      disabled={isMarkingPaid}
+                      disabled={isMarkingPaid || !isSettledAmountValid}
                       className="px-4 py-2 text-sm text-white bg-accent hover:bg-accent-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-pill font-medium">
                       {isMarkingPaid ? (
                         <>

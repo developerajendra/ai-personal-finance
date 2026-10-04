@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import type { Investment, Loan, Property, BankBalance, PPFAccount } from '@/shared/types';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
+import { isSettledReceivable } from '@/shared/utils/receivables';
 
 export interface PortfolioSnapshot {
   investments: Investment[];
@@ -36,7 +37,9 @@ export function usePortfolioData() {
   const investments = data?.investments ?? (EMPTY as PortfolioSnapshot['investments']);
   const loans = data?.loans ?? (EMPTY as PortfolioSnapshot['loans']);
   const properties = data?.properties ?? (EMPTY as PortfolioSnapshot['properties']);
-  const bankBalances = data?.bankBalances ?? (EMPTY as PortfolioSnapshot['bankBalances']);
+  const allBankBalances = data?.bankBalances ?? (EMPTY as PortfolioSnapshot['bankBalances']);
+  // Paid receivables are history, not assets — the received money lives in another record now
+  const bankBalances = useMemo(() => allBankBalances.filter((bb) => !isSettledReceivable(bb)), [allBankBalances]);
   const stocks = data?.stocks ?? (EMPTY as PortfolioSnapshot['stocks']);
   const mutualFunds = data?.mutualFunds ?? (EMPTY as PortfolioSnapshot['mutualFunds']);
   const ppfAccounts = data?.ppfAccounts ?? (EMPTY as PortfolioSnapshot['ppfAccounts']);

@@ -12,7 +12,7 @@ export const bankBalanceService = createEntityService({
   updateSchema: bankBalanceUpdateSchema,
   clearable: [
     "accountNumber", "assetType", "originalAmount", "originalCurrency", "description",
-    "issueDate", "dueDate", "interestRate", "paidDate", "tags",
+    "issueDate", "dueDate", "interestRate", "paidDate", "settledAmount", "tags",
   ],
   toValues: (parsed, { id, now, isPublished }): bankBalanceRepo.BankBalanceValues => ({
     ...parsed,

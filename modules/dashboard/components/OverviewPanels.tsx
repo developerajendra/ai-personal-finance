@@ -235,7 +235,7 @@ export function BalanceSheetPanel({ classes, assets, liabilities, netWorth }: { 
       <PanelHeader title="Balance sheet" action={<PanelLink onClick={() => setExplain(!explain)}>How net worth is calculated</PanelLink>} />
       {explain && (
         <p className="mb-3 rounded-[12px] bg-tile px-4 py-3 text-[13px] leading-relaxed text-muted">
-          Net worth = every published asset at its current value (bank balances, deposits at their rule-based value, Zerodha holdings at last price, EPF/PPF balances, property estimates, receivables with agreed interest) minus outstanding loans. Drafts and closed records are excluded.
+          Net worth = every published asset at its current value (bank balances, deposits at their rule-based value, Zerodha holdings at last price, EPF/PPF balances, property estimates, unpaid receivables with agreed interest) minus outstanding loans. Drafts, closed records and paid receivables are excluded.
         </p>
       )}
       <ul>

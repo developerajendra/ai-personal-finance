@@ -143,6 +143,7 @@ export const bankBalanceInputSchema = z.object({
   dueDate: optionalDate,
   interestRate: optionalNumber,
   paidDate: optionalDate,
+  settledAmount: optionalMoneySchema,
   tags: tagsSchema,
 });
 export const bankBalanceUpdateSchema = bankBalanceInputSchema.omit({ id: true }).partial();

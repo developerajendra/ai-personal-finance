@@ -14,6 +14,7 @@ import * as mutualFundRepo from "@/server/db/repositories/mutualFundRepository";
 import * as ppfAccountRepo from "@/server/db/repositories/ppfAccountRepository";
 import * as loanSnapshotRepo from "@/server/db/repositories/loanSnapshotRepository";
 import { getInvestmentValueAtDate } from "@/shared/utils/investmentValue";
+import { isSettledReceivable } from "@/shared/utils/receivables";
 import type {
   Investment,
   Loan,
@@ -72,7 +73,7 @@ export async function calculateSnapshotAsOfDate(
     allInvestments,
     allLoans,
     allProperties,
-    bankBalances,
+    allBankBalances,
     transactions,
     allStocks,
     allMutualFunds,
@@ -87,6 +88,8 @@ export async function calculateSnapshotAsOfDate(
     mutualFundRepo.findByUserId(userId),
     ppfAccountRepo.findByUserId(userId),
   ]);
+
+  const bankBalances = allBankBalances.filter((bb) => !isSettledReceivable(bb, asOfDate));
 
   const filteredInvestments = allInvestments.filter((inv) => {
     if (!inv.isPublished) return false;

@@ -1,0 +1,1 @@
+ALTER TABLE `bank_balances` ADD `settled_amount` real;
