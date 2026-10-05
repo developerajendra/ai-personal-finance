@@ -10,9 +10,8 @@ export async function GET() {
     }
     const userId = session.userId;
 
-    const [zerodhaConfigs, gmailConfigs, aiConfigs] = await Promise.all([
+    const [zerodhaConfigs, aiConfigs] = await Promise.all([
       userConfigRepo.getConfigsByProvider(userId, "zerodha"),
-      userConfigRepo.getConfigsByProvider(userId, "gmail"),
       userConfigRepo.getConfigsByProvider(userId, "ai"),
     ]);
 
@@ -28,10 +27,6 @@ export async function GET() {
           ? "configured"
           : null,
         hasConfig: zerodhaConfigs.length > 0,
-      },
-      gmail: {
-        hasTokens:
-          !!gmailConfigs.find((c) => c.configKey === "access_token")?.configValue,
       },
       ai: {
         api_key: aiConfigs.find((c) => c.configKey === "api_key")?.configValue

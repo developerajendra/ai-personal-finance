@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Investment, Loan, Property, BankBalance, PortfolioCategory } from '@/shared/types';
-import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Mail, Lock, Tag, Copy, Clock, XOctagon, Undo2, Search, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, CheckCircle, Circle, MoreVertical, Check, XCircle, Loader2, RefreshCw, Lock, Tag, Copy, Clock, XOctagon, Undo2, Search, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { Drawer, UnderlineTabs } from '@/shared/components/ui';
 import { RowActions } from './RowActions';
@@ -64,7 +64,6 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
   const [isClosing, setIsClosing] = useState<string | null>(null);
   const [isUndoingClose, setIsUndoingClose] = useState<string | null>(null);
   const [isLoadingCounts, setIsLoadingCounts] = useState(false);
-  const [isSyncingGmail, setIsSyncingGmail] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [categorySlug, setCategorySlug] = useState('');
@@ -916,53 +915,6 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
     console.log(`[PortfolioGrid] Item keys:`, Object.keys(items[0]));
   }
 
-  const handleSyncGmail = async () => {
-    setIsSyncingGmail(true);
-    try {
-      // Check if Gmail is connected
-      const statusResponse = await fetch('/api/gmail/status');
-      const statusData = await statusResponse.json();
-      
-      if (statusData.isConnected || statusData.hasTokens) {
-        // Process emails
-        const processResponse = await fetch('/api/agents/email/process', { method: 'POST' });
-        const processData = await processResponse.json();
-        
-        if (processData.success) {
-          const processedCount = processData.result?.processedCount || 0;
-          const investmentCount = processData.result?.investmentCount || 0;
-          
-          // Show success message
-          setToast({
-            message: `Synced: Processed ${processedCount} emails, created ${investmentCount} investments`,
-            type: 'success'
-          });
-          
-          // Refresh the data
-          await fetchItems();
-        } else {
-          setToast({
-            message: processData.error || 'Failed to sync emails',
-            type: 'error'
-          });
-        }
-      } else {
-        setToast({
-          message: 'Gmail not connected. Please login with Gmail first.',
-          type: 'error'
-        });
-      }
-    } catch (error: any) {
-      console.error('Error syncing Gmail data:', error);
-      setToast({
-        message: error.message || 'Error syncing Gmail data',
-        type: 'error'
-      });
-    } finally {
-      setIsSyncingGmail(false);
-    }
-  };
-
   const handleCreateCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
@@ -1037,24 +989,6 @@ export function PortfolioGrid({ defaultTab = 'investment', lockedTab, addRequest
       <div className="px-6 pt-[22px]">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[19px] text-ink">{lockedTab ? `All ${tabLabels[lockedTab].toLowerCase()}` : 'Portfolio management'}</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleSyncGmail}
-              disabled={isSyncingGmail}
-              className="btn btn-secondary">
-              {isSyncingGmail ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <Mail className="w-4 h-4" />
-                  Sync Gmail
-                </>
-              )}
-            </button>
-          </div>
         </div>
 
         {/* Category Creation Form */}

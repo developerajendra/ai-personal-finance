@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { ChevronRight, PanelLeftClose, Search, LogOut, Mail, X, Tag as TagIcon } from 'lucide-react';
+import { ChevronRight, PanelLeftClose, Search, LogOut, X, Tag as TagIcon } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { cn } from '@/shared/utils/cn';
 import { PortfolioCategory } from '@/shared/types';
@@ -45,9 +45,6 @@ export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSear
   const [flyout, setFlyout] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [gmailStatus, setGmailStatus] = useState<{
-    isConnected: boolean;
-  } | null>(null);
   const [portfolioCategories, setPortfolioCategories] = useState<
     PortfolioCategory[]
   >([]);
@@ -126,30 +123,6 @@ export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSear
     }
   };
 
-  // Check Gmail status
-  useEffect(() => {
-    const checkGmailStatus = async () => {
-      try {
-        const response = await fetch('/api/gmail/status');
-        const data = await response.json();
-        setGmailStatus({ isConnected: data.isConnected || data.hasTokens });
-      } catch (error) {
-        console.error('Error checking Gmail status:', error);
-      }
-    };
-    checkGmailStatus();
-    // Once a minute, and only while the tab is visible (was every 10s on every page)
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') checkGmailStatus();
-    }, 60000);
-    const onVisible = () => document.visibilityState === 'visible' && checkGmailStatus();
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
-  }, []);
-
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -179,8 +152,6 @@ export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSear
 
     setIsLoggingOut(true);
     try {
-      // Clear Gmail cookies / agent tokens (best-effort; do not block app sign-out)
-      await fetch('/api/gmail/disconnect', { method: 'POST' }).catch(() => undefined);
       await signOut({ callbackUrl: '/auth/signin' });
     } catch (error) {
       console.error('Error logging out:', error);
@@ -418,7 +389,7 @@ export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSear
         ))}
       </div>
 
-      {/* Profile row — opens the account menu (Gmail status + logout) */}
+      {/* Profile row — opens the account menu (logout) */}
       <div className="relative border-t border-side-rule pt-3" ref={userMenuRef}>
         <button
           type="button"
@@ -428,9 +399,6 @@ export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSear
           aria-label="Account menu">
           <span className="relative flex-none">
             <Avatar name={userName} size={32} />
-            {gmailStatus?.isConnected && (
-              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--color-bg)] bg-gain" title="Gmail connected" />
-            )}
           </span>
           <Fold collapsed={isCollapsed} className="min-w-0 flex-1 leading-tight">
             <span className="block truncate text-[14px] font-semibold">{userName}</span>
@@ -444,10 +412,7 @@ export function Sidebar({ onOpenSearch, hidden = false, onToggle }: { onOpenSear
               <Avatar name={userName} size={36} />
               <div className="min-w-0">
                 <p className="truncate text-[14px] font-semibold">{userName}</p>
-                <p className={cn('mt-0.5 flex items-center gap-1.5 text-[12px]', gmailStatus?.isConnected ? 'text-gain' : 'text-muted')}>
-                  <Mail className="h-3 w-3" />
-                  {gmailStatus?.isConnected ? 'Gmail Connected' : 'Not Connected'}
-                </p>
+                <p className="mt-0.5 truncate text-[12px] text-muted">{session?.user?.email || 'Signed in'}</p>
               </div>
             </div>
             <button

@@ -4,7 +4,6 @@ import {
   ProviderConfigurationError,
   type LLMProvider,
 } from "@/server/ai/contracts";
-import { extractJsonObject } from "@/server/ai/contracts/json";
 import { createAnthropicProvider } from "./anthropic/adapter";
 import { createGeminiProvider } from "./gemini/adapter";
 import { createOllamaProvider } from "./ollama/adapter";
@@ -45,23 +44,4 @@ export function createProvider(id: AIProviderId): LLMProvider {
     case "ollama":
       return createOllamaProvider(config.ollama);
   }
-}
-
-/** One-shot text generation with the provider configured for `useCase`. */
-export async function generateText(useCase: AIUseCase, prompt: string, system = ""): Promise<string> {
-  const provider = getProvider(useCase);
-  const { text } = await provider.generate({ system, messages: [{ role: "user", content: prompt }] });
-  return text;
-}
-
-/** One-shot JSON generation; the caller must still validate the shape. */
-export async function generateJson(
-  useCase: AIUseCase,
-  prompt: string,
-  system?: string
-): Promise<Record<string, unknown>> {
-  const instruction =
-    "CRITICAL: Return ONLY a valid JSON object. No markdown, no explanations, no text outside the JSON.";
-  const text = await generateText(useCase, `${prompt}\n\n${instruction}`, system ?? "");
-  return extractJsonObject(text);
 }

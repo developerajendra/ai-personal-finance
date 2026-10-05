@@ -54,11 +54,6 @@ const sections: LegalSection[] = [
         <h3>Services you choose to connect</h3>
         <ul>
           <li>
-            <strong>Gmail (optional, read-only).</strong> If you connect Gmail, we read messages to find financial emails such as statements, loan updates and
-            investment confirmations, and save the data we extract plus the IDs of emails already processed. Your Gmail access tokens are kept in secure,
-            HTTP-only cookies in your browser for up to 30 days. We never send, delete or modify your emails.
-          </li>
-          <li>
             <strong>Zerodha / Kite (optional).</strong> If you connect your broker account, we store your API credentials encrypted and keep a copy of your stock
             and mutual fund holdings so your portfolio loads quickly. We do not place orders or move money.
           </li>
@@ -165,7 +160,7 @@ const sections: LegalSection[] = [
               <li>Vercel: application hosting.</li>
               <li>Turso: database hosting.</li>
               <li>Meta: delivery of WhatsApp messages.</li>
-              <li>Google: Google sign-in, Gmail access if you connect it, and Gemini if it is the configured AI provider.</li>
+              <li>Google: Google sign-in and Gemini if it is the configured AI provider.</li>
               <li>Anthropic or OpenAI: if one of them is the configured AI provider.</li>
               <li>Zerodha: if you connect your broker account.</li>
             </ul>
@@ -227,7 +222,7 @@ const sections: LegalSection[] = [
             <strong>Correct</strong> any record by editing it in the app.
           </li>
           <li>
-            <strong>Disconnect</strong> Gmail, Zerodha or WhatsApp at any time in Settings.
+            <strong>Disconnect</strong> Zerodha or WhatsApp at any time in Settings.
           </li>
           <li>
             <strong>Delete</strong> individual records in the app, or your whole account as described below.

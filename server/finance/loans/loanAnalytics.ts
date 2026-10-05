@@ -49,13 +49,6 @@ export async function getEffectiveOutstandingAmount(
   return latest ? latest.outstandingAmount : loan.outstandingAmount;
 }
 
-export async function saveLoanMonthlySnapshot(
-  userId: string,
-  snapshot: LoanMonthlySnapshot
-): Promise<LoanMonthlySnapshot> {
-  return loanSnapshotRepo.upsert(userId, snapshot);
-}
-
 export async function getAvailableYearsForLoans(userId: string): Promise<number[]> {
   return loanSnapshotRepo.getAvailableYears(userId);
 }

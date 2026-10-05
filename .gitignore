@@ -45,14 +45,5 @@ next-env.d.ts
 /uploads/*
 !/uploads/.gitkeep
 
-# Gmail tokens (contains sensitive OAuth tokens)
-/data/gmail-tokens.json
-
-# PPF PDF files (contains sensitive financial data)
-/data/pfData/*.pdf
-
-# PPF PDF files (contains sensitive financial data)
-/data/pfData/*.pdf
-
 # database backups from scripts/db-preflight.mjs (contain personal data)
 /backups/

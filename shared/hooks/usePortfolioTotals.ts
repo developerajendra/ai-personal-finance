@@ -7,6 +7,7 @@ import type { BankBalance, Investment } from '@/shared/types';
 import { getCurrentInvestmentValue } from '@/shared/utils/investmentValue';
 import { usePortfolioData } from '@/shared/hooks/usePortfolioData';
 import { RETIREMENT_INVESTMENT_TYPES } from '@/shared/schemas/finance';
+export { receivableExpected } from '@/shared/utils/receivables';
 
 export type AssetClassKey = 'bank' | 'stocks' | 'pf' | 'property' | 'recv' | 'fd' | 'investments';
 
@@ -29,17 +30,6 @@ const STOCK_TYPES: Investment['type'][] = ['stocks', 'mutual-fund'];
 /** Fixed deposits get their own asset class; every other non-retirement, non-market record is an "other investment". */
 export const isFixedDeposit = (i: Investment) => i.type === 'fd';
 export const isRetirementInvestment = (i: Investment) => (RETIREMENT_INVESTMENT_TYPES as readonly string[]).includes(i.type);
-
-/** Expected receivable amount: principal plus simple interest to the due date (same rule as usePortfolioData). */
-export function receivableExpected(bb: BankBalance) {
-  const principal = bb.balance || 0;
-  if (!bb.interestRate || !bb.issueDate) return { principal, interest: 0, total: principal };
-  const issue = new Date(bb.issueDate);
-  const due = bb.dueDate ? new Date(bb.dueDate) : new Date();
-  const days = Math.max(0, Math.floor((due.getTime() - issue.getTime()) / 864e5));
-  const interest = principal * (bb.interestRate / 100) * (days / 365);
-  return { principal, interest, total: principal + interest };
-}
 
 /** Days from today to an ISO date (negative = past). */
 export function daysUntil(iso: string | undefined | null) {

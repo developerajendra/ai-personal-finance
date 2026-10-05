@@ -16,12 +16,12 @@ server/              Server-only logic — every module imports "server-only"
     orchestrator/    handleMessage(): shared by web chat and WhatsApp
     conversations/   User-scoped history + pending clarifications (DB)
     tools/           Model-callable tools → finance services
-  integrations/      gmail/ (agents, parsers), kite/, whatsapp/, finance-audit/
+  integrations/      kite/, whatsapp/
   imports/           Excel/Drive analysis + non-destructive portfolio import
   jobs/              Durable WhatsApp processing/sending with retries
   http/              Error → HTTP response mapping
 shared/              Client-safe: types/, schemas/ (zod), utils/ (money, currency), components/
-config/              server.ts (secrets, server-only) · constants.ts
+config/              server.ts (secrets, server-only)
 drizzle/             SQL migrations (review before applying)
 tests/               Vitest integration tests on a throwaway SQLite file
 ```
@@ -31,7 +31,7 @@ tests/               Vitest integration tests on a throwaway SQLite file
 - Routes never touch tables. They call finance services, and the services call repositories.
 - Every repository query filters on `user_id`. Services validate input with `shared/schemas/finance.ts`; zod strips unknown keys, so a request body cannot set `userId` or `id`.
 - Money is normalized to paise on write (`toMoney`), and aggregates are summed in integer paise (`sumMoney`).
-- Forms, imports, Gmail agents, web chat, and WhatsApp all write through the same services.
+- Forms, imports, web chat, and WhatsApp all write through the same services.
 - The model never supplies the acting user. `userId` comes from the session or a verified WhatsApp link.
 
 ## Verified issues fixed
@@ -54,12 +54,12 @@ tests/               Vitest integration tests on a throwaway SQLite file
 | `core/auth/*` | `server/auth/auth.ts`, `server/auth/session.ts` |
 | `core/types` | `shared/types` (now also holds Zerodha/PPF types) |
 | `core/services/currencyService`, `core/utils/investmentValueCalculator`, `scalabilityService` | `shared/utils/currency`, `shared/utils/investmentValue`, `shared/utils/pagination` |
-| `core/config/constants` | `config/constants` |
+| `core/config/constants` | **removed** (unused) |
 | `core/services/jsonStorageService` | **removed**; replaced by finance services |
 | `core/services/aiModelService` | **removed**; replaced by `server/ai/providers/index.ts` + `config/server.ts` |
 | `core/services/geminiService` | `server/ai/orchestrator/prompts.ts` + `orchestrator/index.ts` |
 | `geminiJsonService`, `ollamaService`, `ollamaCacheService` | `server/ai/providers/gemini/client.ts`, `ollama/client.ts`, `ollama/cache.ts` |
-| `gmailService`, `emailParserService`, `loanEmail*`, `loanReferenceDataService`, `core/agents/*` | `server/integrations/gmail/**` |
+| `gmailService`, `emailParserService`, `loanEmail*`, `loanReferenceDataService`, `core/agents/*` | **removed** (Gmail import dropped) |
 | `zerodhaService` | `server/integrations/kite/zerodhaService.ts` |
 | `mcpAuditService` | `server/integrations/finance-audit/mcpAuditService.ts` |
 | `excelAnalyzerService`, `cacheService`, `categoryLearningService` | `server/imports/excelAnalyzer.ts`, `analysisCache.ts`, `categoryLearning.ts` |

@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Panel, PanelHeader, StatusDot } from '@/shared/components/ui';
-import { GmailConnection } from './GmailConnection';
 
-/** Imports → Connections: Zerodha, Gmail (existing GmailConnection) and Google Drive. */
+/** Imports → Connections: Zerodha and Google Drive. */
 export function ConnectionsPanel() {
   const [isConnecting, setIsConnecting] = useState(false);
   // Same key + request as the Portfolio page, so this reuses its cache
@@ -49,9 +48,6 @@ export function ConnectionsPanel() {
         )}
       </div>
       <div className="pt-5">
-        <GmailConnection />
-      </div>
-      <div className="border-t border-divider pt-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-[16px] font-semibold">Google Drive</h3>

@@ -110,7 +110,7 @@ const sections: LegalSection[] = [
     title: 'Connected services',
     body: (
       <p>
-        You can connect third-party services such as Google (sign-in and read-only Gmail), Zerodha / Kite and WhatsApp. When you do, you allow us to access them on
+        You can connect third-party services such as Google sign-in, Zerodha / Kite and WhatsApp. When you do, you allow us to access them on
         your behalf as described in the Privacy Policy. Those services are provided by third parties under their own terms. We are not responsible for their
         availability or for the accuracy of the data they provide, and you can disconnect them at any time.
       </p>

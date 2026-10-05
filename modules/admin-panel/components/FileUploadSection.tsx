@@ -11,7 +11,6 @@ export function FileUploadSection() {
   const [googleDriveLink, setGoogleDriveLink] = useState("");
   const [fetchingDrive, setFetchingDrive] = useState(false);
   const [uploadMethod, setUploadMethod] = useState<"file" | "drive">("file");
-  const [activeTab, setActiveTab] = useState<"general" | "ppf">("general");
   const [dragOver, setDragOver] = useState(false);
   const [notice, setNotice] = useState<{ tone: "gain" | "loss"; text: string } | null>(null);
   const queryClient = useQueryClient();
@@ -186,42 +185,6 @@ export function FileUploadSection() {
     }, 1000);
   };
 
-  const handlePPFUpload = async () => {
-    if (files.length === 0) return;
-
-    setUploading(true);
-    try {
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("/api/modules/ppf-upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to upload ${file.name}`);
-        }
-
-        const result = await response.json();
-        console.log("PPF Upload result:", result);
-      }
-
-      alert("PPF PDFs uploaded and processed successfully! Check the Provident Fund page to view details.");
-      setFiles([]);
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error("PPF Upload error:", error);
-      alert("Failed to upload PPF files: " + (error as Error).message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const step = uploading || fetchingDrive ? 2 : 1;
   const steps = ["Choose source", "Process", "Review", "Publish"];
 
@@ -287,31 +250,17 @@ export function FileUploadSection() {
       </ol>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <span className="w-[92px] text-[14px]">Import type</span>
+        <span className="w-[92px] text-[14px]">Source</span>
         <Segmented
-          value={activeTab}
-          onChange={(v) => setActiveTab(v)}
+          value={uploadMethod}
+          onChange={(v) => setUploadMethod(v)}
           options={[
-            { value: "general", label: "General" },
-            { value: "ppf", label: "Provident fund" },
+            { value: "file", label: "File" },
+            { value: "drive", label: "Drive link" },
           ]}
-          ariaLabel="Import type"
+          ariaLabel="Source"
         />
       </div>
-      {activeTab === "general" && (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <span className="w-[92px] text-[14px]">Source</span>
-          <Segmented
-            value={uploadMethod}
-            onChange={(v) => setUploadMethod(v)}
-            options={[
-              { value: "file", label: "File" },
-              { value: "drive", label: "Drive link" },
-            ]}
-            ariaLabel="Source"
-          />
-        </div>
-      )}
 
       {notice && (
         <div
@@ -323,21 +272,14 @@ export function FileUploadSection() {
       )}
 
       <div className="mt-5">
-        {activeTab === "ppf" && (
-          <>
-            {dropzone(".pdf", "Choose EPFO passbook PDFs or drop them here", "PDF passbooks · details are extracted into your Retirement accounts")}
-            {files.length > 0 && fileList(handlePPFUpload, "Process PPF PDFs", "Processing PPF PDFs...")}
-          </>
-        )}
-
-        {activeTab === "general" && uploadMethod === "file" && (
+        {uploadMethod === "file" && (
           <>
             {dropzone(".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png,.webp", "Choose a file or drop it here", "Excel (.xlsx, .xls), CSV, PDF or images · AI extracts, categorises and organises the data")}
             {files.length > 0 && fileList(handleUpload, "Process files", "Uploading...")}
           </>
         )}
 
-        {activeTab === "general" && uploadMethod === "drive" && (
+        {uploadMethod === "drive" && (
           <div>
             <label className="field-label" htmlFor="drive-link">
               Google Drive spreadsheet link

@@ -8,7 +8,6 @@ import { AppearancePicker } from "@/shared/components/AppearancePicker";
 import { useTheme } from "@/shared/providers/ThemeProvider";
 import { WhatsAppLinkCard } from "@/modules/settings/components/WhatsAppLinkCard";
 import {
-  Mail,
   Save,
   Loader2,
   CheckCircle,
@@ -19,7 +18,6 @@ import {
 
 interface SettingsData {
   zerodha: { api_key: string | null; api_secret: string | null; hasConfig: boolean };
-  gmail: { hasTokens: boolean };
   ai: { api_key: string | null };
   user: { name: string | null; email: string };
 }
@@ -109,12 +107,6 @@ export default function SettingsPage() {
 
   const [zerodhaOpen, setZerodhaOpen] = useState(false);
   const { currency, setCurrency, hidden, setHidden } = useTheme();
-
-  const connectGmail = async () => {
-    const res = await fetch("/api/gmail/auth");
-    const { loginUrl } = await res.json();
-    if (loginUrl) window.location.href = loginUrl;
-  };
 
   return (
     <AppShell>
@@ -238,30 +230,6 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   )}
-                </li>
-                <li className="flex flex-wrap items-center justify-between gap-3 border-b border-divider py-4">
-                  <div>
-                    <div className="text-[15px] font-semibold">Gmail</div>
-                    <div className="mt-0.5 text-[13px] text-muted">Loan quarterly summaries, rate changes, investment confirmations</div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {settings?.gmail.hasTokens ? <StatusDot tone="gain">Connected</StatusDot> : <StatusDot>Not connected</StatusDot>}
-                    <Button variant="secondary" icon={Mail} onClick={connectGmail}>
-                      {settings?.gmail.hasTokens ? "Reconnect" : "Connect"}
-                    </Button>
-                    {settings?.gmail.hasTokens && (
-                      <Button
-                        variant="danger"
-                        icon={Trash2}
-                        onClick={async () => {
-                          await fetch("/api/gmail/disconnect", { method: "POST" });
-                          fetchSettings();
-                        }}
-                      >
-                        Disconnect
-                      </Button>
-                    )}
-                  </div>
                 </li>
                 <li className="flex flex-wrap items-center justify-between gap-3 py-4 last:pb-0">
                   <div>
